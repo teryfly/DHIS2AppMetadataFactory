@@ -1,0 +1,278 @@
+{
+  "id": "api-record-visit-write-page",
+  "kind": "golden",
+  "agentType": "API",
+  "stage": "PAGE_DESIGN",
+  "title": "A record page needs a write whose payload cites the approved elements, in the right order",
+  "note": "AI-AG-004, FR-API-001, FR-PG-002: a POST carrying requestBodyShape fields bound to Registry businessKeys, dependsOn stating the order the page can be used in, and no identifier anywhere — the resolver binds the object per environment.",
+  "context": {
+    "baseVersion": "12",
+    "decisionConfidenceThreshold": 0.7,
+    "extractionConfidenceThreshold": 0.7,
+    "mappingFrozen": true,
+    "items": [
+      {
+        "kind": "APPROVED_ENTRY",
+        "ref": "entry:pages/items/anc-visit-record",
+        "label": "pages/items/anc-visit-record",
+        "content": "{\"pageKey\": \"anc-visit-record\", \"name\": {\"default\": \"Record an antenatal visit\"}, \"purpose\": \"A midwife opens a woman's pregnancy and records today's visit.\", \"routes\": [\"/pregnancies/{trackedEntity}/visits/new\"], \"useCases\": [\"uc.recordVisit\"], \"actors\": [\"actor.midwife\"], \"registryRefs\": [\"reg.ancVisit.pregnancy\", \"reg.ancVisit.weight\", \"reg.ancVisit.bloodPressureSystolic\"], \"apiIntentRefs\": [], \"source\": {\"artifactId\": \"art-ancdesign000000000000002\", \"location\": \"section:pages\"}}"
+      },
+      {
+        "kind": "REGISTRY_ENTRY",
+        "ref": "entry:registry/entries/reg.ancVisit.weight",
+        "label": "registry/entries/reg.ancVisit.weight",
+        "content": "{\"businessKey\": \"reg.ancVisit.weight\", \"dhis2Type\": \"dataElement\", \"disposition\": \"CREATE\", \"status\": \"APPROVED\", \"code\": \"ANC_WEIGHT\", \"name\": \"Weight at visit (kg)\", \"controlledFields\": [\"name\", \"shortName\", \"valueType\"]}"
+      },
+      {
+        "kind": "REGISTRY_ENTRY",
+        "ref": "entry:registry/entries/reg.ancVisit.bloodPressureSystolic",
+        "label": "registry/entries/reg.ancVisit.bloodPressureSystolic",
+        "content": "{\"businessKey\": \"reg.ancVisit.bloodPressureSystolic\", \"dhis2Type\": \"dataElement\", \"disposition\": \"CREATE\", \"status\": \"APPROVED\", \"code\": \"ANC_BP_SYSTOLIC\", \"name\": \"Blood pressure, systolic\"}"
+      },
+      {
+        "kind": "INPUT_ARTIFACT",
+        "ref": "art-ancrecordform000000000001",
+        "label": "visit-form.md",
+        "content": "The paper form records: date of the visit, weight in kilograms, systolic blood pressure, and whether the urine dipstick was done. The midwife insists the screen must not let her save a visit for a pregnancy she did not open first."
+      }
+    ]
+  },
+  "expected": {
+    "summary": "Designed the write side of the record page: read the pregnancy the user came from, then create the visit event with the three collected values of the form, then close by re-reading the visit so the page shows what the server stored. The payload binds each field to its approved Registry businessKey instead of naming an object, and the order the midwife asked for is stated as dependsOn rather than left to the screen. Systolic blood pressure is one element on the form and two measurements on the paper, which is a mapping question and is raised here rather than designed around. No mapping, registry or architecture entry was written.",
+    "decisions": [
+      {
+        "id": "API-010",
+        "subject": "anc-record-save",
+        "selected": {
+          "option": "create the event and re-read it, rather than trusting the echo of the write"
+        },
+        "alternatives": [
+          {
+            "option": "trust the response body of the create call",
+            "reasonRejected": "Whether the create returns the stored event differs between supported versions, and the page has to show the stored value either way."
+          }
+        ],
+        "rationale": "The page's purpose is a record a person can trust after saving, so the confirmation of what was stored is a separate read.",
+        "risks": [
+          {
+            "description": "One extra call per save on a slow connection.",
+            "level": "LOW"
+          }
+        ],
+        "confidence": 0.8,
+        "impactLevel": "LOW"
+      }
+    ],
+    "patch": {
+      "baseVersion": "12",
+      "operations": [
+        {
+          "op": "add",
+          "path": "/apiIntents/items/-",
+          "value": {
+            "intentKey": "anc-record-open-pregnancy",
+            "pageKey": "anc-visit-record",
+            "operationKey": "loadPregnancy",
+            "purpose": "Read the pregnancy the user opened the page from, so the form knows what it is recording against.",
+            "resource": "tracker.trackedentity.get",
+            "method": "GET",
+            "pathParams": {
+              "trackedEntity": {
+                "from": "route",
+                "required": true
+              }
+            },
+            "queryParams": {
+              "program": {
+                "from": "registry",
+                "businessKey": "reg.ancVisit.pregnancy",
+                "required": true
+              }
+            },
+            "fields": [
+              "trackedEntity",
+              "enrollments[enrollment,status,program]",
+              "attributeValues[attribute,value]"
+            ],
+            "preconditions": [
+              "the tracked entity in the route is one the caller may read"
+            ],
+            "postconditions": [
+              "the page holds an active enrollment to record the visit against"
+            ],
+            "errorHandling": [
+              {
+                "condition": "no active enrollment exists",
+                "handling": "show the empty state explaining the pregnancy is not enrolled, and offer no save"
+              }
+            ],
+            "permissions": [
+              "TRACKED_ENTITY_VIEW"
+            ],
+            "registryRefs": [
+              "reg.ancVisit.pregnancy"
+            ],
+            "source": {
+              "artifactId": "art-ancrecordform000000000001",
+              "location": "line:1"
+            }
+          }
+        },
+        {
+          "op": "add",
+          "path": "/apiIntents/items/-",
+          "value": {
+            "intentKey": "anc-record-save",
+            "pageKey": "anc-visit-record",
+            "operationKey": "createVisit",
+            "purpose": "Record today's visit against the opened pregnancy.",
+            "resource": "tracker.event.create",
+            "method": "POST",
+            "queryParams": {
+              "program": {
+                "from": "registry",
+                "businessKey": "reg.ancVisit.pregnancy",
+                "required": true
+              }
+            },
+            "requestBodyShape": [
+              {
+                "field": "occurredAt",
+                "valueType": "DATE",
+                "required": true
+              },
+              {
+                "field": "attributeUpdated",
+                "valueType": "TEXT",
+                "required": false
+              },
+              {
+                "field": "dataValues",
+                "valueType": "COMPLEX",
+                "required": true,
+                "children": [
+                  {
+                    "field": "weight",
+                    "businessKey": "reg.ancVisit.weight",
+                    "valueType": "NUMBER",
+                    "required": true
+                  },
+                  {
+                    "field": "bloodPressureSystolic",
+                    "businessKey": "reg.ancVisit.bloodPressureSystolic",
+                    "valueType": "NUMBER",
+                    "required": false
+                  }
+                ]
+              }
+            ],
+            "dependsOn": [
+              "loadPregnancy"
+            ],
+            "preconditions": [
+              "loadPregnancy returned an active enrollment",
+              "every required field of the form validates"
+            ],
+            "postconditions": [
+              "the visit exists with the values the user entered, or nothing was created"
+            ],
+            "errorHandling": [
+              {
+                "condition": "a value is rejected by a validation rule",
+                "handling": "keep the form open, mark the rejected field, and do not discard what was typed"
+              },
+              {
+                "condition": "the write fails after one attempt",
+                "handling": "keep the payload on screen and let the user press save again; never send a second create silently"
+              }
+            ],
+            "permissions": [
+              "TRACKED_ENTITY_DATA_WRITE"
+            ],
+            "registryRefs": [
+              "reg.ancVisit.pregnancy",
+              "reg.ancVisit.weight",
+              "reg.ancVisit.bloodPressureSystolic"
+            ],
+            "source": {
+              "artifactId": "art-ancrecordform000000000001",
+              "location": "line:1"
+            }
+          }
+        },
+        {
+          "op": "add",
+          "path": "/apiIntents/items/-",
+          "value": {
+            "intentKey": "anc-record-confirm",
+            "pageKey": "anc-visit-record",
+            "operationKey": "readBackVisit",
+            "purpose": "Show the stored visit after a save, so what the screen displays is what the server kept.",
+            "resource": "tracker.event.get",
+            "method": "GET",
+            "pathParams": {
+              "event": {
+                "from": "previousCall",
+                "required": true
+              }
+            },
+            "fields": [
+              "event",
+              "occurredAt",
+              "dataValues[dataElement,value]"
+            ],
+            "dependsOn": [
+              "createVisit"
+            ],
+            "preconditions": [
+              "createVisit returned the identifier of the event it stored"
+            ],
+            "errorHandling": [
+              {
+                "condition": "the read back comes back empty after a successful write",
+                "handling": "warn that the record could not be confirmed and stay on the page; do not claim the visit is saved"
+              }
+            ],
+            "permissions": [
+              "TRACKED_ENTITY_VIEW"
+            ],
+            "registryRefs": [
+              "reg.ancVisit.weight"
+            ],
+            "source": {
+              "decisionId": "API-010"
+            }
+          }
+        }
+      ]
+    },
+    "questions": [
+      {
+        "id": "Q1",
+        "text": "The form has one box for blood pressure and the design has one element for the systolic figure. Is the diastolic reading collected too, and if so which mapped element holds it?",
+        "severity": "MEDIUM",
+        "affects": [
+          "anc-record-save",
+          "reg.ancVisit.bloodPressureSystolic"
+        ],
+        "suggestions": [
+          {
+            "id": "S1",
+            "text": "Only the systolic figure is collected",
+            "rationale": "Then the design is complete and the form's single box is the whole fact.",
+            "changesUid": false,
+            "regenerates": false
+          },
+          {
+            "id": "S2",
+            "text": "Both figures are collected and diastolic is missing from the Registry",
+            "rationale": "The payload cannot be finished here: an element has to be mapped first, which is a MAPPING change and not this page's to make.",
+            "changesUid": false,
+            "regenerates": true
+          }
+        ]
+      }
+    ],
+    "confidence": 0.8
+  }
+}

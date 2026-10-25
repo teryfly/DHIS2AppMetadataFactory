@@ -1,0 +1,280 @@
+{
+  "grammarVersion": "dhis2-2.41",
+  "description": "Golden corpus of DHIS2 2.41 expressions for the local parser (BP-VAL-021). Entries state the expression language, the expression, whether the parser must accept it, and the declared error codes it must report when it must reject it.",
+  "entries": [
+    {
+      "language": "programRule",
+      "expression": "#{systolic} > 140 && #{diastolic} > 90",
+      "expect": "ok",
+      "codes": []
+    },
+    {
+      "language": "programRule",
+      "expression": "yes == V#{consent} || no == V#{consent}",
+      "expect": "ok",
+      "codes": []
+    },
+    {
+      "language": "programRule",
+      "expression": "not (V#{flag}) && -#{offset} < 0",
+      "expect": "ok",
+      "codes": []
+    },
+    {
+      "language": "programRule",
+      "expression": "eventDate > dueDate && currentDate < incidenceDate",
+      "expect": "ok",
+      "codes": []
+    },
+    {
+      "language": "programRule",
+      "expression": "C#{alertThreshold} * 100 <= #{weight}",
+      "expect": "ok",
+      "codes": []
+    },
+    {
+      "language": "programRule",
+      "expression": "A#{age} >= 18 && !{city} == 'Kisumu' ? 1 : 0",
+      "expect": "ok",
+      "codes": []
+    },
+    {
+      "language": "programRule",
+      "expression": "V#{code} in ['1', '2', '3']",
+      "expect": "ok",
+      "codes": []
+    },
+    {
+      "language": "programRule",
+      "expression": "DV#{status} == 3 || RV#{status} == 4",
+      "expect": "ok",
+      "codes": []
+    },
+    {
+      "language": "programRule",
+      "expression": "d2:concatenate(#{first}, ' ', #{last}, '-', #{middle})",
+      "expect": "ok",
+      "codes": []
+    },
+    {
+      "language": "programRule",
+      "expression": "d2:countIf(#{a}, #{b}, 1) + d2:mask(#{phone}, '###-####') > 2",
+      "expect": "ok",
+      "codes": []
+    },
+    {
+      "language": "programRule",
+      "expression": "#{weight.coc} + #{height} >= 1.5 ? 'high' : 'low'",
+      "expect": "ok",
+      "codes": []
+    },
+    {
+      "language": "programRule",
+      "expression": "true or false and #{a} == 1",
+      "expect": "ok",
+      "codes": []
+    },
+    {
+      "language": "programIndicator",
+      "expression": "avg(#{glucose}) * C#{factor} >= 140",
+      "expect": "ok",
+      "codes": []
+    },
+    {
+      "language": "programIndicator",
+      "expression": "sum(#{weight}) / count(#{weight}) - min(#{a}, #{b}) <= max(#{c}, #{d})",
+      "expect": "ok",
+      "codes": []
+    },
+    {
+      "language": "programIndicator",
+      "expression": "if(#{a} > 1, 1, 0) + if(#{b} > 2, 2, 0) > 1",
+      "expect": "ok",
+      "codes": []
+    },
+    {
+      "language": "programIndicator",
+      "expression": "![default] * #{weight} >= 0",
+      "expect": "ok",
+      "codes": []
+    },
+    {
+      "language": "programIndicator",
+      "expression": "iR#{riskScore} >= 5 && !hasValue(#{dueDate})",
+      "expect": "ok",
+      "codes": []
+    },
+    {
+      "language": "programIndicator",
+      "expression": "D2:COUNT(#{enrollment}) > 3",
+      "expect": "ok",
+      "codes": []
+    },
+    {
+      "language": "programIndicator",
+      "expression": "registrationDate != enrollmentDate && programStage == 'ANTENATAL'",
+      "expect": "ok",
+      "codes": []
+    },
+    {
+      "language": "validationRule",
+      "expression": "#{de1} % 4 + ![defaultCoc] > C#{limit}",
+      "expect": "ok",
+      "codes": []
+    },
+    {
+      "language": "validationRule",
+      "expression": "today - yesterday == 1",
+      "expect": "ok",
+      "codes": []
+    },
+    {
+      "language": "validationRule",
+      "expression": "#{de1.coc} / #{de2.coc} >= 1.5",
+      "expect": "ok",
+      "codes": []
+    },
+    {
+      "language": "validationRule",
+      "expression": "-(#{de1} + #{de2}) < 0",
+      "expect": "ok",
+      "codes": []
+    },
+    {
+      "language": "programRule",
+      "expression": "#{a} == == 1",
+      "expect": "error",
+      "codes": [
+        "EXPR_UNEXPECTED_TOKEN"
+      ]
+    },
+    {
+      "language": "programRule",
+      "expression": "V#{flag} == 'x' &&",
+      "expect": "error",
+      "codes": [
+        "EXPR_MISSING_OPERAND"
+      ]
+    },
+    {
+      "language": "programRule",
+      "expression": "[1, 2",
+      "expect": "error",
+      "codes": [
+        "EXPR_UNBALANCED_BRACKET"
+      ]
+    },
+    {
+      "language": "programRule",
+      "expression": "d2:daysBetween(#{a}, #{b}, #{c})",
+      "expect": "error",
+      "codes": [
+        "EXPR_ARITY_MISMATCH"
+      ]
+    },
+    {
+      "language": "programRule",
+      "expression": "hasValue(#{a}, #{b})",
+      "expect": "error",
+      "codes": [
+        "EXPR_ARITY_MISMATCH"
+      ]
+    },
+    {
+      "language": "programRule",
+      "expression": "zingg(#{a}) > 1",
+      "expect": "error",
+      "codes": [
+        "EXPR_UNKNOWN_FUNCTION"
+      ]
+    },
+    {
+      "language": "programRule",
+      "expression": "d2:between(#{a}, #{b})",
+      "expect": "error",
+      "codes": [
+        "EXPR_UNKNOWN_FUNCTION"
+      ]
+    },
+    {
+      "language": "programRule",
+      "expression": "C#{a.b} > 1",
+      "expect": "error",
+      "codes": [
+        "EXPR_SUFFIX_NOT_ALLOWED"
+      ]
+    },
+    {
+      "language": "programRule",
+      "expression": "![coc] == 1",
+      "expect": "error",
+      "codes": [
+        "EXPR_REFERENCE_NOT_ALLOWED"
+      ]
+    },
+    {
+      "language": "programRule",
+      "expression": "#{a} > 1 ? 2",
+      "expect": "error",
+      "codes": [
+        "EXPR_MALFORMED_TERNARY"
+      ]
+    },
+    {
+      "language": "programRule",
+      "expression": "'fever",
+      "expect": "error",
+      "codes": [
+        "EXPR_UNTERMINATED_STRING"
+      ]
+    },
+    {
+      "language": "validationRule",
+      "expression": "#{a} and #{b}",
+      "expect": "error",
+      "codes": [
+        "EXPR_OPERATOR_NOT_ALLOWED"
+      ]
+    },
+    {
+      "language": "validationRule",
+      "expression": "D2:hasValue(#{a})",
+      "expect": "error",
+      "codes": [
+        "EXPR_REFERENCE_NOT_ALLOWED"
+      ]
+    },
+    {
+      "language": "validationRule",
+      "expression": "#{a} ? 1 : 2",
+      "expect": "error",
+      "codes": [
+        "EXPR_CONSTRUCT_NOT_ALLOWED"
+      ]
+    },
+    {
+      "language": "validationRule",
+      "expression": "![c",
+      "expect": "error",
+      "codes": [
+        "EXPR_UNCLOSED_REFERENCE"
+      ]
+    },
+    {
+      "language": "programIndicator",
+      "expression": "iR#{a.b} >= 1",
+      "expect": "error",
+      "codes": [
+        "EXPR_SUFFIX_NOT_ALLOWED"
+      ]
+    },
+    {
+      "language": "programIndicator",
+      "expression": "[1, 2] > #{a}",
+      "expect": "error",
+      "codes": [
+        "EXPR_CONSTRUCT_NOT_ALLOWED"
+      ]
+    }
+  ]
+}

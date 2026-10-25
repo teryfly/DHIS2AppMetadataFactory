@@ -1,0 +1,52 @@
+{
+  "dhis2Type": "programRuleVariable",
+  "resource": "metadata.programRuleVariable",
+  "payloadKey": "programRuleVariables",
+  "tier": 1,
+  "versionRange": ["2.41", "2.43"],
+  "requiredFields": ["name", "program"],
+  "dependencies": [
+    {
+      "field": "program",
+      "targetType": "program",
+      "required": true
+    },
+    {
+      "field": "programStage",
+      "targetType": "programStage",
+      "required": false
+    },
+    {
+      "field": "dataElement",
+      "targetType": "dataElement",
+      "required": false
+    },
+    {
+      "field": "trackedEntityAttribute",
+      "targetType": "trackedEntityAttribute",
+      "required": false
+    },
+    {
+      "field": "optionSet",
+      "targetType": "optionSet",
+      "required": false
+    }
+  ],
+  "controlableFields": ["name"],
+  "translatableFields": ["name"],
+  "forbiddenFields": [
+    "href",
+    "id",
+    "created",
+    "lastUpdated",
+    "access",
+    "displayUrl",
+    "externalAccess"
+  ],
+  "implicit": ["SHARING_FROM_ACCESS_MODEL"],
+  "template": "programRuleVariable.template.json",
+  "sortKey": "businessKey",
+  "rules": ["PTV_SOURCE_TYPE_DECLARED", "PTV_ONE_SOURCE_FIELD", "PTV_NAME_IS_EXPRESSION_KEY"],
+  "embeddedInParent": null,
+  "descriptorVersion": "1"
+}

@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-e2e/
+dist-ssr/
+*.local
+
+# Test artifacts
+coverage/
+playwright-report/
+test-results/
+blob-report/
+.playwright-mcp/
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.swp
+
+# Tooling caches
+.eslintcache
+*.tsbuildinfo
+node_modules/.tmp/
+
+# Env
+.env
+.env.*
+!.env.example

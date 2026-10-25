@@ -1,0 +1,49 @@
+{
+  "dhis2Type": "programRuleAction",
+  "resource": "metadata.programRule",
+  "payloadKey": "programRuleActions",
+  "tier": 1,
+  "versionRange": ["2.41", "2.43"],
+  "requiredFields": ["actionType"],
+  "dependencies": [
+    {
+      "field": "programRule",
+      "targetType": "programRule",
+      "required": true,
+      "wrapper": "programRuleActions"
+    },
+    {
+      "field": "dataElement",
+      "targetType": "dataElement",
+      "required": false
+    },
+    {
+      "field": "programStage",
+      "targetType": "programStage",
+      "required": false
+    },
+    {
+      "field": "programRuleVariable",
+      "targetType": "programRuleVariable",
+      "required": false
+    },
+    {
+      "field": "programStageSection",
+      "targetType": "programStageSection",
+      "required": false
+    }
+  ],
+  "controlableFields": [],
+  "translatableFields": [],
+  "forbiddenFields": ["href", "id", "lastUpdated"],
+  "implicit": [],
+  "template": "programRuleAction.template.json",
+  "sortKey": "businessKey",
+  "rules": [
+    "RA_TARGET_FIELDS_COMBINATION",
+    "RA_LOCATION_URI_FORMAT",
+    "RA_OWNED_BY_PROGRAM_RULE"
+  ],
+  "embeddedInParent": "programRule",
+  "descriptorVersion": "1"
+}

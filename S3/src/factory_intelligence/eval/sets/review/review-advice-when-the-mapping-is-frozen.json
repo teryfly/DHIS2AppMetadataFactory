@@ -1,0 +1,43 @@
+{
+  "id": "review-advice-when-the-mapping-is-frozen",
+  "kind": "golden",
+  "agentType": "REVIEW",
+  "stage": "REQUIREMENTS",
+  "title": "After ARCHITECTURE_GATE the assistant explains the consequence instead of writing a change",
+  "note": "AI-AG-006, AI-CHAT-002: with the mapping frozen a dialogue turn produces no patch at all; it names the change, the stage that would have to be reopened and the question a human has to answer.",
+  "context": {
+    "baseVersion": "33",
+    "decisionConfidenceThreshold": 0.7,
+    "extractionConfidenceThreshold": 0.7,
+    "mappingFrozen": true,
+    "items": [
+      {
+        "kind": "APPROVED_ENTRY",
+        "ref": "entry:requirements/items/req.visit.birthWeight",
+        "label": "requirements/items/req.visit.birthWeight",
+        "content": "{\"businessKey\": \"req.visit.birthWeight\", \"status\": \"CONFIRMED\", \"text\": \"Record the newborn's birth weight at the antenatal visit\"}"
+      },
+      {
+        "kind": "USER_ANSWER",
+        "ref": "chat:message",
+        "label": "stage dialogue message",
+        "content": "Birth weight should be a percentage of the mother's weight, not a number. Change the requirement."
+      }
+    ]
+  },
+  "expected": {
+    "summary": "A percentage of the mother's weight is a second measurement, not a different unit for the first one: the requirement would have to say that the mother's weight is recorded at the same visit, and the relationship would have to be stated before anything can map it. I am not rewriting req.visit.birthWeight in this panel — a change to what the business asked for is a decision at the REQUIREMENTS Gate by a named person, and the mapping stage that already consumed it would have to run again, producing a new Blueprint version. The question below is what a human answers first, because the two readings cost different things.",
+    "confidence": 0.75,
+    "decisions": [],
+    "questions": [
+      {
+        "id": "Q1",
+        "text": "Is the percentage a report-time calculation (both weights stored, the ratio computed in the dashboard), or a value captured at the visit? Only the second reading changes this requirement; the first leaves it as it is and adds nothing here.",
+        "severity": "HIGH",
+        "affects": [
+          "requirements/items/req.visit.birthWeight"
+        ]
+      }
+    ]
+  }
+}

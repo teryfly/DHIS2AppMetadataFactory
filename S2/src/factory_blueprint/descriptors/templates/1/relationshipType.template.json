@@ -1,0 +1,12 @@
+{
+  "name": "${name}",
+  "description": "${description}",
+  "code": "${code}",
+  "bidirectional": "${bidirectional}",
+  "aIsToB": "${aIsToB}",
+  "bIsToA": "${bIsToA}",
+  "trackedEntityA": { "id": "${trackedEntityA}" },
+  "trackedEntityB": { "id": "${trackedEntityB}" },
+  "translations": "${translations}",
+  "sharing": "${sharing}"
+}

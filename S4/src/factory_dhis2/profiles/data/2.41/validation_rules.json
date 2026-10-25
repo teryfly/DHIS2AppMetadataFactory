@@ -1,0 +1,35 @@
+{
+  "expressionGrammarVersion": "dhis2-2.41",
+  "rules": {
+    "metadata.import.requiresUidIdentifier": {
+      "severity": "BLOCKING",
+      "description": "identifier 必须为 ASSIGNED：S2 已在 UID 池里定好 UID，漂移检查与部署后验证都以 UID 寻址"
+    },
+    "metadata.import.atomicByDefault": {
+      "severity": "WARNING",
+      "description": "atomicMode=NONE 会让一次导入部分生效，执行报告的“已生效范围”必须逐对象说明"
+    },
+    "tracker.import.forbidsProduction": {
+      "severity": "BLOCKING",
+      "description": "DX-TRK-002：Tracker 数据导入禁止 PRODUCTION 类环境"
+    },
+    "discovery.orgUnitDepth bounded": {
+      "severity": "INFO",
+      "description": "DX-DSC-006：组织层级按配置深度读取，深度来自调用方范围"
+    }
+  },
+  "importReportErrorClasses": {
+    "REFERENCE_ERROR": "MAPPING",
+    "TYPE_ERROR": "MAPPING",
+    "SCHEMA_ERROR": "MAPPING",
+    "FIELD_ERROR": "MAPPING",
+    "IDENTIFIER_ERROR": "MAPPING",
+    "PAGE_ERROR": "PAGE_DESIGN",
+    "UI_ERROR": "PAGE_DESIGN",
+    "UNKNOWN": "MAPPING"
+  },
+  "notes": [
+    "DX-EXE-027：ImportReport 的标准化问题按错误类别映射回来源阶段，无法判定时归 MAPPING。",
+    "键名与 DHIS2 ImportReport 的 klass/errorClass 词汇对应，S2 不需要再猜。"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "name": "${name}",
+  "description": "${description}",
+  "code": "${code}",
+  "priority": "${priority}",
+  "orderInSection": "${orderInSection}",
+  "program": { "id": "${program}" },
+  "condition": "${condition}",
+  "programStages": "${programStages}",
+  "programRuleActions": "${programRuleActions}",
+  "translations": "${translations}",
+  "sharing": "${sharing}"
+}

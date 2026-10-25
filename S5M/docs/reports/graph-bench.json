@@ -1,0 +1,254 @@
+[
+  {
+    "arm": "svg",
+    "nodes": 1000,
+    "state": "collapsed",
+    "gesture": "pan",
+    "throttle": 4,
+    "viewport": "393px",
+    "draws": 91,
+    "dom": 9,
+    "loose": 0,
+    "groups": 9,
+    "sample": {
+      "frames": 191,
+      "dropped": 2,
+      "meanInterval": 16.749214660185167,
+      "p50Interval": 16.699999999999818,
+      "p95Interval": 16.799999999999727,
+      "worstInterval": 33.299999999999955,
+      "fps": 60
+    }
+  },
+  {
+    "arm": "svg",
+    "nodes": 1000,
+    "state": "collapsed",
+    "gesture": "pinch",
+    "throttle": 4,
+    "viewport": "393px",
+    "draws": 85,
+    "dom": 9,
+    "loose": 0,
+    "groups": 9,
+    "sample": {
+      "frames": 142,
+      "dropped": 3,
+      "meanInterval": 16.793661971663088,
+      "p50Interval": 16.699999999999818,
+      "p95Interval": 16.800000000000182,
+      "worstInterval": 33.30000000000018,
+      "fps": 60
+    }
+  },
+  {
+    "arm": "svg",
+    "nodes": 5000,
+    "state": "collapsed",
+    "gesture": "wheel",
+    "throttle": 1,
+    "viewport": "1280px",
+    "draws": 90,
+    "dom": 9,
+    "loose": 0,
+    "groups": 9,
+    "sample": {
+      "frames": 188,
+      "dropped": 0,
+      "meanInterval": 16.535638298379617,
+      "p50Interval": 16.699999999999818,
+      "p95Interval": 16.700000000000273,
+      "worstInterval": 16.800000000000182,
+      "fps": 60
+    }
+  },
+  {
+    "arm": "svg",
+    "nodes": 1000,
+    "state": "expanded",
+    "gesture": "pan",
+    "throttle": 4,
+    "viewport": "393px",
+    "draws": 91,
+    "dom": 1000,
+    "loose": 1000,
+    "groups": 0,
+    "sample": {
+      "frames": 242,
+      "dropped": 138,
+      "meanInterval": 37.1599173553719,
+      "p50Interval": 33.299999999999955,
+      "p95Interval": 83.40000000000055,
+      "worstInterval": 133.30000000000018,
+      "fps": 30
+    }
+  },
+  {
+    "arm": "svg",
+    "nodes": 1000,
+    "state": "expanded",
+    "gesture": "pinch",
+    "throttle": 4,
+    "viewport": "393px",
+    "draws": 85,
+    "dom": 1000,
+    "loose": 1000,
+    "groups": 0,
+    "sample": {
+      "frames": 177,
+      "dropped": 77,
+      "meanInterval": 110.58757062146893,
+      "p50Interval": 16.700000000000728,
+      "p95Interval": 433.3000000000011,
+      "worstInterval": 616.5999999999995,
+      "fps": 60
+    }
+  },
+  {
+    "arm": "svg",
+    "nodes": 5000,
+    "state": "expanded",
+    "gesture": "wheel",
+    "throttle": 1,
+    "viewport": "1280px",
+    "draws": 90,
+    "dom": 5000,
+    "loose": 5000,
+    "groups": 0,
+    "sample": {
+      "frames": 268,
+      "dropped": 177,
+      "meanInterval": 136.49813432835822,
+      "p50Interval": 100,
+      "p95Interval": 333.39999999999964,
+      "worstInterval": 550,
+      "fps": 10
+    }
+  },
+  {
+    "arm": "canvas",
+    "nodes": 1000,
+    "state": "collapsed",
+    "gesture": "pan",
+    "throttle": 4,
+    "viewport": "393px",
+    "draws": 92,
+    "dom": 0,
+    "loose": 0,
+    "groups": 9,
+    "sample": {
+      "frames": 206,
+      "dropped": 0,
+      "meanInterval": 16.597087378293566,
+      "p50Interval": 16.699999999999818,
+      "p95Interval": 16.799999999999727,
+      "worstInterval": 16.800000000000182,
+      "fps": 60
+    }
+  },
+  {
+    "arm": "canvas",
+    "nodes": 1000,
+    "state": "collapsed",
+    "gesture": "pinch",
+    "throttle": 4,
+    "viewport": "393px",
+    "draws": 92,
+    "dom": 0,
+    "loose": 0,
+    "groups": 9,
+    "sample": {
+      "frames": 152,
+      "dropped": 5,
+      "meanInterval": 17.149999999529438,
+      "p50Interval": 16.699999999999818,
+      "p95Interval": 16.799999999999955,
+      "worstInterval": 33.399999999999864,
+      "fps": 60
+    }
+  },
+  {
+    "arm": "canvas",
+    "nodes": 5000,
+    "state": "collapsed",
+    "gesture": "wheel",
+    "throttle": 1,
+    "viewport": "1280px",
+    "draws": 92,
+    "dom": 0,
+    "loose": 0,
+    "groups": 9,
+    "sample": {
+      "frames": 189,
+      "dropped": 5,
+      "meanInterval": 17.163492063365915,
+      "p50Interval": 16.699999999999818,
+      "p95Interval": 16.800000000000182,
+      "worstInterval": 50,
+      "fps": 60
+    }
+  },
+  {
+    "arm": "canvas",
+    "nodes": 1000,
+    "state": "expanded",
+    "gesture": "pan",
+    "throttle": 4,
+    "viewport": "393px",
+    "draws": 93,
+    "dom": 0,
+    "loose": 1000,
+    "groups": 0,
+    "sample": {
+      "frames": 257,
+      "dropped": 96,
+      "meanInterval": 40.155642023624615,
+      "p50Interval": 16.700000000000045,
+      "p95Interval": 100.10000000000036,
+      "worstInterval": 150.10000000000036,
+      "fps": 60
+    }
+  },
+  {
+    "arm": "canvas",
+    "nodes": 1000,
+    "state": "expanded",
+    "gesture": "pinch",
+    "throttle": 4,
+    "viewport": "393px",
+    "draws": 95,
+    "dom": 0,
+    "loose": 1000,
+    "groups": 0,
+    "sample": {
+      "frames": 161,
+      "dropped": 34,
+      "meanInterval": 29.216149068471065,
+      "p50Interval": 16.699999999999818,
+      "p95Interval": 100,
+      "worstInterval": 200,
+      "fps": 60
+    }
+  },
+  {
+    "arm": "canvas",
+    "nodes": 5000,
+    "state": "expanded",
+    "gesture": "wheel",
+    "throttle": 1,
+    "viewport": "1280px",
+    "draws": 93,
+    "dom": 0,
+    "loose": 5000,
+    "groups": 0,
+    "sample": {
+      "frames": 187,
+      "dropped": 72,
+      "meanInterval": 26.69679144385027,
+      "p50Interval": 16.700000000000273,
+      "p95Interval": 50,
+      "worstInterval": 166.59999999999945,
+      "fps": 60
+    }
+  }
+]

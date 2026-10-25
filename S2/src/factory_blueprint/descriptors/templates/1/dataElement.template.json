@@ -1,0 +1,14 @@
+{
+  "name": "${name}",
+  "shortName": "${shortName}",
+  "description": "${description}",
+  "formName": "${formName}",
+  "code": "${code}",
+  "valueType": "${valueType}",
+  "domainType": "${domainType}",
+  "categoryCombo": { "id": "${categoryCombo}" },
+  "optionSet": { "id": "${optionSet}" },
+  "commentOptionSet": { "id": "${commentOptionSet}" },
+  "translations": "${translations}",
+  "sharing": "${sharing}"
+}

@@ -1,0 +1,52 @@
+{
+  "schemas": [
+    {
+      "dhis2Type": "dataElement",
+      "required": ["name", "shortName", "valueType", "domainType", "categoryCombo"],
+      "forbidden": ["lastUpdated", "href", "id", "access"],
+      "controlableFields": [
+        "name",
+        "shortName",
+        "description",
+        "formName",
+        "displayFormName",
+        "valueType",
+        "domainType",
+        "aggregationType",
+        "optionSet",
+        "categoryComboUid",
+        "zeroStorageType"
+      ],
+      "properties": {}
+    },
+    {
+      "dhis2Type": "optionSet",
+      "required": ["name"],
+      "forbidden": ["lastUpdated", "href", "id", "access"],
+      "controlableFields": ["name", "description", "version", "optionCount", "code", "nameLocale"],
+      "properties": {}
+    },
+    {
+      "dhis2Type": "program",
+      "required": ["name", "programType"],
+      "forbidden": ["lastUpdated", "href", "id", "access"],
+      "controlableFields": [
+        "name",
+        "shortName",
+        "description",
+        "programType",
+        "selectIncidentDatesInFuture",
+        "useFirstStageDuringRegistration",
+        "displayFrontPage",
+        "accessLevel"
+      ],
+      "properties": {}
+    }
+  ],
+  "notes": [
+    "本文件是**离线基线**：required 与 controlableFields 的权威来源是实例自身的 /api/schemas",
+    "（0.2 权威顺序第 1、2 条）。capability/probe.py 会按发现范围同步并写入 CAPABILITY_PROFILE",
+    "产物，S2 读的永远是合成后的产物，不是这里（DX-CAP-003：禁止运行时猜测）。",
+    "properties 留空即表示“由实例补齐”；forbidden 是 DX-EXE-040 读回比对时不比较的字段。"
+  ]
+}

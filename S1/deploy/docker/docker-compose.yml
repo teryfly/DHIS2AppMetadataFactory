@@ -1,0 +1,104 @@
+# Development and evaluation stack (CP-RT-002): PostgreSQL, Temporal, MinIO,
+# factory-api, factory-worker and the S5 static front end.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: factory
+      POSTGRES_PASSWORD: factory
+      POSTGRES_DB: factory
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U factory"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  temporal:
+    image: temporalio/auto-setup:latest
+    environment:
+      DB: postgresql
+      DB_PORT: "5432"
+      POSTGRES_USER: factory
+      POSTGRES_PWD: factory
+      POSTGRES_SEEDS: postgres
+      DYNAMIC_CONFIG_FILE_PATH: config/dynamicconfig/development-sql.yaml
+    depends_on:
+      postgres: {condition: service_healthy}
+    ports: ["7233:7233"]
+
+  temporal-ui:
+    image: temporalio/ui:latest
+    environment: {TEMPORAL_ADDRESS: "temporal:7233"}
+    depends_on: [temporal]
+    ports: ["8233:8080"]
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment: {MINIO_ROOT_USER: factory, MINIO_ROOT_PASSWORD: factory}
+    volumes: ["objectstore:/data"]
+    ports: ["9000:9000", "9001:9001"]
+
+  minio-init:
+    # the private bucket must exist before S0 can stage content into it
+    image: minio/mc:latest
+    depends_on: [minio]
+    restart: "no"
+    entrypoint:
+      - sh
+      - -c
+      - |
+        mc alias set local http://minio:9000 factory factory
+        mc mb --ignore-existing local/factory
+
+  factory-api:
+    build: {context: ../.., dockerfile: S1/deploy/docker/Dockerfile}
+    command: ["factory-api"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://factory:factory@postgres:5432/factory
+      OBJECT_STORE_URL: s3://factory?endpoint_url=http://minio:9000&aws_access_key_id=factory&aws_secret_access_key=factory
+      SECRET_BACKEND: env
+      FACTORY_WORKFLOW_ENGINE: temporal
+      FACTORY_PROVIDER_MODE: auto
+      # M4 identity and permissions (CP-IAM-002). ``off`` keeps the MVP's declared-operator
+      # regime; local|oidc|both requires FACTORY_HTTPS_ONLY=true, and the OIDC client secret and
+      # the bootstrap administrator's password arrive as Secret references, never as values.
+      FACTORY_AUTH_MODE: ${FACTORY_AUTH_MODE:-off}
+      FACTORY_SESSION_IDLE_MINUTES: ${FACTORY_SESSION_IDLE_MINUTES:-30}
+      FACTORY_SESSION_ABSOLUTE_HOURS: ${FACTORY_SESSION_ABSOLUTE_HOURS:-12}
+      FACTORY_OIDC_ISSUER: ${FACTORY_OIDC_ISSUER:-}
+      FACTORY_OIDC_CLIENT_ID: ${FACTORY_OIDC_CLIENT_ID:-}
+      FACTORY_OIDC_CLIENT_SECRET_REF: ${FACTORY_OIDC_CLIENT_SECRET_REF:-}
+      FACTORY_BOOTSTRAP_ADMIN_SUBJECT: ${FACTORY_BOOTSTRAP_ADMIN_SUBJECT:-}
+      FACTORY_BOOTSTRAP_ADMIN_SECRET_REF: ${FACTORY_BOOTSTRAP_ADMIN_SECRET_REF:-}
+      FACTORY_MIGRATIONS_MODE: apply
+      FACTORY_TEMPORAL_TARGET: temporal:7233
+      # the interim S4 fake must know these keys before a project can use them
+      FACTORY_FAKE_ENVIRONMENTS: dev:TEST,prod:PRODUCTION
+    depends_on:
+      postgres: {condition: service_healthy}
+      temporal: {condition: service_started}
+      minio-init: {condition: service_completed_successfully}
+    ports: ["8080:8080"]
+
+  factory-worker:
+    build: {context: ../.., dockerfile: S1/deploy/docker/Dockerfile}
+    command: ["factory-worker"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://factory:factory@postgres:5432/factory
+      OBJECT_STORE_URL: s3://factory?endpoint_url=http://minio:9000&aws_access_key_id=factory&aws_secret_access_key=factory
+      SECRET_BACKEND: env
+      FACTORY_WORKFLOW_ENGINE: temporal
+      FACTORY_PROVIDER_MODE: auto
+      FACTORY_MIGRATIONS_MODE: off
+      FACTORY_TEMPORAL_TARGET: temporal:7233
+      FACTORY_FAKE_ENVIRONMENTS: dev:TEST,prod:PRODUCTION
+    depends_on: [factory-api]
+
+  factory-ui:
+    image: nginx:alpine
+    volumes: ["../../S5/dist:/usr/share/nginx/html:ro"]
+    ports: ["8081:80"]
+
+volumes: {pgdata: {}, objectstore: {}}

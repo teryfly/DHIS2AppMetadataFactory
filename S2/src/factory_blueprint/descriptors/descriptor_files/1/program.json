@@ -1,0 +1,57 @@
+{
+  "dhis2Type": "program",
+  "resource": "metadata.program",
+  "payloadKey": "programs",
+  "tier": 1,
+  "versionRange": ["2.41", "2.43"],
+  "requiredFields": ["name", "shortName", "programType", "categoryCombo"],
+  "dependencies": [
+    {
+      "field": "trackedEntity",
+      "targetType": "trackedEntityType",
+      "required": false
+    },
+    {
+      "field": "categoryCombo",
+      "targetType": "categoryCombo",
+      "required": true
+    },
+    {
+      "field": "programStages",
+      "targetType": "programStage",
+      "required": false,
+      "itemField": "program",
+      "wrapper": "programStages"
+    }
+  ],
+  "controlableFields": [
+    "name",
+    "shortName",
+    "description",
+    "formName",
+    "executionDateLabel",
+    "incidentDateLabel",
+    "displayIncidentDate"
+  ],
+  "translatableFields": ["name", "shortName", "description", "formName"],
+  "forbiddenFields": [
+    "href",
+    "id",
+    "created",
+    "lastUpdated",
+    "access",
+    "displayUrl",
+    "externalAccess"
+  ],
+  "implicit": ["PROGRAM_TRACKED_ENTITY_OR_EVENT", "SHARING_FROM_ACCESS_MODEL"],
+  "template": "program.template.json",
+  "sortKey": "businessKey",
+  "rules": [
+    "PROGRAM_TYPE_DECLARED",
+    "PROGRAM_ACCESS_LEVEL_DECLARED",
+    "PROGRAM_CATEGORY_COMBO_RESOLVED",
+    "PROGRAM_SCOPE_IS_ENVIRONMENT_DATA"
+  ],
+  "embeddedInParent": null,
+  "descriptorVersion": "1"
+}

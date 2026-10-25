@@ -1,0 +1,114 @@
+[project]
+name = "factory-blueprint"
+version = "0.2.0"
+description = "S2 Blueprint 与构建 (Blueprint & Build) — DAMF semantic source of truth: Blueprint versions/drafts/patches, Metadata Registry & UIDs, type descriptors, deterministic compilers, three-layer validation, object-level diff, export/import."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Proprietary" }
+authors = [{ name = "DAMF S2 Team" }]
+dependencies = [
+    "factory-foundation>=0.1.0",
+    "SQLAlchemy>=2.0,<3.0",
+    "alembic>=1.13,<2.0",
+    "pydantic>=2.7,<3.0",
+    "jsonschema>=4.21,<5.0",
+    "referencing>=0.35",
+    # the OpenAPI product is a .yaml file (overall SRS 17.1), so its bytes are
+    # written by a real serialiser rather than by hand
+    "PyYAML>=6.0,<7.0",
+    "python-ulid>=2.2,<4.0",
+    "typing-extensions>=4.9",
+]
+
+[project.optional-dependencies]
+# SRS chapter 8 makes S4's four read-only functions a dependency of S2, but S1 and S3
+# install S2 editable and do not carry S4, so a core requirement would break their
+# resolves.  The integrator that runs both (S1's deployment) installs
+# `factory-blueprint[s4]`; `s4.adapter` imports lazily and names the missing package
+# when it is absent.
+s4 = ["factory-dhis2>=0.1.0"]
+dev = [
+    "factory-dhis2>=0.1.0",
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "mypy>=1.10",
+    "ruff>=0.5",
+    "types-PyYAML>=6.0",
+    "psycopg[binary]>=3.1,<4.0",
+]
+
+[tool.uv.sources]
+factory-foundation = { path = "../S0", editable = true }
+factory-dhis2 = { path = "../S4", editable = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/factory_blueprint"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/factory_blueprint/schemas" = "factory_blueprint/schemas"
+"src/factory_blueprint/descriptors/descriptor_files" = "factory_blueprint/descriptors/descriptor_files"
+"src/factory_blueprint/validators/expressions/grammars" = "factory_blueprint/validators/expressions/grammars"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+filterwarnings = ["ignore::DeprecationWarning"]
+markers = [
+    "perf: performance smoke test (skipped by default)",
+    "integration: requires PostgreSQL",
+]
+
+[tool.coverage.run]
+source = ["src/factory_blueprint"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
+fail_under = 85
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+# str/Enum and PEP-695 generics are deliberate for broad compatibility (same as S0).
+ignore = ["E501", "UP042", "UP046", "UP047"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+mypy_path = ["src", "../S0/src", "../S4/src"]
+packages = ["factory_blueprint"]
+
+[[tool.mypy.overrides]]
+module = "ulid.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "jsonschema.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "referencing.*"
+ignore_missing_imports = true
+
+# S4 ships a py.typed marker, so the adapter is checked against factory_dhis2's real
+# signatures; "silent" keeps S4's own diagnostics out of S2's build.
+[[tool.mypy.overrides]]
+module = "factory_dhis2.*"
+follow_imports = "silent"
+
+[[tool.mypy.overrides]]
+module = "factory_foundation.*"
+follow_imports = "silent"

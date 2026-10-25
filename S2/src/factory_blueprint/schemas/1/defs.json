@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://damf.invalid/bp/1/defs.json",
+  "description": "Shared definitions for Blueprint schema version 1. get_section_schema() inlines these so callers receive a self-contained schema.",
+  "definitions": {
+    "businessKey": {
+      "description": "Stable identity of an entry within its section (FR-BP-003). Lowercase first character, dot/underscore/colon/dash separated segments; never reassigned once published.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*([._:-][A-Za-z0-9_-]+)*$",
+      "minLength": 2,
+      "maxLength": 255
+    },
+    "pageKey": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+      "minLength": 2,
+      "maxLength": 128
+    },
+    "operationKey": {
+      "description": "Page-unique operation identifier (overall SRS 10.2).",
+      "type": "string",
+      "pattern": "^[a-z][A-Za-z0-9]*$",
+      "minLength": 2,
+      "maxLength": 128
+    },
+    "decisionId": {
+      "description": "Mapping or architecture decision identifier, e.g. MAP-017.",
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9]*-[A-Za-z0-9_-]+$",
+      "minLength": 3,
+      "maxLength": 64
+    },
+    "artifactId": {
+      "description": "Reference to an S0 artifact. Blueprint may only reference artifacts, never embed their content (FR-BP-002).",
+      "type": "string",
+      "pattern": "^art-[0-9A-Za-z]{10,40}$"
+    },
+    "locale": {
+      "type": "string",
+      "pattern": "^[a-z]{2}(-[A-Za-z0-9]{2,8})*$"
+    },
+    "source": {
+      "description": "Provenance of an entry (BP-SCH-005): which artifact and position it came from, and/or which decision produced it.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "artifactId": { "$ref": "#/definitions/artifactId" },
+        "location": { "type": "string", "maxLength": 512 },
+        "decisionId": { "$ref": "#/definitions/decisionId" },
+        "note": { "type": "string", "maxLength": 1024 }
+      },
+      "anyOf": [
+        { "required": ["artifactId"] },
+        { "required": ["decisionId"] },
+        { "required": ["note"] }
+      ]
+    },
+    "localizedText": {
+      "description": "A displayable field with translations (FR-COV-009). The default language comes from project.defaultLanguage; a missing translation is a WARNING, not an error.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["default"],
+      "properties": {
+        "default": { "type": "string", "maxLength": 4096 },
+        "translations": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/definitions/locale" },
+          "additionalProperties": { "type": "string", "maxLength": 4096 }
+        }
+      }
+    },
+    "confidence": {
+      "description": "Agent or user confidence in this entry, 0..1. Below generationPolicy.decisionConfidenceThreshold a decision needs a confirmation record (BP-DEC-004).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "confirmation": {
+      "description": "The user confirmation a low-confidence or high-impact decision needs (BP-DEC-004): either the Question that was answered and who answered it, or the operator of the human-authored patch. S2 never creates the Question; it only records the answer.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "questionId": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "answerer": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "answeredAt": { "$ref": "#/definitions/dateTime" },
+        "operator": { "type": "string", "minLength": 1, "maxLength": 128 }
+      },
+      "anyOf": [
+        { "required": ["questionId", "answerer"] },
+        { "required": ["operator"] }
+      ]
+    },
+    "impactLevel": {
+      "type": "string",
+      "enum": ["LOW", "MEDIUM", "HIGH"]
+    },
+    "dhis2Type": {
+      "description": "Logical DHIS2 metadata object type name as registered by a type descriptor (FR-COV-001).",
+      "type": "string",
+      "pattern": "^[a-z][A-Za-z0-9]*$",
+      "minLength": 3,
+      "maxLength": 64
+    },
+    "uid": {
+      "description": "DHIS2 object UID. Written by S2 only (P-04, BP-DRF-005.4): a patch carrying this field is rejected.",
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9]{10}$"
+    },
+    "code": {
+      "description": "Stable human-readable code. S2 generates codes from generationPolicy (FR-REG-008); a code observed on an existing environment object is copied verbatim because binding match relies on it (D-02), so lower case is allowed too.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+    },
+    "fieldValues": {
+      "description": "DHIS2 property values for a mapped object. Full metadata JSON must not be pasted in here (FR-BP-002): keys are DHIS2 property names, values are scalars, localizedText, lists of scalars or nested structures of the same shape.",
+      "type": "object",
+      "propertyNames": { "pattern": "^[a-z][A-Za-z0-9]{0,63}$" },
+      "additionalProperties": true
+    },
+    "disposition": {
+      "type": "string",
+      "enum": ["CREATE", "UPDATE", "REUSE", "REFERENCE", "EXTERNAL", "DEPRECATED"]
+    },
+    "entryStatus": {
+      "type": "string",
+      "enum": ["PROPOSED", "APPROVED"]
+    },
+    "dateTime": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|[+-]\\d{2}:\\d{2})$"
+    },
+    "sharing": {
+      "description": "Sharing intention compiled into the target version's sharing format (FR-COV-006).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["accessLevel", "publicAccess"],
+      "properties": {
+        "accessLevel": {
+          "type": "string",
+          "enum": ["NONE", "READ", "READ_WRITE", "VIEW", "EDIT", "OWNER"]
+        },
+        "publicAccess": { "type": "string", "enum": ["none", "view", "edit", "data"] },
+        "ownerRoles": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/businessKey" },
+          "uniqueItems": true
+        },
+        "externalRoles": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/businessKey" },
+          "uniqueItems": true
+        },
+        "userGroupAccesses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["userGroup", "access"],
+            "properties": {
+              "userGroup": { "$ref": "#/definitions/businessKey" },
+              "access": {
+                "type": "string",
+                "enum": ["NONE", "READ", "READ_WRITE", "CONTRIBUTE", "CREATE_ONLY", "METADATAWRITE", "REWRITE"]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

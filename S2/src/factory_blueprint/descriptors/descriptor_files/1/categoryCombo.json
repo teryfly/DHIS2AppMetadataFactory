@@ -1,0 +1,41 @@
+{
+  "dhis2Type": "categoryCombo",
+  "resource": "metadata.categoryCombo",
+  "payloadKey": "categoryCombos",
+  "tier": 1,
+  "versionRange": ["2.41", "2.43"],
+  "requiredFields": ["name"],
+  "dependencies": [
+    {
+      "field": "categoryOptions",
+      "targetType": "categoryOption",
+      "required": false,
+      "itemField": "id",
+      "wrapper": "categoryOptions"
+    },
+    {
+      "field": "categories",
+      "targetType": "category",
+      "required": false,
+      "itemField": "id",
+      "wrapper": "categories"
+    }
+  ],
+  "controlableFields": ["name", "shortName", "description"],
+  "translatableFields": ["name", "shortName", "description"],
+  "forbiddenFields": [
+    "href",
+    "id",
+    "created",
+    "lastUpdated",
+    "access",
+    "displayUrl",
+    "externalAccess"
+  ],
+  "implicit": ["SHARING_FROM_ACCESS_MODEL"],
+  "template": "categoryCombo.template.json",
+  "sortKey": "businessKey",
+  "rules": ["CC_MEMBERSHIP_PROPERTY_VERSIONED", "CC_COC_NAMES_FROM_MEMBERS"],
+  "embeddedInParent": null,
+  "descriptorVersion": "1"
+}

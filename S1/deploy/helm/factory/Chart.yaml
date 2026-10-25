@@ -1,0 +1,12 @@
+apiVersion: v2
+name: factory
+description: DAMF S1 Factory control plane — factory-api (REST + SSE) and factory-worker
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - dhis2
+  - factory
+  - s1
+maintainers:
+  - name: DAMF S1 Team

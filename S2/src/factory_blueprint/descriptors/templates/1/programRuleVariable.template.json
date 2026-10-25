@@ -1,0 +1,14 @@
+{
+  "name": "${name}",
+  "code": "${code}",
+  "program": { "id": "${program}" },
+  "programStage": { "id": "${programStage}" },
+  "dataElement": { "id": "${dataElement}" },
+  "trackedEntityAttribute": { "id": "${trackedEntityAttribute}" },
+  "optionSet": { "id": "${optionSet}" },
+  "sourceType": "${sourceType}",
+  "sourceField": "${sourceField}",
+  "valueType": "${valueType}",
+  "translations": "${translations}",
+  "sharing": "${sharing}"
+}

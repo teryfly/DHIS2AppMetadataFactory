@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1280" />
+    <meta name="theme-color" content="#125f8e" />
+    <title>Factory UI — DHIS2 Metadata Factory</title>
+    <!--
+      Runtime configuration (UI-APP-005): loaded before the app bundle so the same image
+      can point at a different S1 per environment. Missing file falls back to same-origin.
+    -->
+    <script src="/config.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>Factory UI requires JavaScript to run. Factory UI 需要启用 JavaScript。</noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

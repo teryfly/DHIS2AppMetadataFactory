@@ -1,0 +1,94 @@
+{
+  "checks": [
+    {
+      "dhis2Type": "dataElement",
+      "fallback": "HAS_DATA",
+      "checks": [
+        {
+          "label": "dataValues",
+          "resource": "dataValues.query",
+          "params": { "dataElement": "{uid}", "pageSize": "1" },
+          "nonEmptyMeans": "HAS_DATA"
+        },
+        {
+          "label": "eventOrTrackerUse",
+          "resource": "metadata.read",
+          "dhis2Type": "programStageDataElement",
+          "params": { "filter": "dataElement.id:eq:{uid}", "pageSize": "1" },
+          "nonEmptyMeans": "HAS_DATA"
+        }
+      ]
+    },
+    {
+      "dhis2Type": "trackedEntityAttribute",
+      "fallback": "HAS_DATA",
+      "checks": [
+        {
+          "label": "trackedEntityTypeUse",
+          "resource": "metadata.read",
+          "dhis2Type": "trackedEntityType",
+          "params": { "filter": "attributes.id:eq:{uid}" },
+          "nonEmptyMeans": "HAS_DATA"
+        },
+        {
+          "label": "programAttributeUse",
+          "resource": "metadata.read",
+          "dhis2Type": "programTrackedEntityAttribute",
+          "params": { "filter": "attribute.id:eq:{uid}" },
+          "nonEmptyMeans": "HAS_DATA"
+        }
+      ]
+    },
+    {
+      "dhis2Type": "program",
+      "fallback": "HAS_DATA",
+      "checks": [
+        {
+          "label": "enrollments",
+          "resource": "tracker.enrollments.get",
+          "params": { "program": "{uid}", "pageSize": "1" },
+          "nonEmptyMeans": "HAS_DATA"
+        }
+      ]
+    },
+    {
+      "dhis2Type": "programStage",
+      "fallback": "HAS_DATA",
+      "checks": [
+        {
+          "label": "events",
+          "resource": "tracker.events.get",
+          "params": { "program": "{program}", "filter": "programStage:eq:{uid}", "pageSize": "1" },
+          "nonEmptyMeans": "HAS_DATA"
+        }
+      ]
+    },
+    {
+      "dhis2Type": "optionSet",
+      "fallback": "HAS_DATA",
+      "checks": [
+        {
+          "label": "dataElementUse",
+          "resource": "metadata.read",
+          "dhis2Type": "dataElement",
+          "params": { "filter": "optionSet.id:eq:{uid}", "pageSize": "1" },
+          "nonEmptyMeans": "HAS_DATA"
+        },
+        {
+          "label": "trackedEntityAttributeUse",
+          "resource": "metadata.read",
+          "dhis2Type": "trackedEntityAttribute",
+          "params": { "filter": "optionSet.id:eq:{uid}", "pageSize": "1" },
+          "nonEmptyMeans": "HAS_DATA"
+        }
+      ]
+    }
+  ],
+  "notes": [
+    "DX-QRY-004：MVP 覆盖 DataElement、TrackedEntityAttribute、Program、ProgramStage、OptionSet",
+    "五类；其他类型一律返回“有关联数据”，即不允许删除。",
+    "fallback=HAS_DATA 表示判定所依赖的端点在该实例不可用时，同样返回“有关联数据”并记录依据",
+    "——保守方向与 SRS 一致：判不出来就不许删。",
+    "{program} 由调用方在删除候选集的上下文里提供（programStage 必须知道所属 Program）。"
+  ]
+}

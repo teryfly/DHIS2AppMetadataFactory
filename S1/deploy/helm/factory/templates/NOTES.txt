@@ -1,0 +1,27 @@
+Factory control plane (S1) released as {{ .Release.Name }}.
+
+  API:      http://{{ include "factory.fullname" . }}:{{ .Values.service.port }}   (in-cluster)
+  OpenAPI:  /api/v1/openapi.json    docs: /api/v1/docs
+  Health:   /healthz                engine, provider modes and the startup report
+  Events:   GET /api/v1/workflows/{workflowId}/events   (SSE, resume with Last-Event-ID)
+
+Every request that changes state needs an operator:
+  curl -H 'X-Operator: ada' -H 'Idempotency-Key: my-key' ...
+
+Workflow engine: {{ .Values.workflowEngine }}
+  {{- if eq .Values.workflowEngine "temporal" }}
+  worker polls task queue {{ .Values.temporal.taskQueue }} on {{ .Values.temporal.target }};
+  the five scheduled jobs (CP-SET-002) are registered by factory-worker at start-up.
+  {{- else }}
+  stages run in the API process and the worker runs the scheduled loop — development only.
+  {{- end }}
+
+Provider mode: {{ .Values.providerMode }}
+  {{- if eq .Values.providerMode "fakes" }}
+  S2/S3/S4 are replaced by in-memory doubles: nothing reaches DHIS2 or a model
+  provider. Never ship this to an environment with real data.
+  {{- end }}
+
+Required Secrets (chart stores references only, never values):
+  {{ .Values.database.existingSecret }}/{{ .Values.database.secretKey }}
+  {{ .Values.objectStore.existingSecret }}/{{ .Values.objectStore.secretKey }}

@@ -1,0 +1,216 @@
+{
+  "id": "ui-anc-visit-list-table",
+  "kind": "golden",
+  "agentType": "UI",
+  "stage": "PAGE_DESIGN",
+  "title": "A list screen whose every column resolves to an operation this page already has",
+  "note": "AI-AG-005, FR-UII-001, FR-UII-002: components are named from the design system, each data source is an operationKey of this page's API Intents or a Registry businessKey, the states cover loading, empty, both errors and permission denial, and the page stays on one pageKey.",
+  "context": {
+    "baseVersion": "9",
+    "decisionConfidenceThreshold": 0.7,
+    "extractionConfidenceThreshold": 0.7,
+    "mappingFrozen": true,
+    "apiOperationKeys": [
+      "listVisits",
+      "loadFacilities"
+    ],
+    "items": [
+      {
+        "kind": "APPROVED_ENTRY",
+        "ref": "entry:pages/items/anc-visit-list",
+        "label": "pages/items/anc-visit-list",
+        "content": "{\"pageKey\": \"anc-visit-list\", \"name\": {\"default\": \"Antenatal visits\"}, \"purpose\": \"A midwife reviews the visits recorded at her facility for the current period and opens one to correct it.\", \"routes\": [\"/visits\"], \"useCases\": [\"uc.reviewVisits\"], \"actors\": [\"actor.midwife\"], \"registryRefs\": [\"reg.ancVisit.program\", \"reg.ancVisit.bloodPressureFlag\"], \"apiIntentRefs\": [\"anc-list-load\", \"anc-list-facilities\"], \"source\": {\"artifactId\": \"art-ancdesign000000000000001\", \"location\": \"section:pages\"}}"
+      },
+      {
+        "kind": "APPROVED_ENTRY",
+        "ref": "entry:apiIntents/items/anc-list-load",
+        "label": "apiIntents/items/anc-list-load",
+        "content": "{\"intentKey\": \"anc-list-load\", \"pageKey\": \"anc-visit-list\", \"operationKey\": \"listVisits\", \"purpose\": \"Load the antenatal visits recorded at the midwife's facility subtree for the period the list is showing.\", \"resource\": \"tracker.event.query\", \"method\": \"GET\", \"fields\": [\"event\", \"occurredAt\", \"attributeValues[value]\", \"dataValues[dataElement,value]\", \"enrollment\"], \"paging\": {\"strategy\": \"page\", \"size\": 50}, \"registryRefs\": [\"reg.ancVisit.program\"]}"
+      },
+      {
+        "kind": "APPROVED_ENTRY",
+        "ref": "entry:apiIntents/items/anc-list-facilities",
+        "label": "apiIntents/items/anc-list-facilities",
+        "content": "{\"intentKey\": \"anc-list-facilities\", \"pageKey\": \"anc-visit-list\", \"operationKey\": \"loadFacilities\", \"purpose\": \"Fill the facility filter with the posts the midwife may look at.\", \"resource\": \"dhis2.orgunit.tree\", \"method\": \"GET\", \"registryRefs\": [\"reg.facility.hierarchy\"]}"
+      },
+      {
+        "kind": "REGISTRY_ENTRY",
+        "ref": "entry:registry/entries/reg.ancVisit.weight",
+        "label": "registry/entries/reg.ancVisit.weight",
+        "content": "{\"businessKey\": \"reg.ancVisit.weight\", \"dhis2Type\": \"dataElement\", \"disposition\": \"CREATE\", \"status\": \"APPROVED\", \"code\": \"ANC_WEIGHT\", \"name\": \"Weight at visit (kg)\", \"valueType\": \"NUMBER\"}"
+      },
+      {
+        "kind": "REGISTRY_ENTRY",
+        "ref": "entry:registry/entries/reg.ancVisit.identifier",
+        "label": "registry/entries/reg.ancVisit.identifier",
+        "content": "{\"businessKey\": \"reg.ancVisit.identifier\", \"dhis2Type\": \"trackedEntityAttribute\", \"disposition\": \"CREATE\", \"status\": \"APPROVED\", \"code\": \"ANC_WOMAN_ID\", \"name\": \"Woman ID\", \"valueType\": \"TEXT\"}"
+      },
+      {
+        "kind": "REGISTRY_ENTRY",
+        "ref": "entry:registry/entries/reg.ancVisit.bloodPressureFlag",
+        "label": "registry/entries/reg.ancVisit.bloodPressureFlag",
+        "content": "{\"businessKey\": \"reg.ancVisit.bloodPressureFlag\", \"dhis2Type\": \"optionSet\", \"disposition\": \"CREATE\", \"status\": \"APPROVED\", \"code\": \"ANC_BP_FLAG\", \"name\": \"Raised blood pressure\", \"options\": [\"yes\", \"no\", \"not measured\"]}"
+      },
+      {
+        "kind": "INPUT_ARTIFACT",
+        "ref": "art-anclistmockup00000000001",
+        "label": "visit-list-mockup.txt",
+        "content": "Mockup: a month selector across the top, a facility picker beside it, then a table with the woman's ID, the visit date, the weight and a coloured cell where blood pressure was flagged as raised. Tapping a row opens the visit. The midwife wants the table to say plainly when there are no visits this month."
+      }
+    ]
+  },
+  "expected": {
+    "summary": "Designed the visit list screen: a period selector and a facility picker above a table, every one of the mockup's four columns mapped to a field the load operation already selects, and the row tap navigating to the detail page. The table and the picker bind to this page's two operations; the raised-blood-pressure column renders from the approved option set in the Registry rather than a copy of its values. The empty state the midwife asked for is designed, along with the loading, API-error and permission-denied states the operations can produce. One page only.",
+    "decisions": [
+      {
+        "id": "UI-001",
+        "subject": "anc-list-screen",
+        "selected": {
+          "option": "one table with the filters above it, both filters narrowing the same query"
+        },
+        "alternatives": [
+          {
+            "option": "a card list per visit",
+            "reasonRejected": "The midwife's task is scanning many rows for an outlier, which cards make slower."
+          }
+        ],
+        "rationale": "The purpose is review across a period, so the screen's primary object is the row set, not the individual visit.",
+        "confidence": 0.85,
+        "impactLevel": "LOW"
+      }
+    ],
+    "patch": {
+      "baseVersion": "9",
+      "operations": [
+        {
+          "op": "add",
+          "path": "/uiIntents/items/-",
+          "value": {
+            "intentKey": "anc-list-screen",
+            "pageKey": "anc-visit-list",
+            "route": "/visits",
+            "purpose": "Let a midwife scan her facility's antenatal visits for a period and open one.",
+            "layout": [
+              "filters row above a full-width table",
+              "table scrolls, filters stay fixed"
+            ],
+            "components": [
+              {
+                "name": "PeriodSelect",
+                "use": "Choose the month the list is showing.",
+                "events": [
+                  "onChange reloads the table"
+                ],
+                "accessibility": "labelled by the visible month and announces the reload"
+              },
+              {
+                "name": "OrganizationUnitTree",
+                "use": "Narrow the list to a post inside the midwife's own subtree.",
+                "dataSource": {
+                  "operationKey": "loadFacilities"
+                },
+                "events": [
+                  "onSelect reloads the table with that unit"
+                ],
+                "visibleWhen": "the caller's scope has more than one unit"
+              },
+              {
+                "name": "DataTable",
+                "use": "One row per visit: identifier, date, weight, raised blood pressure.",
+                "dataSource": {
+                  "operationKey": "listVisits"
+                },
+                "props": {
+                  "pageSize": 50,
+                  "columns": [
+                    "identifier",
+                    "occurredAt",
+                    "weight",
+                    "bloodPressureFlag"
+                  ]
+                },
+                "events": [
+                  "onRowClick navigates to /visits/{event}"
+                ],
+                "accessibility": "column headers are read with each cell; the row is a single link"
+              },
+              {
+                "name": "NoticeBox",
+                "use": "State that the facility recorded no visits in the chosen month.",
+                "visibleWhen": "the list came back empty"
+              }
+            ],
+            "states": [
+              "INITIAL",
+              "LOADING",
+              "READY",
+              "EMPTY",
+              "API_ERROR",
+              "PERMISSION_DENIED",
+              "NETWORK_ERROR"
+            ],
+            "interactions": [
+              "changing either filter reloads the table and resets the paging",
+              "a failed reload keeps the previous rows and shows the retry"
+            ],
+            "fieldMappings": [
+              {
+                "field": "identifier",
+                "label": {
+                  "default": "Woman ID"
+                },
+                "businessKey": "reg.ancVisit.identifier",
+                "valueType": "TEXT",
+                "required": false
+              },
+              {
+                "field": "occurredAt",
+                "label": {
+                  "default": "Visit date"
+                },
+                "businessKey": "reg.ancVisit.event",
+                "valueType": "DATE",
+                "required": false
+              },
+              {
+                "field": "weight",
+                "label": {
+                  "default": "Weight (kg)"
+                },
+                "businessKey": "reg.ancVisit.weight",
+                "valueType": "NUMBER",
+                "required": false
+              },
+              {
+                "field": "bloodPressureFlag",
+                "label": {
+                  "default": "Raised blood pressure"
+                },
+                "businessKey": "reg.ancVisit.bloodPressureFlag",
+                "valueType": "OPTION_SET",
+                "optionSetKey": "reg.ancVisit.bloodPressureFlag",
+                "required": false
+              }
+            ],
+            "translationKeys": [
+              "anc.list.title",
+              "anc.list.column.weight",
+              "anc.list.empty"
+            ],
+            "testScenarios": [
+              "a midwife with one facility in scope sees only her own visits",
+              "a month with no visits shows the empty notice and not a blank table",
+              "a failed reload offers a retry that repeats the same query"
+            ],
+            "source": {
+              "artifactId": "art-anclistmockup00000000001",
+              "location": "line:1"
+            }
+          }
+        }
+      ]
+    },
+    "questions": [],
+    "confidence": 0.85
+  }
+}

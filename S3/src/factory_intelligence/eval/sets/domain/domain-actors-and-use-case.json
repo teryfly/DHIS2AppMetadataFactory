@@ -1,0 +1,137 @@
+{
+  "id": "domain-actors-and-use-case",
+  "kind": "golden",
+  "agentType": "DOMAIN",
+  "stage": "DOMAIN",
+  "title": "A use case names its actors and its steps; an unclaimed role is asked about",
+  "note": "AI-AG-002, AI-INP-005: participants and process become actors and use cases, and a role nobody assigned is a question rather than an invented actor.",
+  "context": {
+    "baseVersion": "5",
+    "decisionConfidenceThreshold": 0.7,
+    "extractionConfidenceThreshold": 0.7,
+    "items": [
+      {
+        "kind": "APPROVED_ENTRY",
+        "ref": "entry:requirements/req.anc.contact",
+        "label": "requirements/req.anc.contact",
+        "content": "{\"businessKey\": \"req.anc.contact\", \"statement\": \"A pregnant woman is offered antenatal contacts at the scheduled weeks.\"}"
+      },
+      {
+        "kind": "INPUT_ARTIFACT",
+        "ref": "art-syntheticinput000000000000008",
+        "label": "clinic-interview.txt",
+        "content": "The midwife books the woman in, takes her blood pressure and writes the next date. A supervisor signs the register at the end of the month. Nobody said who reads the missed-visit list."
+      }
+    ]
+  },
+  "expected": {
+    "summary": "Recorded the two roles the interview names and the antenatal contact as one use case with its steps in the order they happen. The person who reads the missed-visit list is stated nowhere, so the use case is written without that step and the gap is a question.",
+    "decisions": [
+      {
+        "id": "DOM-002",
+        "subject": "uc.ancContact",
+        "selected": {
+          "option": "one use case from booking through the follow-up date"
+        },
+        "alternatives": [
+          {
+            "option": "a second use case for the monthly register sign-off",
+            "reasonRejected": "Signing the register is a review of the same record, not a different goal with its own outcome."
+          }
+        ],
+        "rationale": "The interview describes one visit with an administrative tail; splitting it would give two use cases that cannot be completed apart.",
+        "confidence": 0.75,
+        "impactLevel": "LOW"
+      }
+    ],
+    "patch": {
+      "baseVersion": "5",
+      "operations": [
+        {
+          "op": "add",
+          "path": "/actors/items/-",
+          "value": {
+            "businessKey": "actor.midwife",
+            "name": {
+              "default": "Midwife"
+            },
+            "description": {
+              "default": "Books the woman in, takes the measurements and sets the next contact date."
+            },
+            "roleKeys": ["role.anc.clinical"],
+            "source": {
+              "artifactId": "art-syntheticinput000000000000008",
+              "location": "line:1"
+            }
+          }
+        },
+        {
+          "op": "add",
+          "path": "/actors/items/-",
+          "value": {
+            "businessKey": "actor.supervisor",
+            "name": {
+              "default": "Clinic supervisor"
+            },
+            "roleKeys": ["role.anc.audit"],
+            "source": {
+              "artifactId": "art-syntheticinput000000000000008",
+              "location": "line:1"
+            }
+          }
+        },
+        {
+          "op": "add",
+          "path": "/useCases/items/-",
+          "value": {
+            "businessKey": "uc.ancContact",
+            "name": "Antenatal contact",
+            "purpose": "See the woman at the scheduled week, record her measurements and set the next date.",
+            "actors": ["actor.midwife", "actor.supervisor"],
+            "preconditions": [
+              "the woman is registered as pregnant",
+              "a contact week is due"
+            ],
+            "steps": [
+              "the midwife books the woman in",
+              "the midwife takes her blood pressure",
+              "the midwife writes the next contact date",
+              "the supervisor signs the register at the end of the month"
+            ],
+            "outcome": "The contact is recorded and the next one is scheduled.",
+            "requirements": ["req.anc.contact"],
+            "source": {
+              "artifactId": "art-syntheticinput000000000000008",
+              "location": "line:1"
+            }
+          }
+        }
+      ]
+    },
+    "questions": [
+      {
+        "id": "Q1",
+        "text": "Who reads the missed-visit list? No input names the role, so the use case has no step for it.",
+        "severity": "MEDIUM",
+        "affects": ["uc.ancContact"],
+        "suggestions": [
+          {
+            "id": "S1",
+            "text": "The clinic supervisor, as part of the monthly sign-off",
+            "rationale": "The supervisor is the only reviewing role the interview mentions.",
+            "changesUid": false,
+            "regenerates": false
+          },
+          {
+            "id": "S2",
+            "text": "An outreach worker the programme has not named yet",
+            "rationale": "If nobody in the clinic chases missed visits, the list needs an owner outside it.",
+            "changesUid": false,
+            "regenerates": false
+          }
+        ]
+      }
+    ],
+    "confidence": 0.8
+  }
+}

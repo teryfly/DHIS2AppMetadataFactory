@@ -1,0 +1,21 @@
+{
+  "name": "${name}",
+  "shortName": "${shortName}",
+  "description": "${description}",
+  "formName": "${formName}",
+  "code": "${code}",
+  "programType": "${programType}",
+  "accessLevel": "${accessLevel}",
+  "withoutRegistration": "${withoutRegistration}",
+  "selectIncidentDatesInFuture": "${selectIncidentDatesInFuture}",
+  "displayIncidentDate": "${displayIncidentDate}",
+  "executionDateLabel": "${executionDateLabel}",
+  "incidentDateLabel": "${incidentDateLabel}",
+  "trackedEntity": { "id": "${trackedEntityType}" },
+  "categoryCombo": { "id": "${categoryCombo}" },
+  "programStages": "${programStages}",
+  "programTrackedEntityAttributes": "${programTrackedEntityAttributes}",
+  "programSections": "${programSections}",
+  "translations": "${translations}",
+  "sharing": "${sharing}"
+}

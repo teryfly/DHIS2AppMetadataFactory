@@ -1,0 +1,10 @@
+{
+  "removed": [
+    {
+      "kind": "endpoint",
+      "name": "api/dataElementOptions",
+      "removedIn": "2.40",
+      "note": "选项查询改走 optionSets/{id}/options"
+    }
+  ]
+}

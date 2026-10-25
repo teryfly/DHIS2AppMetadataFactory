@@ -1,0 +1,5 @@
+{
+  "current": 1,
+  "versions": [1],
+  "note": "blueprintSchemaVersion is an increasing integer (BP-SCH-001). Adding a version means adding schemas/<n>/ plus migration functions in schema/migrations.py (BP-SCH-007)."
+}

@@ -1,0 +1,323 @@
+{
+  "resources": [
+    {
+      "logicalName": "system.info",
+      "path": "system/info",
+      "method": "GET",
+      "parameters": { "fields": "version,buildTime,currentUserDataStore?" },
+      "credentialScope": "discovery"
+    },
+    {
+      "logicalName": "me",
+      "path": "me",
+      "method": "GET",
+      "parameters": {
+        "fields": "id,name,username,authorities[:is],userRoles[id,name],credentials.userOrgUnitHierarchyRoot"
+      },
+      "credentialScope": "discovery"
+    },
+    {
+      "logicalName": "system.id",
+      "path": "system/id",
+      "method": "GET",
+      "parameters": { "limit": "limit" },
+      "paging": "none",
+      "credentialScope": "discovery",
+      "note": "官方 UID 生成接口；单次上限见配置 uid_batch_limit（DX-QRY-001）"
+    },
+    {
+      "logicalName": "identifiableObjects",
+      "path": "identifiableObjects",
+      "method": "GET",
+      "parameters": {
+        "criterion": "criterion",
+        "fields": "id,code,name,objectType,lastUpdated",
+        "paging": "paging",
+        "pageSize": "pageSize",
+        "page": "page"
+      },
+      "paging": "pager",
+      "credentialScope": "discovery"
+    },
+    {
+      "logicalName": "schemas",
+      "path": "schemas/{objectName}",
+      "method": "GET",
+      "parameters": { "fields": "name,required,properties[name],properties[required]" },
+      "credentialScope": "discovery"
+    },
+    {
+      "logicalName": "metadata.read",
+      "path": "{typePath}",
+      "method": "GET",
+      "parameters": {
+        "fields": "fields",
+        "page": "page",
+        "pageSize": "pageSize",
+        "filter": "filter"
+      },
+      "paging": "pager",
+      "credentialScope": "discovery",
+      "note": "{typePath} 由同一目录中 metadata.<type> 的 path 代入（DX-CLI-005：不写死版本路径）"
+    },
+    {
+      "logicalName": "metadata.read.one",
+      "path": "{typePath}/{uid}",
+      "method": "GET",
+      "parameters": { "fields": "fields" },
+      "credentialScope": "discovery"
+    },
+    {
+      "logicalName": "metadata.access",
+      "path": "{typePath}/{uid}",
+      "method": "GET",
+      "parameters": {
+        "fields": "id,access"
+      },
+      "credentialScope": "import",
+      "note": "DX-CON-003：元数据导入权限没有全局授权名可查，按对象的 manage 判定。证据取对象自己的 access.manage —— 这是实例对「当前用户能不能管这个对象」的答复，且是只读的。/sharing 那个子资源回的是 owner/public/users/userGroups 共享表，里面没有 manage 字段，拿它判定会把每个可导入的环境都报成不可导入。"
+    },
+    {
+      "logicalName": "metadata.import",
+      "path": "metadata",
+      "method": "POST",
+      "parameters": {
+        "importMode": "importMode",
+        "importStrategy": "importStrategy",
+        "identifier": "identifier",
+        "atomicMode": "atomicMode",
+        "async": "async",
+        "preheatMode": "preheatMode"
+      },
+      "paging": "none",
+      "credentialScope": "import"
+    },
+    {
+      "logicalName": "metadata.delete",
+      "path": "metadata",
+      "method": "DELETE",
+      "parameters": {
+        "importMode": "importMode",
+        "importStrategy": "delete",
+        "async": "async"
+      },
+      "credentialScope": "import",
+      "note": "DX-EXE-038：删除候选集作为独立载荷提交"
+    },
+    {
+      "logicalName": "system.tasks",
+      "path": "system/tasks",
+      "method": "GET",
+      "parameters": { "category": "category", "jobParameter": "jobParameter" },
+      "paging": "pager",
+      "credentialScope": "import",
+      "note": "异步任务查询（DX-EXE-033/034）；实例返回的任务 URL 原样保存，不重新推导"
+    },
+    {
+      "logicalName": "system.tasks.one",
+      "path": "{taskPath}",
+      "method": "GET",
+      "parameters": {},
+      "credentialScope": "import",
+      "note": "taskPath 来自提交响应，按原样解析（DX-EXE-034）"
+    },
+    {
+      "logicalName": "programRules.condition.validate",
+      "path": "programRules/condition/validate",
+      "method": "GET",
+      "parameters": {
+        "expression": "expression",
+        "programId": "programId",
+        "programStageId": "programStageId",
+        "programRuleVariableId": "programRuleVariableId"
+      },
+      "credentialScope": "discovery"
+    },
+    {
+      "logicalName": "programIndicators.expression.validate",
+      "path": "programIndicators/expression/validate",
+      "method": "GET",
+      "parameters": { "expression": "expression", "programId": "programId" },
+      "credentialScope": "discovery"
+    },
+    {
+      "logicalName": "validationRules.expression.validate",
+      "path": "validationRules/expression/validate",
+      "method": "GET",
+      "parameters": {
+        "expression": "expression",
+        "categoryComboId": "categoryComboId"
+      },
+      "credentialScope": "discovery"
+    },
+    {
+      "logicalName": "dataValues.query",
+      "path": "dataValues",
+      "method": "GET",
+      "parameters": { "dataElement": "de", "period": "pe", "orgUnit": "ou", "pageSize": "pageSize" },
+      "paging": "pager",
+      "credentialScope": "discovery"
+    },
+    {
+      "logicalName": "tracker.import",
+      "path": "tracker",
+      "method": "POST",
+      "parameters": {
+        "importMode": "importMode",
+        "importerVersion": "importerVersion",
+        "atomicMode": "atomicMode",
+        "async": "async",
+        "lastUpdatedMode": "lastUpdatedMode"
+      },
+      "paging": "none",
+      "trackerApi": true,
+      "credentialScope": "tracker"
+    },
+    {
+      "logicalName": "tracker.trackedEntities",
+      "path": "tracker/trackedEntities",
+      "method": "POST",
+      "parameters": { "importMode": "importMode" },
+      "trackerApi": true,
+      "credentialScope": "tracker"
+    },
+    {
+      "logicalName": "tracker.trackedEntities.get",
+      "path": "tracker/trackedEntities",
+      "method": "GET",
+      "parameters": { "trackedEntity": "trackedEntity", "orgUnits": "orgUnits", "attribute": "attribute" },
+      "paging": "token",
+      "trackerApi": true,
+      "credentialScope": "tracker"
+    },
+    {
+      "logicalName": "tracker.enrollments",
+      "path": "tracker/enrollments",
+      "method": "POST",
+      "parameters": { "importMode": "importMode" },
+      "trackerApi": true,
+      "credentialScope": "tracker"
+    },
+    {
+      "logicalName": "tracker.enrollments.get",
+      "path": "tracker/enrollments",
+      "method": "GET",
+      "parameters": { "program": "program", "orgUnits": "orgUnits", "enrollment": "enrollment" },
+      "paging": "token",
+      "trackerApi": true,
+      "credentialScope": "tracker"
+    },
+    {
+      "logicalName": "tracker.events",
+      "path": "tracker/events",
+      "method": "POST",
+      "parameters": { "importMode": "importMode" },
+      "trackerApi": true,
+      "credentialScope": "tracker"
+    },
+    {
+      "logicalName": "tracker.events.get",
+      "path": "tracker/events",
+      "method": "GET",
+      "parameters": { "program": "program", "orgUnits": "orgUnits", "pageSize": "pageSize" },
+      "paging": "token",
+      "trackerApi": true,
+      "credentialScope": "tracker"
+    },
+    {
+      "logicalName": "tracker.relationships",
+      "path": "tracker/relationships",
+      "method": "POST",
+      "parameters": { "importMode": "importMode" },
+      "trackerApi": true,
+      "credentialScope": "tracker"
+    },
+    {
+      "logicalName": "dataStore",
+      "path": "dataStore/{namespace}/{key}",
+      "method": "GET",
+      "parameters": {},
+      "credentialScope": "datastore"
+    },
+    {
+      "logicalName": "dataStore.write",
+      "path": "dataStore/{namespace}/{key}",
+      "method": "POST",
+      "parameters": {},
+      "credentialScope": "datastore"
+    },
+    {
+      "logicalName": "apps",
+      "path": "apps",
+      "method": "GET",
+      "parameters": { "fields": "id,version,name" },
+      "credentialScope": "apps"
+    },
+    {
+      "logicalName": "apps.upload",
+      "path": "apps",
+      "method": "POST",
+      "parameters": { "id": "id" },
+      "credentialScope": "apps"
+    },
+    {
+      "logicalName": "maintenance",
+      "path": "maintenance",
+      "method": "POST",
+      "parameters": {},
+      "credentialScope": "maintenance"
+    },
+    {
+      "logicalName": "maintenance.dataCache",
+      "path": "maintenance/dataCache",
+      "method": "POST",
+      "parameters": { "valueStrategy": "valueStrategy" },
+      "credentialScope": "maintenance",
+      "note": "DX-EXE-013：MVP 唯一支持的维护动作——清理应用缓存"
+    },
+    {
+      "logicalName": "users.create",
+      "path": "users",
+      "method": "POST",
+      "parameters": { "invite": "invite" },
+      "credentialScope": "maintenance",
+      "note": "DX-TRK-003（M3）：演示用户创建"
+    }
+  ],
+  "typeEndpoints": {
+    "attribute": "attributes",
+    "category": "categories",
+    "categoryCombo": "categoryCombos",
+    "categoryOption": "categoryOptions",
+    "categoryOptionCombo": "categoryOptionCombos",
+    "constant": "constants",
+    "dataElement": "dataElements",
+    "option": "options",
+    "optionGroup": "optionGroups",
+    "optionSet": "optionSets",
+    "organisationUnit": "organisationUnits",
+    "organisationUnitGroup": "organisationUnitGroups",
+    "organisationUnitGroupSet": "organisationUnitGroupSets",
+    "organizationUnit": "organisationUnits",
+    "program": "programs",
+    "programIndicator": "programIndicators",
+    "programRule": "programRules",
+    "programRuleAction": "programRuleActions",
+    "programRuleVariable": "programRuleVariables",
+    "programSection": "programSections",
+    "programStage": "programStages",
+    "programStageDataElement": "programStageDataElements",
+    "programStageSection": "programStageSections",
+    "programTrackedEntityAttribute": "programTrackedEntityAttributes",
+    "relationshipType": "relationshipTypes",
+    "sqlView": "sqlViews",
+    "trackedEntityAttribute": "trackedEntityAttributes",
+    "trackedEntityDataElementGroup": "trackedEntityDataElementGroups",
+    "trackedEntityOptionSet": "trackedEntityOptionSets",
+    "trackedEntityType": "trackedEntityTypes",
+    "userGroup": "userGroups",
+    "userRole": "userRoles",
+    "validationRule": "validationRules",
+    "validationNotification": "validationNotifications"
+  }
+}

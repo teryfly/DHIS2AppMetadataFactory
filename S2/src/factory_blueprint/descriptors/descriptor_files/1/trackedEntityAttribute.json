@@ -1,0 +1,42 @@
+{
+  "dhis2Type": "trackedEntityAttribute",
+  "resource": "metadata.trackedEntityAttribute",
+  "payloadKey": "trackedEntityAttributes",
+  "tier": 1,
+  "versionRange": ["2.41", "2.43"],
+  "requiredFields": ["name", "valueType"],
+  "dependencies": [
+    {
+      "field": "optionSet",
+      "targetType": "optionSet",
+      "required": false
+    }
+  ],
+  "controlableFields": [
+    "name",
+    "shortName",
+    "description",
+    "formName",
+    "displayInListNoProgram"
+  ],
+  "translatableFields": ["name", "shortName", "description", "formName"],
+  "forbiddenFields": [
+    "href",
+    "id",
+    "created",
+    "lastUpdated",
+    "access",
+    "displayUrl",
+    "externalAccess"
+  ],
+  "implicit": ["ATTRIBUTE_MOUNT", "SHARING_FROM_ACCESS_MODEL"],
+  "template": "trackedEntityAttribute.template.json",
+  "sortKey": "businessKey",
+  "rules": [
+    "TEA_MOUNTED_ON_TE_TYPE_OR_PROGRAM",
+    "TEA_VALUE_TYPE_MATCHES_OPTION_SET",
+    "TEA_PATTERN_IS_VALID_REGEX"
+  ],
+  "embeddedInParent": null,
+  "descriptorVersion": "1"
+}

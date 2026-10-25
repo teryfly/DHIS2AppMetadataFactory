@@ -1,0 +1,6 @@
+{
+  "name": "${name}",
+  "description": "${description}",
+  "sortOrder": "${sortOrder}",
+  "translations": "${translations}"
+}

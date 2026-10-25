@@ -1,0 +1,43 @@
+{
+  "deprecated": [
+    {
+      "kind": "endpoint",
+      "name": "api/trackedEntityInstances",
+      "removedIn": "2.42",
+      "note": "DX-CAP-004：旧 Tracker 端点，改用 tracker.trackedEntities"
+    },
+    {
+      "kind": "endpoint",
+      "name": "api/programs/{id}/events",
+      "removedIn": "2.42",
+      "note": "旧事件端点，改用 tracker.events"
+    },
+    {
+      "kind": "endpoint",
+      "name": "api/enrollments",
+      "removedIn": "2.42",
+      "note": "旧注册端点，改用 tracker.enrollments"
+    },
+    {
+      "kind": "endpoint",
+      "name": "api/relationships",
+      "removedIn": "2.42",
+      "note": "旧关系端点，改用 tracker.relationships"
+    },
+    {
+      "kind": "endpoint",
+      "name": "api/eventFiles",
+      "note": "改用 tracker 的 FileResource 载荷"
+    },
+    {
+      "kind": "parameter",
+      "name": "metadata.import?dryRun",
+      "note": "2.41 起以 importMode=VALIDATE 表达，dryRun 不再使用"
+    },
+    {
+      "kind": "field",
+      "name": "program.onlyReports",
+      "note": "2.41 由 programType 表达"
+    }
+  ]
+}

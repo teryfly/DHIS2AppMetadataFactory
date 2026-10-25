@@ -1,0 +1,28 @@
+{
+  "dhis2Type": "userGroup",
+  "resource": "metadata.userGroup",
+  "payloadKey": "userGroups",
+  "tier": 1,
+  "versionRange": ["2.41", "2.43"],
+  "requiredFields": ["name"],
+  "dependencies": [],
+  "controlableFields": ["name"],
+  "translatableFields": ["name"],
+  "forbiddenFields": [
+    "href",
+    "id",
+    "created",
+    "lastUpdated",
+    "access",
+    "displayUrl",
+    "externalAccess",
+    "password",
+    "userCredentials"
+  ],
+  "implicit": ["SHARING_FROM_ACCESS_MODEL"],
+  "template": "userGroup.template.json",
+  "sortKey": "businessKey",
+  "rules": ["NO_PASSWORD_IN_PAYLOAD", "UG_MEMBERSHIP_IS_ENVIRONMENT_DATA"],
+  "embeddedInParent": null,
+  "descriptorVersion": "1"
+}

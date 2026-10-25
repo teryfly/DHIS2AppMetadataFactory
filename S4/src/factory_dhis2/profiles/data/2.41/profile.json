@@ -1,0 +1,15 @@
+{
+  "profileVersion": "Dhis241Profile",
+  "dhis2Series": "2.41",
+  "versionConstraint": "2.41.x",
+  "expressionGrammarVersion": "dhis2-2.41",
+  "translationFormat": "translations",
+  "sharingFormat": "sharing",
+  "readFields": "id,code,name,created,lastUpdated",
+  "apiPrefix": "api",
+  "notes": [
+    "逻辑资源名一律来自总体 SRS 19.3 与 FR-API-001；实际端点由本文件展开（DX-CLI-005）。",
+    "版本识别使用 system/info：实测 play 2.41.10 的 /api/about 返回 404，不得依赖。",
+    "UID 生成使用 system/id（GET，limit 上限 10000）；/api/reserved/ids 在该实例不存在。"
+  ]
+}

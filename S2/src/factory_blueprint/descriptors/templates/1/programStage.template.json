@@ -1,0 +1,15 @@
+{
+  "name": "${name}",
+  "shortName": "${shortName}",
+  "description": "${description}",
+  "formName": "${formName}",
+  "code": "${code}",
+  "periodType": "${periodType}",
+  "executionDateLabel": "${executionDateLabel}",
+  "program": { "id": "${program}" },
+  "categoryCombo": { "id": "${categoryCombo}" },
+  "programStageDataElements": "${programStageDataElements}",
+  "programStageSections": "${programStageSections}",
+  "translations": "${translations}",
+  "sharing": "${sharing}"
+}

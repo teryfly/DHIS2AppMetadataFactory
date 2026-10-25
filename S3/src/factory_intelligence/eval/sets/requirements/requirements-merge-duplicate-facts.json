@@ -1,0 +1,114 @@
+{
+  "id": "requirements-merge-duplicate-facts",
+  "kind": "golden",
+  "agentType": "REQUIREMENTS",
+  "stage": "REQUIREMENTS",
+  "title": "Two fragments state the same duty; one unconfirmed reporting need stays a candidate",
+  "note": "AI-AG-001, AI-INP-008, AI-BR-05: duplicates merge, a below-threshold fragment stays CANDIDATE and is asked about.",
+  "context": {
+    "baseVersion": "7",
+    "decisionConfidenceThreshold": 0.7,
+    "extractionConfidenceThreshold": 0.7,
+    "items": [
+      {
+        "kind": "INPUT_ARTIFACT",
+        "ref": "art-syntheticinput000000000000001",
+        "label": "midwife-protocol.md",
+        "content": "Every delivery must be recorded by the midwife who attended it, with the date, the facility and the outcome. The protocol does not say whether a stillbirth is reported separately from a live birth."
+      },
+      {
+        "kind": "INPUT_ARTIFACT",
+        "ref": "art-syntheticinput000000000000002",
+        "label": "district-reporting-notes.txt",
+        "content": "The district office asked for a monthly count of deliveries per facility. Unclear whether they want it per facility or per district."
+      }
+    ]
+  },
+  "expected": {
+    "summary": "Merged the two fragments that describe recording a delivery into one requirement, CONFIRMED at 0.95 because both inputs agree on it. The monthly delivery count is one reporting requirement whose grouping was not stated, so it is CANDIDATE at 0.4 and asked about. Whether a stillbirth is reported separately from a live birth is not written anywhere, so that is a question rather than an assumption.",
+    "decisions": [],
+    "patch": {
+      "baseVersion": "7",
+      "operations": [
+        {
+          "op": "add",
+          "path": "/requirements/items/-",
+          "value": {
+            "businessKey": "req.delivery.record",
+            "statement": "The attending midwife must record every delivery with its date, the facility where it happened and the outcome.",
+            "priority": "MUST",
+            "status": "CONFIRMED",
+            "confidence": 0.95,
+            "rationale": "Both inputs state it: the protocol names the actor and the fields, the reporting note confirms the count is wanted.",
+            "actors": ["actor.midwife"],
+            "source": {
+              "artifactId": "art-syntheticinput000000000000001",
+              "location": "line:1"
+            }
+          }
+        },
+        {
+          "op": "add",
+          "path": "/requirements/items/-",
+          "value": {
+            "businessKey": "req.delivery.monthly-count",
+            "statement": "The system must produce a monthly count of deliveries.",
+            "priority": "SHOULD",
+            "status": "CANDIDATE",
+            "confidence": 0.4,
+            "openQuestions": [
+              {
+                "question": "Is the monthly delivery count grouped by facility or by district?",
+                "severity": "MEDIUM"
+              }
+            ],
+            "source": {
+              "artifactId": "art-syntheticinput000000000000002",
+              "location": "line:1"
+            }
+          }
+        }
+      ]
+    },
+    "questions": [
+      {
+        "id": "Q1",
+        "text": "The district office asked for a monthly count of deliveries. Should it be grouped by facility, by district, or both?",
+        "severity": "MEDIUM",
+        "affects": ["req.delivery.monthly-count"],
+        "suggestions": [
+          {
+            "id": "S1",
+            "text": "One count per facility per month",
+            "rationale": "The note names the facility, and the district office is the level above it.",
+            "changesUid": false,
+            "regenerates": false
+          },
+          {
+            "id": "S2",
+            "text": "One count per district per month",
+            "rationale": "Cheaper to produce and enough for the report the district reads.",
+            "changesUid": false,
+            "regenerates": false
+          }
+        ]
+      },
+      {
+        "id": "Q2",
+        "text": "Is a stillbirth reported as a delivery outcome alongside live births, or outside the delivery count?",
+        "severity": "MEDIUM",
+        "affects": ["req.delivery.record"],
+        "suggestions": [
+          {
+            "id": "S1",
+            "text": "A delivery outcome of live birth, stillbirth or neonatal death",
+            "rationale": "The protocol asks for an outcome without listing its values.",
+            "changesUid": false,
+            "regenerates": false
+          }
+        ]
+      }
+    ],
+    "confidence": 0.8
+  }
+}

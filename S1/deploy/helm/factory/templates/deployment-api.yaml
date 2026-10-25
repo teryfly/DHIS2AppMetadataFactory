@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "factory.fullname" . }}-api
+  labels:
+    app.kubernetes.io/component: api
+    {{- include "factory.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount.api }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: api
+      {{- include "factory.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: api
+        {{- include "factory.selectorLabels" . | nindent 8 }}
+    spec:
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: factory-api
+          image: {{ include "factory.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["factory-api", "--port", "{{ .Values.service.port }}"]
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+          env:
+            - name: FACTORY_AUTH_MODE
+              value: {{ .Values.auth.mode | default "off" | quote }}
+            - name: FACTORY_SESSION_IDLE_MINUTES
+              value: {{ .Values.auth.sessionIdleMinutes | default 30 | quote }}
+            - name: FACTORY_SESSION_ABSOLUTE_HOURS
+              value: {{ .Values.auth.sessionAbsoluteHours | default 12 | quote }}
+            - name: FACTORY_OIDC_ISSUER
+              value: {{ .Values.auth.oidc.issuer | default "" | quote }}
+            - name: FACTORY_OIDC_CLIENT_ID
+              value: {{ .Values.auth.oidc.clientId | default "" | quote }}
+            - name: FACTORY_OIDC_CLIENT_SECRET_REF
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.auth.oidc.existingSecret | quote }}
+                  key: client-secret
+                  optional: true
+            - name: FACTORY_BOOTSTRAP_ADMIN_SUBJECT
+              value: {{ .Values.auth.bootstrapAdmin.subject | default "" | quote }}
+            - name: FACTORY_BOOTSTRAP_ADMIN_SECRET_REF
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.auth.oidc.existingSecret | quote }}
+                  key: bootstrap-admin-password
+                  optional: true
+            {{- include "factory.env" . | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            # /healthz reports engine and provider state; a degraded start is visible here
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.resources.api | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

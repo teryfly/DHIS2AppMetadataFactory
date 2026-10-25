@@ -1,0 +1,289 @@
+{
+  "schemaVersion": 1,
+  "name": "dhis2-2.41",
+  "aliases": ["2.41", "2.42", "v2.41", "v2.42", "dhis2-2.41", "dhis2-2.42", "2.41.x"],
+  "dhis2Versions": ["2.41", "2.42"],
+  "description": "Local expression grammar for DHIS2 2.41/2.42: program rule conditions, program indicator expressions and validation rule left/right expressions. Derived from the DHIS2 ANTLR expression grammars; 2.42 introduced no change to these three languages, so it shares this file (BP-VAL-021).",
+  "maxDepth": 128,
+  "tokenPatterns": {
+    "number": "[0-9]+(?:\\.[0-9]+)?",
+    "identifier": "[A-Za-z][A-Za-z0-9_]*"
+  },
+  "stringLiteral": {
+    "quotes": ["'", "\""],
+    "escape": "\\",
+    "escapes": {
+      "n": "\n",
+      "t": "\t",
+      "r": "\r"
+    }
+  },
+  "punctuation": {
+    "lparen": "(",
+    "rparen": ")",
+    "lbracket": "[",
+    "rbracket": "]",
+    "comma": ","
+  },
+  "features": ["ternary", "listLiteral"],
+  "languageAliases": {
+    "programRuleCondition": "programRule",
+    "programRuleExpression": "programRule",
+    "programIndicatorExpression": "programIndicator",
+    "validationRuleExpression": "validationRule",
+    "validationRuleLeft": "validationRule",
+    "validationRuleRight": "validationRule"
+  },
+  "ternary": {
+    "condition": "?",
+    "alternative": ":",
+    "precedence": 8,
+    "associativity": "right"
+  },
+  "operators": [
+    { "symbol": "||", "precedence": 10, "associativity": "left" },
+    { "symbol": "or", "precedence": 10, "associativity": "left", "word": true },
+    { "symbol": "&&", "precedence": 20, "associativity": "left" },
+    { "symbol": "and", "precedence": 20, "associativity": "left", "word": true },
+    { "symbol": "in", "precedence": 25, "associativity": "left", "word": true, "right": "list" },
+    { "symbol": "==", "precedence": 30, "associativity": "left" },
+    { "symbol": "!=", "precedence": 30, "associativity": "left" },
+    { "symbol": "+", "precedence": 45, "associativity": "left" },
+    { "symbol": "-", "precedence": 45, "associativity": "left" },
+    { "symbol": "*", "precedence": 50, "associativity": "left" },
+    { "symbol": "/", "precedence": 50, "associativity": "left" },
+    { "symbol": "%", "precedence": 50, "associativity": "left" },
+    { "symbol": "<", "precedence": 35, "associativity": "left" },
+    { "symbol": "<=", "precedence": 35, "associativity": "left" },
+    { "symbol": ">", "precedence": 35, "associativity": "left" },
+    { "symbol": ">=", "precedence": 35, "associativity": "left" }
+  ],
+  "prefixOperators": [
+    { "symbol": "!", "precedence": 40 },
+    { "symbol": "not", "precedence": 40, "word": true },
+    { "symbol": "-", "precedence": 55 },
+    { "symbol": "+", "precedence": 55 }
+  ],
+  "referenceKinds": [
+    {
+      "name": "dataElement",
+      "openers": ["#{"],
+      "closer": "}",
+      "dots": true,
+      "keySource": "registry",
+      "allowedTypes": ["dataElement", "dataElementOperand", "categoryOptionCombo", "programIndicator"]
+    },
+    {
+      "name": "constant",
+      "openers": ["C#{"],
+      "closer": "}",
+      "dots": false,
+      "keySource": "registry",
+      "allowedTypes": ["constant"]
+    },
+    {
+      "name": "attribute",
+      "openers": ["A#{"],
+      "closer": "}",
+      "dots": false,
+      "keySource": "registry",
+      "allowedTypes": ["trackedEntityAttribute", "programAttribute"]
+    },
+    {
+      "name": "trackedEntityAttribute",
+      "openers": ["!{"],
+      "closer": "}",
+      "dots": false,
+      "keySource": "registry",
+      "allowedTypes": ["trackedEntityAttribute", "programAttribute"]
+    },
+    {
+      "name": "categoryOptionCombo",
+      "openers": ["!["],
+      "closer": "]",
+      "dots": false,
+      "keySource": "registry",
+      "allowedTypes": ["categoryOptionCombo", "categoryOption"]
+    },
+    {
+      "name": "programRuleVariable",
+      "openers": ["V#{"],
+      "closer": "}",
+      "dots": false,
+      "keySource": "variableOrRegistry",
+      "allowedTypes": ["programRuleVariable"]
+    },
+    {
+      "name": "optionCode",
+      "openers": ["DV#{", "RV#{"],
+      "closer": "}",
+      "dots": false,
+      "keySource": "registry",
+      "allowedTypes": ["dataElement", "programRuleVariable"]
+    },
+    {
+      "name": "indicatorValue",
+      "openers": ["iR#{"],
+      "closer": "}",
+      "dots": false,
+      "keySource": "registry",
+      "allowedTypes": ["programIndicator", "indicator"]
+    },
+    {
+      "name": "d2Function",
+      "openers": ["D2:", "d2:"],
+      "closer": null,
+      "dots": false,
+      "keySource": "function",
+      "allowedTypes": []
+    }
+  ],
+  "functions": [
+    { "name": "hasValue", "minArgs": 1, "maxArgs": 1 },
+    { "name": "zing", "minArgs": 1, "maxArgs": 1 },
+    { "name": "length", "minArgs": 1, "maxArgs": 1 },
+    { "name": "contains", "minArgs": 2, "maxArgs": 2 },
+    { "name": "if", "minArgs": 3, "maxArgs": 3 },
+    { "name": "and", "minArgs": 1, "maxArgs": null },
+    { "name": "or", "minArgs": 1, "maxArgs": null },
+    { "name": "not", "minArgs": 1, "maxArgs": 1 },
+    { "name": "sum", "minArgs": 1, "maxArgs": 1 },
+    { "name": "avg", "minArgs": 1, "maxArgs": 1 },
+    { "name": "count", "minArgs": 1, "maxArgs": 1 },
+    { "name": "min", "minArgs": 1, "maxArgs": null },
+    { "name": "max", "minArgs": 1, "maxArgs": null }
+  ],
+  "qualifiedFunctions": [
+    { "name": "hasValue", "minArgs": 1, "maxArgs": 1, "caseInsensitive": true },
+    { "name": "numValue", "minArgs": 1, "maxArgs": 1, "caseInsensitive": true },
+    { "name": "zing", "minArgs": 1, "maxArgs": 1, "caseInsensitive": true },
+    { "name": "length", "minArgs": 1, "maxArgs": 1, "caseInsensitive": true },
+    { "name": "count", "minArgs": 1, "maxArgs": 1, "caseInsensitive": true },
+    { "name": "countIf", "minArgs": 1, "maxArgs": null, "caseInsensitive": true },
+    { "name": "daysBetween", "minArgs": 2, "maxArgs": 2, "caseInsensitive": true },
+    { "name": "monthsBetween", "minArgs": 2, "maxArgs": 2, "caseInsensitive": true },
+    { "name": "yearsBetween", "minArgs": 2, "maxArgs": 2, "caseInsensitive": true },
+    { "name": "addDays", "minArgs": 2, "maxArgs": 2, "caseInsensitive": true },
+    { "name": "condition", "minArgs": 3, "maxArgs": 3, "caseInsensitive": true },
+    { "name": "in", "minArgs": 2, "maxArgs": null, "caseInsensitive": true },
+    { "name": "mask", "minArgs": 2, "maxArgs": null, "caseInsensitive": true },
+    { "name": "concatenate", "minArgs": 1, "maxArgs": null, "caseInsensitive": true },
+    { "name": "left", "minArgs": 2, "maxArgs": 2, "caseInsensitive": true },
+    { "name": "right", "minArgs": 2, "maxArgs": 2, "caseInsensitive": true },
+    { "name": "substring", "minArgs": 2, "maxArgs": 3, "caseInsensitive": true }
+  ],
+  "languages": {
+    "programRule": {
+      "operators": ["||", "or", "&&", "and", "in", "==", "!=", "<", "<=", ">", ">=", "+", "-", "*", "/", "%"],
+      "prefixOperators": ["!", "not", "-", "+"],
+      "referenceKinds": [
+        "dataElement",
+        "constant",
+        "attribute",
+        "trackedEntityAttribute",
+        "programRuleVariable",
+        "optionCode",
+        "d2Function"
+      ],
+      "functions": ["hasValue", "zing", "length", "contains"],
+      "qualifiedFunctions": [
+        "hasValue",
+        "numValue",
+        "zing",
+        "length",
+        "count",
+        "countIf",
+        "daysBetween",
+        "monthsBetween",
+        "yearsBetween",
+        "addDays",
+        "condition",
+        "in",
+        "mask",
+        "concatenate",
+        "left",
+        "right",
+        "substring"
+      ],
+      "keywords": ["true", "false", "missing", "yes", "no", "unknown"],
+      "variables": [
+        "eventDate",
+        "incidenceDate",
+        "enrollmentDate",
+        "enrollmentStatus",
+        "programStatus",
+        "programStage",
+        "program",
+        "organisationUnit",
+        "orgUnit",
+        "userName",
+        "userId",
+        "attributeOptionCombo",
+        "currentDate",
+        "completedDate",
+        "dueDate"
+      ],
+      "features": ["ternary", "listLiteral"]
+    },
+    "programIndicator": {
+      "operators": ["||", "or", "&&", "and", "==", "!=", "<", "<=", ">", ">=", "+", "-", "*", "/", "%"],
+      "prefixOperators": ["!", "not", "-", "+"],
+      "referenceKinds": [
+        "dataElement",
+        "constant",
+        "attribute",
+        "trackedEntityAttribute",
+        "categoryOptionCombo",
+        "programRuleVariable",
+        "optionCode",
+        "indicatorValue",
+        "d2Function"
+      ],
+      "functions": ["if", "sum", "avg", "count", "min", "max", "length", "contains", "hasValue"],
+      "qualifiedFunctions": [
+        "hasValue",
+        "numValue",
+        "zing",
+        "length",
+        "count",
+        "countIf",
+        "daysBetween",
+        "monthsBetween",
+        "yearsBetween",
+        "addDays",
+        "condition",
+        "in",
+        "mask",
+        "concatenate",
+        "left",
+        "right",
+        "substring"
+      ],
+      "keywords": ["true", "false"],
+      "variables": [
+        "eventDate",
+        "incidenceDate",
+        "executionDate",
+        "registrationDate",
+        "enrollmentDate",
+        "dueDate",
+        "completedDate",
+        "programStage",
+        "program",
+        "organisationUnit",
+        "orgUnit"
+      ],
+      "features": ["ternary"]
+    },
+    "validationRule": {
+      "operators": ["==", "!=", "<", "<=", ">", ">=", "+", "-", "*", "/", "%"],
+      "prefixOperators": ["-", "+"],
+      "referenceKinds": ["dataElement", "constant", "categoryOptionCombo"],
+      "functions": [],
+      "qualifiedFunctions": [],
+      "keywords": [],
+      "variables": ["today", "yesterday"],
+      "features": []
+    }
+  }
+}

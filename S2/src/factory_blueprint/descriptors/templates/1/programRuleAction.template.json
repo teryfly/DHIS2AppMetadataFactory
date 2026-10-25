@@ -1,0 +1,10 @@
+{
+  "actionType": "${actionType}",
+  "data": "${data}",
+  "content": "${content}",
+  "location": "${location}",
+  "programStage": { "id": "${programStage}" },
+  "dataElement": { "id": "${dataElement}" },
+  "programRuleVariable": { "id": "${programRuleVariable}" },
+  "programStageSection": { "id": "${programStageSection}" }
+}

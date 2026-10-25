@@ -1,0 +1,77 @@
+{
+  "metadata": {
+    "defaults": {
+      "importMode": "COMMIT",
+      "importStrategy": "CREATE_AND_UPDATE",
+      "identifier": "ASSIGNED",
+      "atomicMode": "ALL",
+      "async": false,
+      "preheatMode": "FULL"
+    },
+    "allowed": {
+      "importMode": ["VALIDATE", "COMMIT"],
+      "importStrategy": ["CREATE", "UPDATE", "CREATE_AND_UPDATE", "DELETE"],
+      "identifier": ["ASSIGNED", "EXISTING", "AUTO"],
+      "atomicMode": ["ALL", "NONE"],
+      "async": [true, false],
+      "preheatMode": ["FULL", "REQUIRED", "NONE"]
+    },
+    "nonDefaultRequiresConfirmation": [
+      "importStrategy",
+      "identifier",
+      "atomicMode",
+      "preheatMode"
+    ],
+    "async": {
+      "thresholdObjects": 500,
+      "mechanism": "query-params",
+      "param": "async=true",
+      "taskResource": "system.tasks",
+      "jobRefField": "response",
+      "statusField": "status",
+      "terminalStatuses": ["COMPLETED", "ERROR"],
+      "reportField": "response"
+    },
+    "reportShape": {
+      "kindCounts": ["stats"],
+      "typeField": "klass",
+      "objectListFields": ["objects", "detailedMessages"],
+      "severityField": "level",
+      "statusField": "status",
+      "uidField": "params",
+      "codeField": "code"
+    }
+  },
+  "tracker": {
+    "defaults": {
+      "importMode": "COMMIT",
+      "importerVersion": "VERSIONED",
+      "atomicMode": "ALL",
+      "async": false,
+      "lastUpdatedMode": "EXTEND"
+    },
+    "allowed": {
+      "importMode": ["VALIDATE", "COMMIT"],
+      "importerVersion": ["VERSIONED", "LEGACY"],
+      "atomicMode": ["ALL", "NONE", "DEFER"],
+      "async": [true, false],
+      "lastUpdatedMode": ["EXTEND", "REPLACE", "PRESERVE"]
+    },
+    "nonDefaultRequiresConfirmation": ["importerVersion", "atomicMode", "lastUpdatedMode"],
+    "async": {
+      "thresholdObjects": 500,
+      "mechanism": "query-params",
+      "param": "async=true",
+      "taskResource": "system.tasks",
+      "statusField": "status",
+      "terminalStatuses": ["COMPLETED", "ERROR"]
+    }
+  },
+  "notes": [
+    "DX-EXE-011：默认值就是“以 UID 作为标识符（identifier=ASSIGNED）、创建并更新",
+    "(importStrategy=CREATE_AND_UPDATE)、全部成功或全部失败（atomicMode=ALL）”。",
+    "调用方选择的非默认参数在执行计划里标记为需 DEPLOY_GATE 显式确认——上面",
+    "nonDefaultRequiresConfirmation 列出的就是这些参数。",
+    "async 阈值由 config.async_import_threshold 覆盖（DX-EXE-033，默认 500，可按环境配置）。"
+  ]
+}

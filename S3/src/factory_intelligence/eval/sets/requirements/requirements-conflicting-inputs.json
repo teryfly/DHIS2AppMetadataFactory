@@ -1,0 +1,91 @@
+{
+  "id": "requirements-conflicting-inputs",
+  "kind": "golden",
+  "agentType": "REQUIREMENTS",
+  "stage": "REQUIREMENTS",
+  "title": "Two inputs disagree about who validates a record and when",
+  "note": "AI-INP-009, AI-BR-05: a conflict becomes a question listing each source location; the agent does not pick a side.",
+  "context": {
+    "baseVersion": "7",
+    "decisionConfidenceThreshold": 0.7,
+    "extractionConfidenceThreshold": 0.7,
+    "items": [
+      {
+        "kind": "INPUT_ARTIFACT",
+        "ref": "art-syntheticinput000000000000003",
+        "label": "chpv-job-description.md",
+        "content": "The community health worker enters vaccinations at the village visit and the supervisor validates them the following week."
+      },
+      {
+        "kind": "INPUT_ARTIFACT",
+        "ref": "art-syntheticinput000000000000004",
+        "label": "immunisation-sop.pdf",
+        "content": "Page 3: vaccinations are validated by the facility in-charge on the same day they are entered."
+      }
+    ]
+  },
+  "expected": {
+    "summary": "Both inputs describe validating an entered vaccination and disagree on the validator and the deadline. Only the part they share is written: that a second person must validate before the dose counts. The disagreement is one HIGH question naming both documents and both claims, so the requirement is CANDIDATE at 0.5 and nothing was silently chosen.",
+    "decisions": [],
+    "patch": {
+      "baseVersion": "7",
+      "operations": [
+        {
+          "op": "add",
+          "path": "/requirements/items/-",
+          "value": {
+            "businessKey": "req.vaccination.validation",
+            "statement": "An entered vaccination must be validated by a second person before it counts towards coverage.",
+            "priority": "MUST",
+            "status": "CANDIDATE",
+            "confidence": 0.5,
+            "rationale": "Both inputs require a validation step; they disagree about who performs it and when, so only the shared part is stated.",
+            "actors": ["actor.chpv", "actor.supervisor"],
+            "openQuestions": [
+              {
+                "question": "Who validates an entered vaccination, and within how long?",
+                "severity": "HIGH"
+              }
+            ],
+            "source": {
+              "artifactId": "art-syntheticinput000000000000003",
+              "location": "line:1"
+            }
+          }
+        }
+      ]
+    },
+    "questions": [
+      {
+        "id": "Q1",
+        "text": "The job description says the supervisor validates the following week (chpv-job-description.md, line 1); the standard operating procedure says the facility in-charge validates the same day (immunisation-sop.pdf, page 3). Which is the rule?",
+        "severity": "HIGH",
+        "affects": ["req.vaccination.validation"],
+        "suggestions": [
+          {
+            "id": "S1",
+            "text": "Supervisor, within seven days",
+            "rationale": "Follows the job description, the document that assigns the role.",
+            "changesUid": false,
+            "regenerates": false
+          },
+          {
+            "id": "S2",
+            "text": "Facility in-charge, same day",
+            "rationale": "Follows the standard operating procedure, the document the programme audits against.",
+            "changesUid": false,
+            "regenerates": false
+          },
+          {
+            "id": "S3",
+            "text": "Either role, within seven days",
+            "rationale": "Accepts both and takes the looser deadline; simplest to build, weakest audit trail.",
+            "changesUid": false,
+            "regenerates": false
+          }
+        ]
+      }
+    ],
+    "confidence": 0.5
+  }
+}

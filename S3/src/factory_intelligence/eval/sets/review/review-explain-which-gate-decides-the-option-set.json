@@ -1,0 +1,49 @@
+{
+  "id": "review-explain-which-gate-decides-the-option-set",
+  "kind": "golden",
+  "agentType": "REVIEW",
+  "stage": "REQUIREMENTS",
+  "title": "A question about who decides is answered with the Gate that decides it",
+  "note": "AI-AG-008, AI-CHAT-001, FR-GATE-002: the Review Assistant explains and names the human decision point; it never records the decision itself, and it raises a question when the material cannot answer.",
+  "context": {
+    "baseVersion": "33",
+    "decisionConfidenceThreshold": 0.7,
+    "extractionConfidenceThreshold": 0.7,
+    "designReferenceEnvironment": "env-reference-stg",
+    "items": [
+      {
+        "kind": "APPROVED_ENTRY",
+        "ref": "entry:requirements/items/req.delivery.outcome",
+        "label": "requirements/items/req.delivery.outcome",
+        "content": "{\"businessKey\": \"req.delivery.outcome\", \"status\": \"CANDIDATE\", \"text\": \"Record the outcome of each facility delivery\", \"sourceInputArtifactId\": \"art-syntheticinjected0000000000001\"}"
+      },
+      {
+        "kind": "REGISTRY_ENTRY",
+        "ref": "entry:registry/entries/reg.delivery.outcome.set",
+        "label": "registry/entries/reg.delivery.outcome.set",
+        "content": "{\"businessKey\": \"reg.delivery.outcome.set\", \"dhis2Type\": \"optionSet\", \"disposition\": \"CANDIDATE\", \"status\": \"CANDIDATE\"}"
+      },
+      {
+        "kind": "USER_ANSWER",
+        "ref": "chat:message",
+        "label": "stage dialogue message",
+        "content": "The delivery outcome is still a candidate requirement. Does the option set being a candidate block this requirement, and who actually decides it?"
+      }
+    ]
+  },
+  "expected": {
+    "summary": "Nothing blocks req.delivery.outcome here: a requirement states what the system must record, and the option set that will carry its values is decided later, at MAPPING, from the registry entry. What the Gate in this stage decides is whether the requirement itself is CONFIRMED, and it decides that on the business text, not on the option set's disposition. I have raised a question because the requirement does not say whether the outcome values are fixed at the facility or free text, and that is what the mapping stage would have to guess.",
+    "confidence": 0.8,
+    "decisions": [],
+    "questions": [
+      {
+        "id": "Q1",
+        "text": "Is a delivery outcome one of a fixed list (for example MISSED, ATTENDED, REFERRED) or is it free text at the facility? The requirement says 'record the outcome' and the registry entry is a candidate with no note stating the full list.",
+        "severity": "MEDIUM",
+        "affects": [
+          "requirements/items/req.delivery.outcome"
+        ]
+      }
+    ]
+  }
+}

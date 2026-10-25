@@ -1,0 +1,45 @@
+{
+  "$comment": "总体 SRS 25.4 / FR-TST-001：受支持版本的官方在线演示实例清单。以配置维护，不写死在代码里；官方下线某个实例或升级补丁版本时改这一份，然后重跑回归（DX-TST-001）。",
+  "instances": [
+    {
+      "version": "2.40.12",
+      "profile": "Dhis240Profile",
+      "baseUrl": "https://play.im.dhis2.org/stable-2-40-12",
+      "milestone": "M4",
+      "enabled": false
+    },
+    {
+      "version": "2.41.10",
+      "profile": "Dhis241Profile",
+      "baseUrl": "https://play.im.dhis2.org/stable-2-41-10",
+      "milestone": "M2",
+      "enabled": true
+    },
+    {
+      "version": "2.42.6",
+      "profile": "Dhis242Profile",
+      "baseUrl": "https://play.im.dhis2.org/stable-2-42-6",
+      "milestone": "M4",
+      "enabled": false
+    },
+    {
+      "version": "2.43.1",
+      "profile": "Dhis243Profile",
+      "baseUrl": "https://play.im.dhis2.org/stable-2-43-1",
+      "milestone": "M4",
+      "enabled": false
+    }
+  ],
+  "credentials": {
+    "$comment": "FR-TST-001：凭证只用官方公开的演示账户，且以 **环境变量名** 引用，绝不写值。CI 的 Secret 存储把值放进这些变量。",
+    "usernameEnv": "FACTORY_DX_LIVE_DHIS2_USERNAME",
+    "passwordEnv": "FACTORY_DX_LIVE_DHIS2_PASSWORD"
+  },
+  "schedule": {
+    "$comment": "FR-TST-003：按日定时 + 每次发版前各跑一次；不作为合并阻断（合并检查用测试替身）。发版前每个受支持版本必须有一次 7 天内全部通过的结果。",
+    "dailyCron": "20 3 * * *",
+    "maxAgeOfPassingRunDays": 7,
+    "retries": 3,
+    "backoffSeconds": [30, 120, 480]
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "dhis2Type": "organisationUnit",
+  "resource": "metadata.organisationUnit",
+  "payloadKey": "organisationUnits",
+  "tier": 1,
+  "versionRange": ["2.41", "2.43"],
+  "requiredFields": [],
+  "dependencies": [],
+  "controlableFields": ["name", "shortName", "description"],
+  "translatableFields": [],
+  "forbiddenFields": [
+    "href",
+    "id",
+    "created",
+    "lastUpdated",
+    "access",
+    "displayUrl",
+    "externalAccess",
+    "parent",
+    "path",
+    "level",
+    "openingDate",
+    "closureDate"
+  ],
+  "implicit": ["SHARING_FROM_ACCESS_MODEL"],
+  "template": "organisationUnit.template.json",
+  "sortKey": "businessKey",
+  "rules": [
+    "OU_REFERENCE_ONLY",
+    "ORG_UNIT_REFERENCE_ONLY",
+    "OU_CREATE_NEEDS_APPROVED_DECISION",
+    "OU_HIERARCHY_FROM_DISCOVERY"
+  ],
+  "embeddedInParent": null,
+  "descriptorVersion": "1"
+}

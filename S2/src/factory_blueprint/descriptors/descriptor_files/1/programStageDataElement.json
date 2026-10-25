@@ -1,0 +1,35 @@
+{
+  "dhis2Type": "programStageDataElement",
+  "resource": "metadata.programStage",
+  "payloadKey": "programStageDataElements",
+  "tier": 1,
+  "versionRange": ["2.41", "2.43"],
+  "requiredFields": ["dataElement"],
+  "dependencies": [
+    {
+      "field": "dataElement",
+      "targetType": "dataElement",
+      "required": true
+    },
+    {
+      "field": "programStage",
+      "targetType": "programStage",
+      "required": true,
+      "wrapper": "programStageDataElements"
+    },
+    {
+      "field": "categoryCombo",
+      "targetType": "categoryCombo",
+      "required": false
+    }
+  ],
+  "controlableFields": ["sortOrder", "compulsory", "displayInReports"],
+  "translatableFields": [],
+  "forbiddenFields": ["href", "id", "lastUpdated"],
+  "implicit": [],
+  "template": "programStageDataElement.template.json",
+  "sortKey": "businessKey",
+  "rules": ["PSD_OWNED_BY_PROGRAM_STAGE", "PSD_CATEGORY_COMBO_WITHIN_PROGRAM_COMBO"],
+  "embeddedInParent": "programStage",
+  "descriptorVersion": "1"
+}

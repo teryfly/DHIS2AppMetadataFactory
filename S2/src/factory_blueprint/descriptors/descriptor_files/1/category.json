@@ -1,0 +1,26 @@
+{
+  "dhis2Type": "category",
+  "resource": "metadata.category",
+  "payloadKey": "categories",
+  "tier": 1,
+  "versionRange": ["2.41", "2.43"],
+  "requiredFields": ["name"],
+  "dependencies": [],
+  "controlableFields": ["name", "shortName", "description"],
+  "translatableFields": ["name", "shortName", "description"],
+  "forbiddenFields": [
+    "href",
+    "id",
+    "created",
+    "lastUpdated",
+    "access",
+    "displayUrl",
+    "externalAccess"
+  ],
+  "implicit": ["SHARING_FROM_ACCESS_MODEL"],
+  "template": "category.template.json",
+  "sortKey": "businessKey",
+  "rules": ["CATEGORY_COMPATIBILITY_ALIAS", "CATEGORY_MEMBERSHIP_OWNED_BY_COMBO"],
+  "embeddedInParent": null,
+  "descriptorVersion": "1"
+}

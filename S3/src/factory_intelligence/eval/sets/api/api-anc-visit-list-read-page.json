@@ -1,0 +1,246 @@
+{
+  "id": "api-anc-visit-list-read-page",
+  "kind": "golden",
+  "agentType": "API",
+  "stage": "PAGE_DESIGN",
+  "title": "A list page needs a bounded query, a facility picker and the default period asked about",
+  "note": "AI-AG-004, FR-API-001, FR-API-004: one page's read operations, named by logical resource, citing Registry entries by businessKey, with the paging and field selection the list shows. The unspecified default period is raised rather than invented.",
+  "context": {
+    "baseVersion": "7",
+    "decisionConfidenceThreshold": 0.7,
+    "extractionConfidenceThreshold": 0.7,
+    "mappingFrozen": true,
+    "items": [
+      {
+        "kind": "APPROVED_ENTRY",
+        "ref": "entry:pages/items/anc-visit-list",
+        "label": "pages/items/anc-visit-list",
+        "content": "{\"pageKey\": \"anc-visit-list\", \"name\": {\"default\": \"Antenatal visits\"}, \"purpose\": \"A midwife reviews the visits recorded at her facility for the current period and opens one to correct it.\", \"routes\": [\"/visits\"], \"useCases\": [\"uc.reviewVisits\"], \"actors\": [\"actor.midwife\"], \"registryRefs\": [\"reg.ancVisit.program\", \"reg.ancVisit.event\"], \"apiIntentRefs\": [], \"source\": {\"artifactId\": \"art-ancdesign000000000000001\", \"location\": \"section:pages\"}}"
+      },
+      {
+        "kind": "REGISTRY_ENTRY",
+        "ref": "entry:registry/entries/reg.ancVisit.event",
+        "label": "registry/entries/reg.ancVisit.event",
+        "content": "{\"businessKey\": \"reg.ancVisit.event\", \"dhis2Type\": \"programStage\", \"disposition\": \"CREATE\", \"status\": \"APPROVED\", \"code\": \"ANC_VISIT\", \"name\": \"Antenatal visit\"}"
+      },
+      {
+        "kind": "REGISTRY_ENTRY",
+        "ref": "entry:registry/entries/reg.ancVisit.program",
+        "label": "registry/entries/reg.ancVisit.program",
+        "content": "{\"businessKey\": \"reg.ancVisit.program\", \"dhis2Type\": \"program\", \"disposition\": \"CREATE\", \"status\": \"APPROVED\", \"code\": \"ANC_PROGRAM\", \"name\": \"Antenatal care\"}"
+      },
+      {
+        "kind": "REGISTRY_ENTRY",
+        "ref": "entry:registry/entries/reg.facility.hierarchy",
+        "label": "registry/entries/reg.facility.hierarchy",
+        "content": "{\"businessKey\": \"reg.facility.hierarchy\", \"dhis2Type\": \"orgUnitLevel\", \"disposition\": \"REFERENCE\", \"status\": \"APPROVED\", \"name\": \"Facility hierarchy\", \"sourceEnvironment\": \"env-reference-stg\"}"
+      },
+      {
+        "kind": "INPUT_ARTIFACT",
+        "ref": "art-ancworkshop00000000000001",
+        "label": "visit-list-worksheet.txt",
+        "content": "The worksheet for the list screen says: columns are the woman's ID, the visit date, the weight and whether the blood pressure was raised. Filter by facility and by month. The midwife said she only ever looks at her own post and the two below it."
+      }
+    ]
+  },
+  "expected": {
+    "summary": "Designed the read side of the visit list: one paged event query for the visits themselves, scoped to the caller's facility subtree and a period, and one organisation-unit query for the facility picker. Both name the program and the stage by their approved businessKeys in registryRefs, and both address the page in scope. The worksheet filters by month but never says which month the screen opens on, so that is a question rather than a default. No mapping, registry or architecture entry was written, and no resource carries an identifier.",
+    "decisions": [
+      {
+        "id": "API-001",
+        "subject": "anc-list-load",
+        "selected": {
+          "option": "one event query returning the list columns plus the identifiers the row needs"
+        },
+        "alternatives": [
+          {
+            "option": "one query per column, assembled in the page",
+            "reasonRejected": "Four calls per row makes the list the slowest thing on the screen and gives the compiler nothing to page by."
+          }
+        ],
+        "rationale": "The page shows one row per visit, so one operation over the program stage's events with a fields selection covers every column the worksheet names.",
+        "risks": [
+          {
+            "description": "The fields list decides whether the raised-blood-pressure column can be rendered at all; a field the compiler does not select shows as blank.",
+            "level": "MEDIUM"
+          }
+        ],
+        "confidence": 0.85,
+        "impactLevel": "LOW"
+      }
+    ],
+    "patch": {
+      "baseVersion": "7",
+      "operations": [
+        {
+          "op": "add",
+          "path": "/apiIntents/items/-",
+          "value": {
+            "intentKey": "anc-list-load",
+            "pageKey": "anc-visit-list",
+            "operationKey": "listVisits",
+            "purpose": "Load the antenatal visits recorded at the midwife's facility subtree for the period the list is showing.",
+            "resource": "tracker.event.query",
+            "method": "GET",
+            "queryParams": {
+              "program": {
+                "from": "registry",
+                "businessKey": "reg.ancVisit.program",
+                "required": true
+              },
+              "programStage": {
+                "from": "registry",
+                "businessKey": "reg.ancVisit.event",
+                "required": true
+              },
+              "orgUnits": {
+                "from": "user.scope",
+                "businessKey": "reg.facility.hierarchy",
+                "multiple": true,
+                "required": true
+              },
+              "occurredAfter": {
+                "from": "user.input",
+                "required": false
+              },
+              "occurredBefore": {
+                "from": "user.input",
+                "required": false
+              }
+            },
+            "fields": [
+              "event",
+              "occurredAt",
+              "attributeValues[value]",
+              "dataValues[dataElement,value]",
+              "enrollment"
+            ],
+            "filters": [
+              "one row per antenatal visit event of the approved program stage",
+              "restricted to the caller's organisation unit subtree"
+            ],
+            "order": [
+              "occurredAt:desc"
+            ],
+            "paging": {
+              "strategy": "page",
+              "size": 50
+            },
+            "preconditions": [
+              "the signed-in user has data read access to the organisation units in scope"
+            ],
+            "postconditions": [
+              "the list shows at most one page and knows whether more visits exist"
+            ],
+            "errorHandling": [
+              {
+                "condition": "the query is refused for lack of data access",
+                "handling": "show the permission-denied state and do not retry silently"
+              },
+              {
+                "condition": "the query fails or times out",
+                "handling": "show the API error state with a retry that repeats the same call"
+              }
+            ],
+            "permissions": [
+              "TRACKED_ENTITY_VIEW",
+              "DATA_READ"
+            ],
+            "registryRefs": [
+              "reg.ancVisit.program",
+              "reg.ancVisit.event"
+            ],
+            "source": {
+              "artifactId": "art-ancworkshop00000000000001",
+              "location": "line:1"
+            }
+          }
+        },
+        {
+          "op": "add",
+          "path": "/apiIntents/items/-",
+          "value": {
+            "intentKey": "anc-list-facilities",
+            "pageKey": "anc-visit-list",
+            "operationKey": "loadFacilities",
+            "purpose": "Fill the facility filter with the posts the midwife may look at, her own first.",
+            "resource": "dhis2.orgunit.tree",
+            "method": "GET",
+            "queryParams": {
+              "root": {
+                "from": "user.scope",
+                "businessKey": "reg.facility.hierarchy",
+                "required": true
+              },
+              "depth": {
+                "from": "literal",
+                "literal": 2,
+                "required": true
+              }
+            },
+            "fields": [
+              "id",
+              "name",
+              "parentName",
+              "level"
+            ],
+            "dependsOn": [],
+            "preconditions": [
+              "the user's scope has exactly one root organisation unit"
+            ],
+            "errorHandling": [
+              {
+                "condition": "the scope holds more than one root",
+                "handling": "show every root as a group in the picker rather than picking one arbitrarily"
+              }
+            ],
+            "permissions": [
+              "ORGUNIT_VIEW_PUBLIC_LEVELS"
+            ],
+            "registryRefs": [
+              "reg.facility.hierarchy"
+            ],
+            "source": {
+              "artifactId": "art-ancworkshop00000000000001",
+              "location": "line:3"
+            }
+          }
+        }
+      ]
+    },
+    "questions": [
+      {
+        "id": "Q1",
+        "text": "The worksheet filters the list by month but does not say which month the screen opens on. Should it default to the current month, to the last month with visits, or start empty?",
+        "severity": "MEDIUM",
+        "affects": [
+          "anc-list-load"
+        ],
+        "suggestions": [
+          {
+            "id": "S1",
+            "text": "Open on the current month",
+            "rationale": "Matches how the midwife described her day, and an empty current month is itself information.",
+            "changesUid": false,
+            "regenerates": false
+          },
+          {
+            "id": "S2",
+            "text": "Open on the most recent month that has visits",
+            "rationale": "Never shows an empty list, but hides the gap when nothing was recorded.",
+            "changesUid": false,
+            "regenerates": false
+          },
+          {
+            "id": "S3",
+            "text": "Start with no period filter and let the paging bound the result",
+            "rationale": "One fewer decision to get wrong, at the cost of a wider first query.",
+            "changesUid": false,
+            "regenerates": false
+          }
+        ]
+      }
+    ],
+    "confidence": 0.85
+  }
+}

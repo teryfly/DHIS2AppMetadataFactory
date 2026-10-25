@@ -1,0 +1,155 @@
+{
+  "id": "fixture-demo-users-per-actor",
+  "kind": "golden",
+  "agentType": "FIXTURE",
+  "stage": "PAGE_DESIGN",
+  "title": "One demo account per actor the pages were designed for, and no credential with them",
+  "note": "AI-AG-007 with FR-COV-008 and FR-PG-001: demo users carry a username, the roles their actor maps to and the organisation scope the screens assume; a fixture specification never carries a password, and the officer whose scope the access model does not settle is asked about.",
+  "context": {
+    "baseVersion": "19",
+    "decisionConfidenceThreshold": 0.7,
+    "extractionConfidenceThreshold": 0.7,
+    "phiArtifactIds": [
+      "art-ancpatientexport0000000001"
+    ],
+    "items": [
+      {
+        "kind": "APPROVED_ENTRY",
+        "ref": "entry:actors/items/actor.midwife",
+        "label": "actors/items/actor.midwife",
+        "content": "{\"businessKey\": \"actor.midwife\", \"name\": \"Midwife\", \"roleKeys\": [\"reg.role.anc.provider\"]}"
+      },
+      {
+        "kind": "APPROVED_ENTRY",
+        "ref": "entry:actors/items/actor.supervisor",
+        "label": "actors/items/actor.supervisor",
+        "content": "{\"businessKey\": \"actor.supervisor\", \"name\": \"Facility in-charge\", \"roleKeys\": [\"reg.role.anc.supervisor\"]}"
+      },
+      {
+        "kind": "APPROVED_ENTRY",
+        "ref": "entry:pages/items/anc-summary-report",
+        "label": "pages/items/anc-summary-report",
+        "content": "{\"pageKey\": \"anc-summary-report\", \"name\": {\"default\": \"Antenatal coverage\"}, \"actors\": [\"actor.districtOfficer\"], \"registryRefs\": [\"reg.ancVisit.event\", \"reg.facility.hierarchy\"]}"
+      },
+      {
+        "kind": "REGISTRY_ENTRY",
+        "ref": "entry:registry/entries/reg.role.anc.supervisor",
+        "label": "registry/entries/reg.role.anc.supervisor",
+        "content": "{\"businessKey\": \"reg.role.anc.supervisor\", \"dhis2Type\": \"userRole\", \"disposition\": \"CREATE\", \"status\": \"APPROVED\", \"code\": \"ANC_SUPervisor\", \"name\": \"Antenatal supervisor\"}"
+      },
+      {
+        "kind": "REGISTRY_ENTRY",
+        "ref": "entry:registry/entries/reg.role.anc.provider",
+        "label": "registry/entries/reg.ancVisit.provider",
+        "content": "{\"businessKey\": \"reg.role.anc.provider\", \"dhis2Type\": \"userRole\", \"disposition\": \"CREATE\", \"status\": \"APPROVED\", \"code\": \"ANC_Provider\", \"name\": \"Antenatal provider\"}"
+      },
+      {
+        "kind": "INPUT_ARTIFACT",
+        "ref": "art-anctestplan00000000000003",
+        "label": "walkthrough-script.md",
+        "content": "Walkthrough script: open the list as a midwife at a small post, correct a visit as the in-charge, then show the coverage report as the district officer. The officer has to see a facility where nothing was recorded."
+      }
+    ]
+  },
+  "expected": {
+    "summary": "Specified three demo accounts, one per actor the walkthrough visits, each holding the approved role its actor maps to and scoped to the organisation units the screens assume: the midwife at one small post so the empty month is visible, the in-charge at the same post with write reach, and the district officer over the whole district including the facility that records nothing. No account carries a password, a hash or a secret — the environment provisions the credential, and a fixture specification is design material. Whether the officer should also see a second district is not stated anywhere and is raised rather than widened by assumption.",
+    "decisions": [
+      {
+        "id": "FX-020",
+        "subject": "fx.demo.users",
+        "selected": {
+          "option": "one account per actor, scoped as narrow as the screen needs"
+        },
+        "alternatives": [
+          {
+            "option": "one superuser account for the whole walkthrough",
+            "reasonRejected": "Then the permission-denied state the pages were designed to show can never appear in the demo."
+          }
+        ],
+        "rationale": "The screens distinguish these actors, so the demonstration data has to distinguish them too.",
+        "confidence": 0.85,
+        "impactLevel": "LOW"
+      }
+    ],
+    "patch": {
+      "baseVersion": "19",
+      "operations": [
+        {
+          "op": "add",
+          "path": "/fixtures/demoUsers/-",
+          "value": {
+            "businessKey": "fx.demo.midwife.boya",
+            "username": "demo.midwife.boya",
+            "displayName": "Demo midwife, Boya post",
+            "roleKeys": [
+              "reg.role.anc.provider"
+            ],
+            "orgUnitScope": [
+              "reg.facility.boya"
+            ]
+          }
+        },
+        {
+          "op": "add",
+          "path": "/fixtures/demoUsers/-",
+          "value": {
+            "businessKey": "fx.demo.incharge.boya",
+            "username": "demo.incharge.boya",
+            "displayName": "Demo in-charge, Boya post",
+            "roleKeys": [
+              "reg.role.anc.supervisor"
+            ],
+            "orgUnitScope": [
+              "reg.facility.boya"
+            ]
+          }
+        },
+        {
+          "op": "add",
+          "path": "/fixtures/demoUsers/-",
+          "value": {
+            "businessKey": "fx.demo.officer.district",
+            "username": "demo.officer.district",
+            "displayName": "Demo district officer",
+            "roleKeys": [
+              "reg.role.anc.supervisor"
+            ],
+            "userGroupKeys": [
+              "reg.usergroup.district.read"
+            ],
+            "orgUnitScope": [
+              "reg.facility.district"
+            ]
+          }
+        }
+      ]
+    },
+    "questions": [
+      {
+        "id": "Q1",
+        "text": "The script has the officer read one district. Should the demo also contain a second district, so that switching scope can be shown, or is one district enough for the walkthrough?",
+        "severity": "LOW",
+        "affects": [
+          "fx.demo.officer.district"
+        ],
+        "suggestions": [
+          {
+            "id": "S1",
+            "text": "One district is enough",
+            "rationale": "The walkthrough never changes scope, and a second district doubles the import for a step nobody performs.",
+            "changesUid": false,
+            "regenerates": false
+          },
+          {
+            "id": "S2",
+            "text": "Add a second district and a second officer account",
+            "rationale": "Then the scope switch is demonstrable, and every specification above has to be sized again.",
+            "changesUid": false,
+            "regenerates": true
+          }
+        ]
+      }
+    ],
+    "confidence": 0.85
+  }
+}

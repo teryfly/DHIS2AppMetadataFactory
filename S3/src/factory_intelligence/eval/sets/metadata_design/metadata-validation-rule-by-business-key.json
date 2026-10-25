@@ -1,0 +1,103 @@
+{
+  "id": "metadata-validation-rule-by-business-key",
+  "kind": "golden",
+  "agentType": "METADATA_DESIGN",
+  "stage": "MAPPING",
+  "title": "A gestational-age check drafted with businessKey references only",
+  "note": "AI-AG-006, FR-CMP-010: an expression names objects by businessKey; the compiler binds each environment's identifier at build time.",
+  "context": {
+    "baseVersion": "41",
+    "decisionConfidenceThreshold": 0.7,
+    "extractionConfidenceThreshold": 0.7,
+    "designReferenceEnvironment": "env-reference-stg",
+    "items": [
+      {
+        "kind": "APPROVED_ENTRY",
+        "ref": "entry:mapping/entries/map.visit.gestationWeek",
+        "label": "mapping/entries/map.visit.gestationWeek",
+        "content": "{\"businessKey\": \"map.visit.gestationWeek\", \"dhis2Type\": \"dataElement\", \"decisionId\": \"MAP-011\"}"
+      },
+      {
+        "kind": "APPROVED_ENTRY",
+        "ref": "entry:registry/entries/reg.anc.program",
+        "label": "registry/entries/reg.anc.program",
+        "content": "{\"businessKey\": \"reg.anc.program\", \"dhis2Type\": \"program\", \"disposition\": \"CREATE\", \"status\": \"APPROVED\", \"code\": \"ANC_PROGRAM\"}"
+      },
+      {
+        "kind": "INPUT_ARTIFACT",
+        "ref": "art-syntheticinput000000000000010",
+        "label": "clinical-guideline.md",
+        "content": "A contact recorded before 12 weeks must carry an explanation for why it was so early."
+      }
+    ]
+  },
+  "expected": {
+    "summary": "Drafted one validation rule that blocks a visit recorded before 12 completed weeks unless the reason field is filled, addressed entirely by businessKey. The program and stage keys come from the approved registry entries in context, so the rule can be bound wherever it is built.",
+    "decisions": [],
+    "patch": {
+      "baseVersion": "41",
+      "operations": [
+        {
+          "op": "add",
+          "path": "/rules/validationRules/-",
+          "value": {
+            "businessKey": "rule.anc.earlyVisitNeedsReason",
+            "name": {
+              "default": "An early antenatal visit needs a reason"
+            },
+            "description": {
+              "default": "Blocks a contact recorded before 12 completed weeks unless the reason for the early visit is filled in."
+            },
+            "kind": "PROGRAM_RULE",
+            "programKey": "reg.anc.program",
+            "leftExpression": "V{gestationWeek} < 12",
+            "rightExpression": "IS_EMPTY( V{earlyVisitReason} )",
+            "missingValueStrategy": "SKIP_WHEN_EMPTY",
+            "variables": [
+              {
+                "name": "gestationWeek",
+                "valueType": "NUMBER",
+                "sourceField": "map.visit.gestationWeek"
+              },
+              {
+                "name": "earlyVisitReason",
+                "valueType": "TEXT",
+                "sourceField": "map.visit.earlyVisitReason"
+              }
+            ],
+            "decisionId": "MD-001",
+            "source": {
+              "artifactId": "art-syntheticinput000000000000010",
+              "location": "line:1"
+            }
+          }
+        }
+      ]
+    },
+    "questions": [
+      {
+        "id": "Q1",
+        "text": "The guideline names 12 weeks but does not say whether it counts completed weeks or weeks-and-days, and map.visit.earlyVisitReason is not in the approved mappings. Should the reason field be added to the mapping before this rule can hold?",
+        "severity": "HIGH",
+        "affects": ["rule.anc.earlyVisitNeedsReason"],
+        "suggestions": [
+          {
+            "id": "S1",
+            "text": "Add map.visit.earlyVisitReason to the mapping and keep the 12-week boundary",
+            "rationale": "The rule cannot fire without a field to test.",
+            "changesUid": false,
+            "regenerates": true
+          },
+          {
+            "id": "S2",
+            "text": "Warn instead of blocking, so no new field is needed yet",
+            "rationale": "Keeps the guideline's intent without a mapping change.",
+            "changesUid": false,
+            "regenerates": false
+          }
+        ]
+      }
+    ],
+    "confidence": 0.7
+  }
+}

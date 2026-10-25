@@ -1,0 +1,92 @@
+[project]
+name = "factory-foundation"
+version = "0.1.2"
+description = "S0 公共基础库 (Foundation) — DAMF shared database/transaction, artifact storage, audit hash-chain, idempotency, object store & secret adapters, common tools."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Proprietary" }
+authors = [{ name = "DAMF S0 Team" }]
+dependencies = [
+    "SQLAlchemy>=2.0,<3.0",
+    "psycopg[binary]>=3.1,<4.0",
+    "alembic>=1.13,<2.0",
+    "pydantic>=2.7,<3.0",
+    "python-ulid>=2.2,<4.0",
+    "typing-extensions>=4.9",
+]
+
+[project.optional-dependencies]
+s3 = ["boto3>=1.34,<2.0"]
+otel = ["opentelemetry-api>=1.24", "opentelemetry-sdk>=1.24"]
+# FD-TST-001: the harness falls back to a PostgreSQL test container when
+# FACTORY_TEST_DATABASE_URL is unset.
+testing = ["testcontainers[postgres]>=4.0"]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "mypy>=1.10",
+    "ruff>=0.5",
+    "boto3>=1.34,<2.0",
+    "opentelemetry-api>=1.24",
+    "testcontainers[postgres]>=4.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/factory_foundation"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.coverage.run]
+source = ["src/factory_foundation"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+# str/Enum, Generic[T] and PEP-695 generics are deliberate for broad compatibility.
+ignore = ["E501", "UP042", "UP046", "UP047"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+mypy_path = "src"
+packages = ["factory_foundation"]
+
+[[tool.mypy.overrides]]
+module = "ulid.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "boto3.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "botocore.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "opentelemetry.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "testcontainers.*"
+ignore_missing_imports = true

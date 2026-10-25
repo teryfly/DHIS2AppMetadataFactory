@@ -1,0 +1,151 @@
+{
+  "id": "domain-facility-relationship-and-cardinality",
+  "kind": "golden",
+  "agentType": "DOMAIN",
+  "stage": "DOMAIN",
+  "title": "Where a visit happens is a relationship, and its cardinality is a stated choice",
+  "note": "AI-AG-002, 总体 SRS 9.1: a relationship's cardinality, ownership, lifecycle dependence, optionality and cross-process flags are recorded here because the mapping stage cannot recover them later.",
+  "context": {
+    "baseVersion": "5",
+    "decisionConfidenceThreshold": 0.7,
+    "extractionConfidenceThreshold": 0.7,
+    "items": [
+      {
+        "kind": "APPROVED_ENTRY",
+        "ref": "entry:domain/entities/entity.antenatalVisit",
+        "label": "domain/entities/entity.antenatalVisit",
+        "content": "{\"businessKey\": \"entity.antenatalVisit\", \"displayName\": {\"default\": \"Antenatal visit\"}}"
+      },
+      {
+        "kind": "INPUT_ARTIFACT",
+        "ref": "art-syntheticinput000000000000012",
+        "label": "facility-list.csv",
+        "content": "facility_code,facility_name,district\nCHP-014,Boya Chiefhealthpost,Bombali\nPHU-002,Makama PHU,Bombali"
+      },
+      {
+        "kind": "INPUT_ARTIFACT",
+        "ref": "art-syntheticinput000000000000013",
+        "label": "midwife-interview.txt",
+        "content": "A woman is usually seen at the same post, but when it is closed she goes to the neighbouring one and the visit is written where it took place."
+      }
+    ]
+  },
+  "expected": {
+    "summary": "Registered the facility as an entity of its own, taken from the facility list, and related it to the antenatal visit. The relationship is many visits to one facility, the visit's own record of where it happened rather than the woman's home post, so it is not lifecycle dependent and it is required. Whether a visit at a closed post is written against the usual post or the actual one is stated in the interview as the actual one, so that is recorded as the decision rather than asked.",
+    "decisions": [
+      {
+        "id": "DOM-003",
+        "subject": "rel.visit.atFacility",
+        "selected": {
+          "option": "many visits to one facility, ownership to the facility"
+        },
+        "alternatives": [
+          {
+            "option": "one facility recorded as an attribute of the woman",
+            "reasonRejected": "The interview says the visit is written where it took place, which is not necessarily the woman's usual post."
+          },
+          {
+            "option": "many visits to many facilities",
+            "reasonRejected": "One visit happens at one place, so many-to-many would let a visit be counted twice in a facility's totals."
+          }
+        ],
+        "rationale": "The place of service is a fact about the visit, and the facility list is already a register of distinct objects.",
+        "confidence": 0.8,
+        "impactLevel": "MEDIUM"
+      }
+    ],
+    "patch": {
+      "baseVersion": "5",
+      "operations": [
+        {
+          "op": "add",
+          "path": "/domain/entities/-",
+          "value": {
+            "businessKey": "entity.facility",
+            "displayName": {
+              "default": "Health facility"
+            },
+            "description": {
+              "default": "A post or unit where antenatal visits take place, listed by code and district."
+            },
+            "attributes": [],
+            "source": {
+              "artifactId": "art-syntheticinput000000000000012",
+              "location": "row:1"
+            }
+          }
+        },
+        {
+          "op": "add",
+          "path": "/domain/relationships/-",
+          "value": {
+            "businessKey": "rel.visit.atFacility",
+            "name": "takes place at facility",
+            "from": "entity.antenatalVisit",
+            "to": "entity.facility",
+            "cardinality": "MANY_TO_ONE",
+            "ownership": "TO",
+            "lifecycleDependent": false,
+            "optional": false,
+            "crossProcess": true,
+            "candidateExpressions": [
+              "the organisation unit the event is recorded against"
+            ],
+            "source": {
+              "artifactId": "art-syntheticinput000000000000013",
+              "location": "line:1"
+            }
+          }
+        },
+        {
+          "op": "add",
+          "path": "/useCases/items/-",
+          "value": {
+            "businessKey": "uc.transferVisit",
+            "name": "Visit at another post",
+            "purpose": "Record a visit that took place away from the woman's usual post.",
+            "actors": ["actor.midwife"],
+            "preconditions": [
+              "the usual post is closed"
+            ],
+            "steps": [
+              "the woman attends a neighbouring post",
+              "the midwife at that post records the visit against this facility"
+            ],
+            "outcome": "The visit counts for the facility where it happened.",
+            "requirements": ["req.anc.contact"],
+            "source": {
+              "artifactId": "art-syntheticinput000000000000013",
+              "location": "line:1"
+            }
+          }
+        }
+      ]
+    },
+    "questions": [
+      {
+        "id": "Q1",
+        "text": "When a visit is recorded at a neighbouring post, should the pregnancy's register also show which post it was, or is the visit's own facility enough?",
+        "severity": "LOW",
+        "affects": ["uc.transferVisit", "rel.visit.atFacility"],
+        "suggestions": [
+          {
+            "id": "S1",
+            "text": "The visit's facility is enough",
+            "rationale": "One place per visit is what the totals need.",
+            "changesUid": false,
+            "regenerates": false
+          },
+          {
+            "id": "S2",
+            "text": "Also keep the woman's usual post on the visit",
+            "rationale": "Lets the usual post see the visits it missed.",
+            "changesUid": false,
+            "regenerates": false
+          }
+        ]
+      }
+    ],
+    "confidence": 0.8
+  }
+}

@@ -1,0 +1,138 @@
+/* UM-UI-001 — self-owned design tokens. Semantic colours, neutral scale, radii (card 12 / button 8),
+   4px spacing base, type scale 12/14/16/18/22 (body 16), shadow levels. Dark mode is its own set.
+   Colour is always paired with an icon or text (UM-UX-005) — never used as the only signal. */
+:root {
+  color-scheme: light;
+
+  /* brand / primary — every foreground/background pair below clears WCAG AA 4.5:1 at 12-16 px
+     (UM-NFR-04 accessibility ≥ 95); the values were picked by ratio, not by eye. */
+  --fui-primary: #0e5fd6;
+  --fui-primary-hover: #1468d8;
+  --fui-primary-active: #0a52bb;
+  --fui-on-primary: #ffffff;
+
+  /* semantic */
+  --fui-success: #0f7a35;
+  --fui-success-bg: #e7f6ec;
+  --fui-danger: #c81e1e;
+  --fui-danger-bg: #fdeaea;
+  --fui-warning: #b45309;
+  --fui-warning-bg: #fdf3e2;
+  --fui-info: #1d4ed8;
+  --fui-info-bg: #e9effe;
+
+  /* neutral scale */
+  --fui-text: #1f2329;
+  --fui-text-secondary: #4f565f;
+  --fui-text-tertiary: #67707b;
+  --fui-border: #dee0e3;
+  --fui-bg: #f5f6f7;
+  --fui-surface: #ffffff;
+  --fui-surface-2: #f2f3f5;
+  --fui-muted: #c9cdd4;
+
+  /* radii */
+  --fui-radius-card: 12px;
+  --fui-radius-btn: 8px;
+  --fui-radius-pill: 999px;
+
+  /* spacing (4px base) */
+  --fui-sp-1: 4px;
+  --fui-sp-2: 8px;
+  --fui-sp-3: 12px;
+  --fui-sp-4: 16px;
+  --fui-sp-5: 20px;
+  --fui-sp-6: 24px;
+  --fui-sp-8: 32px;
+
+  /* type scale */
+  --fui-fs-xs: 12px;
+  --fui-fs-sm: 14px;
+  --fui-fs-md: 16px;
+  --fui-fs-lg: 18px;
+  --fui-fs-xl: 22px;
+
+  /* shadows */
+  --fui-shadow-1: 0 1px 2px rgba(31, 35, 41, 0.06), 0 0 1px rgba(31, 35, 41, 0.04);
+  --fui-shadow-2: 0 2px 8px rgba(31, 35, 41, 0.1);
+  --fui-shadow-3: 0 8px 24px rgba(31, 35, 41, 0.16);
+
+  /* safe areas */
+  --fui-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --fui-safe-top: env(safe-area-inset-top, 0px);
+
+  --fui-tap-min: 44px;
+
+}
+
+/* Vant theme mapping. `html:root` (0,1,1) instead of `:root` because Vant's own base.css declares
+   its defaults on `:root` too and is emitted after this file (each FUI primitive imports
+   `vant/es/x/style`); at equal specificity the later rule won and Vant's #1989fa leaked through as
+   the live primary colour. Order-independent on purpose. */
+html:root {
+  --van-primary-color: var(--fui-primary);
+  --van-success-color: var(--fui-success);
+  --van-danger-color: var(--fui-danger);
+  --van-warning-color: var(--fui-warning);
+  --van-border-radius-lg: var(--fui-radius-card);
+  --van-border-radius-md: var(--fui-radius-btn);
+  --van-font-size-sm: var(--fui-fs-sm);
+  --van-text-color: var(--fui-text);
+  --van-text-color-2: var(--fui-text-secondary);
+  --van-text-color-3: var(--fui-text-tertiary);
+  --van-border-color: var(--fui-border);
+  --van-background: var(--fui-bg);
+  --van-background-2: var(--fui-surface);
+  --van-background-3: var(--fui-surface-2);
+}
+
+/* `html:root[...]` matches the specificity of the Vant-mapping block above, so the dark palette
+   still wins over it (both are the same element). */
+html:root[data-theme='dark'] {
+  color-scheme: dark;
+  --fui-primary: #3c8cff;
+  --fui-primary-hover: #5c9dff;
+  --fui-on-primary: #0b1a33;
+  --fui-success: #34c759;
+  --fui-success-bg: #12301f;
+  --fui-danger: #ff5d55;
+  --fui-danger-bg: #3a1414;
+  --fui-warning: #ffb020;
+  --fui-warning-bg: #3a2a0d;
+  --fui-info: #4d8dff;
+  --fui-info-bg: #14233f;
+
+  --fui-text: #e8eaed;
+  --fui-text-secondary: #a6abb3;
+  --fui-text-tertiary: #767c85;
+  --fui-border: #333842;
+  --fui-bg: #14161a;
+  --fui-surface: #1d2025;
+  --fui-surface-2: #262a31;
+  --fui-muted: #4a505a;
+
+  --fui-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --fui-shadow-2: 0 2px 10px rgba(0, 0, 0, 0.5);
+  --fui-shadow-3: 0 10px 28px rgba(0, 0, 0, 0.6);
+
+  --van-background: var(--fui-bg);
+  --van-background-2: var(--fui-surface);
+  --van-text-color: var(--fui-text);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--fui-bg);
+  color: var(--fui-text);
+  font-family: -apple-system, 'PingFang SC', 'Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft YaHei', sans-serif;
+  font-size: var(--fui-fs-md);
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+#app { min-height: 100vh; }
+
+.fui-eyebrow { color: var(--fui-text-tertiary); font-size: var(--fui-fs-xs); }

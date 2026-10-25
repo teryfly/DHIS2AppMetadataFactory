@@ -1,0 +1,13 @@
+{
+  "name": "${name}",
+  "shortName": "${shortName}",
+  "description": "${description}",
+  "formName": "${formName}",
+  "code": "${code}",
+  "featureType": "${featureType}",
+  "minAttributesRequiredSearching": "${minAttributesRequiredSearching}",
+  "attributes": "${attributes}",
+  "relationshipTraits": "${relationshipTraits}",
+  "translations": "${translations}",
+  "sharing": "${sharing}"
+}

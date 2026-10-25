@@ -1,0 +1,24 @@
+{
+  "fields": [
+    "id",
+    "href",
+    "created",
+    "lastUpdated",
+    "createdBy",
+    "lastUpdatedBy",
+    "access",
+    "publicAccess",
+    "externalAccess",
+    "favourite",
+    "favorites",
+    "subscriptions",
+    "displayOptions",
+    "sharedUrl",
+    "apiPath",
+    "favorite"
+  ],
+  "notes": [
+    "DX-DSC-007：内容哈希在排除这些易变或派生字段后的规范化 JSON 上计算，否则仅 lastUpdated 变化就会误报漂移（AC-EXE-07）。",
+    "name/shortName/description/code 等是受控字段，绝不排除：它们变了就是真的变了。"
+  ]
+}

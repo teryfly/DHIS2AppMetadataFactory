@@ -1,0 +1,205 @@
+{
+  "id": "domain-entities-and-lifecycle-from-diagram",
+  "kind": "golden",
+  "agentType": "DOMAIN",
+  "stage": "DOMAIN",
+  "title": "Objects and their states come from an ER diagram; collected fields are not invented",
+  "note": "AI-AG-002, AI-INP-005, AI-BR-05: the diagram's objects and their cardinality are recorded, the states the business names are a lifecycle, and fields nobody described become a question instead of attributes.",
+  "context": {
+    "baseVersion": "5",
+    "decisionConfidenceThreshold": 0.7,
+    "extractionConfidenceThreshold": 0.7,
+    "items": [
+      {
+        "kind": "INPUT_ARTIFACT",
+        "ref": "art-syntheticinput000000000000007",
+        "label": "anc-model.mmd",
+        "content": "erDiagram\n  WOMAN ||--o{ PREGNANCY : has\n  PREGNANCY ||--|{ ANTENATAL_VISIT : has\n  PREGNANCY: registered, inCare, delivered"
+      },
+      {
+        "kind": "APPROVED_ENTRY",
+        "ref": "entry:requirements/req.delivery.record",
+        "label": "requirements/req.delivery.record",
+        "content": "{\"businessKey\": \"req.delivery.record\", \"statement\": \"The attending midwife must record every delivery with its date, the facility and the outcome.\"}"
+      }
+    ]
+  },
+  "expected": {
+    "summary": "Registered the three objects the diagram draws, with the pregnancy lifecycle it labels (registered, inCare, delivered) and the two relationships it draws. The visit block lists two fields; they are recorded as the diagram states them. Whether the delivery record is a fourth object or the pregnancy's last state is not decided by anything in the inputs, so it is asked about.",
+    "decisions": [
+      {
+        "id": "DOM-001",
+        "subject": "entity.pregnancy",
+        "selected": {
+          "option": "a separate entity with its own lifecycle"
+        },
+        "alternatives": [
+          {
+            "option": "state attributes on the woman",
+            "reasonRejected": "A woman can have several pregnancies; folding them into her states would lose the history the diagram draws as one-to-many."
+          }
+        ],
+        "rationale": "The diagram gives pregnancy its own states and its own relationships, which is what makes it an object rather than a flag.",
+        "confidence": 0.9,
+        "impactLevel": "MEDIUM"
+      }
+    ],
+    "patch": {
+      "baseVersion": "5",
+      "operations": [
+        {
+          "op": "add",
+          "path": "/domain/entities/-",
+          "value": {
+            "businessKey": "entity.woman",
+            "displayName": {
+              "default": "Woman of reproductive age"
+            },
+            "attributes": [],
+            "source": {
+              "artifactId": "art-syntheticinput000000000000007",
+              "location": "line:2"
+            }
+          }
+        },
+        {
+          "op": "add",
+          "path": "/domain/entities/-",
+          "value": {
+            "businessKey": "entity.pregnancy",
+            "displayName": {
+              "default": "Pregnancy"
+            },
+            "lifecycle": {
+              "states": [
+                {
+                  "key": "registered",
+                  "name": "Registered",
+                  "initial": true
+                },
+                {
+                  "key": "inCare",
+                  "name": "In antenatal care"
+                },
+                {
+                  "key": "delivered",
+                  "name": "Delivered",
+                  "terminal": true
+                }
+              ],
+              "transitions": [
+                {
+                  "from": "registered",
+                  "to": "inCare",
+                  "trigger": "the first antenatal contact is recorded"
+                },
+                {
+                  "from": "inCare",
+                  "to": "delivered",
+                  "trigger": "the delivery is recorded"
+                }
+              ]
+            },
+            "attributes": [],
+            "source": {
+              "artifactId": "art-syntheticinput000000000000007",
+              "location": "line:6"
+            }
+          }
+        },
+        {
+          "op": "add",
+          "path": "/domain/entities/-",
+          "value": {
+            "businessKey": "entity.antenatalVisit",
+            "displayName": {
+              "default": "Antenatal visit"
+            },
+            "attributes": [],
+            "useCases": ["uc.ancContact"],
+            "source": {
+              "artifactId": "art-syntheticinput000000000000007",
+              "location": "line:4"
+            }
+          }
+        },
+        {
+          "op": "add",
+          "path": "/domain/relationships/-",
+          "value": {
+            "businessKey": "rel.woman.hasPregnancy",
+            "name": "has pregnancy",
+            "from": "entity.woman",
+            "to": "entity.pregnancy",
+            "cardinality": "ONE_TO_MANY",
+            "ownership": "FROM",
+            "lifecycleDependent": false,
+            "optional": true,
+            "crossProcess": false,
+            "candidateExpressions": [
+              "one programme enrolment per pregnancy"
+            ],
+            "source": {
+              "artifactId": "art-syntheticinput000000000000007",
+              "location": "line:2"
+            }
+          }
+        },
+        {
+          "op": "add",
+          "path": "/domain/relationships/-",
+          "value": {
+            "businessKey": "rel.pregnancy.hasVisit",
+            "name": "has antenatal visit",
+            "from": "entity.pregnancy",
+            "to": "entity.antenatalVisit",
+            "cardinality": "ONE_TO_MANY",
+            "ownership": "FROM",
+            "lifecycleDependent": true,
+            "optional": false,
+            "crossProcess": false,
+            "candidateExpressions": [
+              "a repeating event inside the pregnancy's programme instance"
+            ],
+            "source": {
+              "artifactId": "art-syntheticinput000000000000007",
+              "location": "line:3"
+            }
+          }
+        }
+      ]
+    },
+    "questions": [
+      {
+        "id": "Q1",
+        "text": "The diagram draws no delivery object, but req.delivery.record says a delivery is recorded with a date, a facility and an outcome. Is that a fourth entity, the pregnancy's delivered state, or the last visit's fields?",
+        "severity": "HIGH",
+        "affects": ["entity.pregnancy", "req.delivery.record"],
+        "suggestions": [
+          {
+            "id": "S1",
+            "text": "A delivery entity linked from the pregnancy",
+            "rationale": "It carries its own outcome and can be reported on alone.",
+            "changesUid": false,
+            "regenerates": false
+          },
+          {
+            "id": "S2",
+            "text": "The pregnancy's delivered state plus three attributes on the pregnancy",
+            "rationale": "Fewer objects, but one pregnancy could not hold two deliveries.",
+            "changesUid": false,
+            "regenerates": false
+          },
+          {
+            "id": "S3",
+            "text": "Fields on the final antenatal visit",
+            "rationale": "Cheapest, and wrong if a delivery is ever recorded without a visit.",
+            "changesUid": false,
+            "regenerates": false
+          }
+        ]
+      }
+    ],
+    "confidence": 0.8
+  }
+}

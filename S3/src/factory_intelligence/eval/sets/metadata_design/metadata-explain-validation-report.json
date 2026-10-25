@@ -1,0 +1,69 @@
+{
+  "id": "metadata-explain-validation-report",
+  "kind": "golden",
+  "agentType": "METADATA_DESIGN",
+  "stage": "MAPPING",
+  "title": "A compile report whose cause is upstream: explain it, patch nothing",
+  "note": "AI-AG-006, AI-AG-014: an explanation names the stage the fix belongs to; there is nothing in the rules section to write, so the patch is null.",
+  "context": {
+    "baseVersion": "41",
+    "decisionConfidenceThreshold": 0.7,
+    "extractionConfidenceThreshold": 0.7,
+    "designReferenceEnvironment": "env-reference-stg",
+    "items": [
+      {
+        "kind": "INPUT_ARTIFACT",
+        "ref": "art-syntheticreport000000000000001",
+        "label": "validation-report.json",
+        "content": "rule.indicator.doseCoverage: DIVISION has no value when dosesDue is zero, so the district total is reported as 0 for a facility with no visits. map.visit.dosesDue is required at the stage but the stage form does not collect it."
+      }
+    ]
+  },
+  "expected": {
+    "summary": "The indicator is not the cause. dosesDue has no value for a facility with no visits, so the division yields nothing and the district sees a zero: the expression needs a guard, and the deeper problem is that the approved mapping requires a value the stage never collects. The expression change belongs here; requiring dosesDue belongs to the DOMAIN and MAPPING decision that made it required.",
+    "decisions": [
+      {
+        "id": "MD-003",
+        "subject": "rule.indicator.doseCoverage",
+        "selected": {
+          "option": "keep the indicator and ask whether dosesDue should be required at all"
+        },
+        "alternatives": [
+          {
+            "option": "add only-if-has-value to the indicator here",
+            "reasonRejected": "It hides a mapping rule that the report shows to be wrong, and the report would still say coverage was zero."
+          }
+        ],
+        "rationale": "A rule cannot be repaired by a rule when the field it reads is the defect (AI-AG-006).",
+        "confidence": 0.6,
+        "impactLevel": "HIGH"
+      }
+    ],
+    "patch": null,
+    "questions": [
+      {
+        "id": "Q1",
+        "text": "map.visit.dosesDue is required by the approved mapping but the visit form never collects it. Should the requirement to fill it be dropped at MAPPING, or should the visit form collect it?",
+        "severity": "HIGH",
+        "affects": ["MD-003", "map.visit.dosesDue", "rule.indicator.doseCoverage"],
+        "suggestions": [
+          {
+            "id": "S1",
+            "text": "Reopen the MAPPING decision and make dosesDue optional",
+            "rationale": "Matches what the stage actually records and leaves the indicator honest.",
+            "changesUid": false,
+            "regenerates": true
+          },
+          {
+            "id": "S2",
+            "text": "Add dosesDue to the visit form as a required field",
+            "rationale": "Keeps the design as approved and pushes the work to the page stage.",
+            "changesUid": false,
+            "regenerates": false
+          }
+        ]
+      }
+    ],
+    "confidence": 0.6
+  }
+}

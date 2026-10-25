@@ -1,0 +1,7 @@
+{
+  "dataElement": { "id": "${dataElement}" },
+  "categoryCombo": { "id": "${categoryCombo}" },
+  "compulsory": "${compulsory}",
+  "displayInReports": "${displayInReports}",
+  "sortOrder": "${sortOrder}"
+}

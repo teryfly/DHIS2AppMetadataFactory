@@ -1,0 +1,13 @@
+{
+  "name": "${name}",
+  "description": "${description}",
+  "code": "${code}",
+  "periodType": "${periodType}",
+  "importance": "${importance}",
+  "instruction": "${instruction}",
+  "leftExpression": "${leftExpression}",
+  "rightExpression": "${rightExpression}",
+  "categoryOptionCombo": { "id": "${categoryOptionCombo}" },
+  "translations": "${translations}",
+  "sharing": "${sharing}"
+}

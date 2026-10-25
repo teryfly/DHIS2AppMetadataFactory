@@ -1,0 +1,32 @@
+{
+  "dhis2Type": "validationRule",
+  "resource": "metadata.validationRule",
+  "payloadKey": "validationRules",
+  "tier": 1,
+  "versionRange": ["2.41", "2.43"],
+  "requiredFields": ["name", "periodType", "leftExpression", "rightExpression"],
+  "dependencies": [
+    {
+      "field": "categoryOptionCombo",
+      "targetType": "categoryOptionCombo",
+      "required": false
+    }
+  ],
+  "controlableFields": ["name", "description", "importance"],
+  "translatableFields": ["name", "description"],
+  "forbiddenFields": [
+    "href",
+    "id",
+    "created",
+    "lastUpdated",
+    "access",
+    "displayUrl",
+    "externalAccess"
+  ],
+  "implicit": ["SHARING_FROM_ACCESS_MODEL"],
+  "template": "validationRule.template.json",
+  "sortKey": "businessKey",
+  "rules": ["VR_EXPRESSIONS_PARSE", "VR_SUBJECT_EXPRESSIONS_COHERENT"],
+  "embeddedInParent": null,
+  "descriptorVersion": "1"
+}

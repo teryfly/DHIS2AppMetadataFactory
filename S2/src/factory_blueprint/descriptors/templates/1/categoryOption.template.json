@@ -1,0 +1,9 @@
+{
+  "name": "${name}",
+  "shortName": "${shortName}",
+  "description": "${description}",
+  "formName": "${formName}",
+  "code": "${code}",
+  "translations": "${translations}",
+  "sharing": "${sharing}"
+}

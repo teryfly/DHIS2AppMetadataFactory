@@ -1,0 +1,37 @@
+{
+  "dhis2Type": "attribute",
+  "resource": "metadata.attribute",
+  "payloadKey": "attributes",
+  "tier": 1,
+  "versionRange": ["2.41", "2.43"],
+  "requiredFields": ["name", "valueType"],
+  "dependencies": [
+    {
+      "field": "categoryCombo",
+      "targetType": "categoryCombo",
+      "required": false
+    },
+    {
+      "field": "optionSet",
+      "targetType": "optionSet",
+      "required": false
+    }
+  ],
+  "controlableFields": ["name", "shortName", "description"],
+  "translatableFields": ["name", "shortName", "description"],
+  "forbiddenFields": [
+    "href",
+    "id",
+    "created",
+    "lastUpdated",
+    "access",
+    "displayUrl",
+    "externalAccess"
+  ],
+  "implicit": ["ATTRIBUTE_VALUES", "SHARING_FROM_ACCESS_MODEL"],
+  "template": "attribute.template.json",
+  "sortKey": "businessKey",
+  "rules": ["ATTRIBUTE_APPLIES_TO_OBJECT_TYPE", "ATTRIBUTE_VALUE_TYPE_MATCHES_OPTION_SET"],
+  "embeddedInParent": null,
+  "descriptorVersion": "1"
+}

@@ -1,0 +1,14 @@
+{
+  "name": "${name}",
+  "shortName": "${shortName}",
+  "description": "${description}",
+  "code": "${code}",
+  "valueType": "${valueType}",
+  "categoryCombo": { "id": "${categoryCombo}" },
+  "optionSet": { "id": "${optionSet}" },
+  "unique": "${unique}",
+  "mandatory": "${mandatory}",
+  "showInCard": "${showInCard}",
+  "translations": "${translations}",
+  "sharing": "${sharing}"
+}

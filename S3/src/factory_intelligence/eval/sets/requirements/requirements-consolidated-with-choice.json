@@ -1,0 +1,121 @@
+{
+  "id": "requirements-consolidated-with-choice",
+  "kind": "golden",
+  "agentType": "REQUIREMENTS",
+  "stage": "REQUIREMENTS",
+  "title": "Three fragments about antenatal contacts merge, and the merge is a recorded decision",
+  "note": "AI-AG-001, AI-AG-003, AI-INP-008: a merged reading is a decision with the alternative it rejected; a one-sentence habit stays CANDIDATE.",
+  "context": {
+    "baseVersion": "12",
+    "decisionConfidenceThreshold": 0.7,
+    "extractionConfidenceThreshold": 0.7,
+    "items": [
+      {
+        "kind": "APPROVED_ENTRY",
+        "ref": "entry:requirements/req.anc.contact",
+        "label": "requirements/req.anc.contact",
+        "content": "{\"businessKey\": \"req.anc.contact\", \"statement\": \"A pregnant woman is offered antenatal contacts.\", \"status\": \"CONFIRMED\", \"confidence\": 0.9}"
+      },
+      {
+        "kind": "INPUT_ARTIFACT",
+        "ref": "art-syntheticinput000000000000005",
+        "label": "anc-schedule.csv",
+        "content": "contact,1,4,8,20,26,30,34,36,38,40 gestation weeks"
+      },
+      {
+        "kind": "INPUT_ARTIFACT",
+        "ref": "art-syntheticinput000000000000006",
+        "label": "clinic-notebook.md",
+        "content": "The clerk writes the next contact date on the woman's card before she leaves. Sometimes the card is missed and the date is filled in later, from memory."
+      }
+    ]
+  },
+  "expected": {
+    "summary": "Replaced the approved contact requirement with a wording that carries the ten scheduled weeks, because the approved entry said contacts existed but never said when. The schedule came from a table read, so it is CONFIRMED. The card habit is one sentence in a notebook with no policy behind it, so it is CANDIDATE at 0.45 and asked about rather than written as a duty.",
+    "decisions": [
+      {
+        "id": "REQ-001",
+        "subject": "req.anc.contact",
+        "selected": {
+          "option": "one requirement naming the ten scheduled contacts"
+        },
+        "alternatives": [
+          {
+            "option": "one requirement per contact week",
+            "reasonRejected": "Ten entries that say the same thing about different weeks cannot be reviewed as one decision."
+          }
+        ],
+        "rationale": "The timetable is one business rule about one object; splitting it would make the requirement set look larger than the design.",
+        "confidence": 0.85,
+        "impactLevel": "MEDIUM"
+      }
+    ],
+    "patch": {
+      "baseVersion": "12",
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/requirements/items/req.anc.contact",
+          "value": {
+            "businessKey": "req.anc.contact",
+            "statement": "A pregnant woman is offered antenatal contacts at 1, 4, 8, 20, 26, 30, 34, 36, 38 and 40 weeks of gestation.",
+            "priority": "MUST",
+            "status": "CONFIRMED",
+            "confidence": 0.9,
+            "rationale": "The approved entry established the contact; the schedule table supplies the weeks without contradicting it.",
+            "source": {
+              "artifactId": "art-syntheticinput000000000000005",
+              "location": "row:1"
+            }
+          }
+        },
+        {
+          "op": "add",
+          "path": "/requirements/items/-",
+          "value": {
+            "businessKey": "req.anc.next-contact-card",
+            "statement": "The next contact date is written on the woman's card before she leaves the clinic.",
+            "priority": "SHOULD",
+            "status": "CANDIDATE",
+            "confidence": 0.45,
+            "openQuestions": [
+              {
+                "question": "Is writing the next contact date on the card a duty the system must support, or a clinic habit it merely observes?",
+                "severity": "MEDIUM"
+              }
+            ],
+            "source": {
+              "artifactId": "art-syntheticinput000000000000006",
+              "location": "line:1"
+            }
+          }
+        }
+      ]
+    },
+    "questions": [
+      {
+        "id": "Q1",
+        "text": "Should the system produce the next-contact date so the card is filled from the record rather than from memory?",
+        "severity": "MEDIUM",
+        "affects": ["req.anc.next-contact-card"],
+        "suggestions": [
+          {
+            "id": "S1",
+            "text": "Show and print the next contact date after a contact is saved",
+            "rationale": "Removes the from-memory filling the notebook describes.",
+            "changesUid": false,
+            "regenerates": false
+          },
+          {
+            "id": "S2",
+            "text": "Leave the card out of the design",
+            "rationale": "Keeps the requirement set to what the programme actually asked for.",
+            "changesUid": false,
+            "regenerates": false
+          }
+        ]
+      }
+    ],
+    "confidence": 0.8
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "keystrokes": 40,
+  "medianFrameGapMs": 17,
+  "p95FrameGapMs": 25,
+  "worstFrameGapMs": 45,
+  "longTaskCount": 0,
+  "worstLongTaskMs": 0
+}

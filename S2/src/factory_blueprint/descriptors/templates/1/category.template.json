@@ -1,0 +1,10 @@
+{
+  "name": "${name}",
+  "shortName": "${shortName}",
+  "description": "${description}",
+  "code": "${code}",
+  "dataDimensionType": "${dataDimensionType}",
+  "categoryOptions": "${categoryOptions}",
+  "translations": "${translations}",
+  "sharing": "${sharing}"
+}

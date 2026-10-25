@@ -1,0 +1,107 @@
+[project]
+name = "factory-dhis2"
+version = "0.1.0"
+description = "S4 DHIS2 集成与执行 (DHIS2 Integration & Execution) — DAMF's only DHIS2-facing subsystem: environments, DHIS2 client, capability profiles, discovery, read-only queries, execution pipeline (plan, drift, snapshot, VALIDATE, COMMIT, async jobs, reconcile, post-verify, maintenance, deletion), environment commit lock and environment-side diff."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Proprietary" }
+authors = [{ name = "DAMF S4 Team" }]
+dependencies = [
+    "factory-foundation>=0.1.0",
+    "SQLAlchemy>=2.0,<3.0",
+    "alembic>=1.13,<2.0",
+    "pydantic>=2.7,<3.0",
+    "python-ulid>=2.2,<4.0",
+    "typing-extensions>=4.9",
+    # S4's own external I/O (DX-CLI-001): every DHIS2 request goes through httpx, so
+    # authentication, timeout, retry, redaction and tracing have exactly one seam.
+    "httpx>=0.27,<1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "mypy>=1.10",
+    "ruff>=0.5",
+    "psycopg[binary]>=3.1,<4.0",
+    # DX-CLI-007 的"指标真的进了 OpenTelemetry"要用 SDK 的内存 reader 采集断言；没有它
+    # 那几个用例只能跳过，等于这条要求没被验证过。运行时仍不强制依赖（见 otel extra）。
+    "opentelemetry-api>=1.24",
+    "opentelemetry-sdk>=1.24",
+]
+otel = ["opentelemetry-api>=1.24", "opentelemetry-sdk>=1.24"]
+
+[tool.uv.sources]
+factory-foundation = { path = "../S0", editable = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/factory_dhis2"]
+
+# 版本 Profile 是随包发布的数据（DX-CAP-001、DX-NFR-07）：新增一个 DHIS2 版本就是新增一个
+# 目录。这些文件位于包目录之内，hatchling 已经会打包，因此不需要 force-include
+# （force 会与常规包含路径冲突，构建直接失败）。
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+filterwarnings = ["ignore::DeprecationWarning"]
+markers = [
+    "perf: performance smoke test (skipped by default)",
+    "integration: requires PostgreSQL",
+    "contract: requires a reachable DHIS2 instance",
+    "live_commit: writes to a shared live DHIS2 instance; off unless FACTORY_DX_LIVE_ALLOW_COMMITS=1",
+]
+
+[tool.coverage.run]
+source = ["src/factory_dhis2"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
+fail_under = 85
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+# str/Enum and PEP-695 generics are deliberate for broad compatibility (same as S0/S2/S3).
+ignore = ["E501", "UP042", "UP046", "UP047"]
+
+# api.py 按 SRS 7 章的小节分组导入（环境 / 能力与发现 / 只读查询 / 执行），导入语句因此
+# 出现在小节标题之下而不是文件顶部。这是有意的可读性取舍：公共入口的**分区**比导入位置
+# 更能帮助调用方核对接口，逐条 noqa 反而会让分节注释变噪音。
+[tool.ruff.lint.per-file-ignores]
+"src/factory_dhis2/api.py" = ["E402"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+mypy_path = ["src", "../S0/src"]
+packages = ["factory_dhis2"]
+
+[[tool.mypy.overrides]]
+module = "ulid.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "opentelemetry.*"
+ignore_missing_imports = true
+
+# S0 ships no usable py.typed surface for every symbol; read its real sources so S4
+# is type-checked against the actual signatures.
+[[tool.mypy.overrides]]
+module = ["factory_foundation.*"]
+follow_imports = "silent"

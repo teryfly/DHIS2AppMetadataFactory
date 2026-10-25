@@ -1,0 +1,79 @@
+# DAMF 仓库根忽略规则。
+# 只忽略「可再生成 / 本地私有 / 运行时产生」的内容；源码、契约与文档报告必须入库：
+#   S1/docs/openapi.json            —— 契约唯一事实来源（README 要求提交导出结果）
+#   S5|S5M/contract/openapi.json    —— vendored 契约副本
+#   S5|S5M/src/api/generated/       —— 由契约生成并签入的客户端类型
+#   S5M/docs/reports/               —— README/ADR 引用的实测数据
+# 注意：build/ 不能全局忽略 —— S2/src/factory_blueprint/build 是同名源码包。
+
+# ---- Python：虚拟环境与字节码 ----
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+
+# ---- Python：测试与静态检查缓存 ----
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+# S2/S3/S4 的 quality_gate.py 读取/生成的覆盖率报告
+coverage.json
+coverage_qa.json
+
+# ---- Python：打包产物（仅各子系统根目录，勿误伤源码同名目录） ----
+/S*/build/
+/S*/dist/
+
+# ---- Node：依赖、构建缓存与产物 ----
+node_modules/
+.vite/
+/S*/dist-e2e/
+/S*/dev-dist/
+*.tsbuildinfo
+.eslintcache
+*.local
+
+# ---- 前端测试产物 ----
+S*/coverage/
+S*/playwright-report/
+S*/test-results/
+S*/blob-report/
+# Playwright JSON reporter 的输出
+/S5M/tests/results.json
+
+# ---- 运行时配置、证书与用户数据 ----
+# install.sh / start.sh 在本地渲染：env 含管理员口令与主密钥，
+# tls/ 含私钥，state/ 是对象存储与运行时状态，均不可入库。
+.deploy/*
+!.deploy/verify-round.mjs
+.dev-tls/
+
+# ---- 环境变量（保留示例文件） ----
+.env
+.env.*
+!.env.example
+
+# ---- 本地临时文件与日志 ----
+/S*/tmp/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---- 编辑器与操作系统 ----
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~

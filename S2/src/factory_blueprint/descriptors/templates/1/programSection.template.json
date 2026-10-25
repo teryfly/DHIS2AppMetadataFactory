@@ -1,0 +1,8 @@
+{
+  "name": "${name}",
+  "description": "${description}",
+  "sortOrder": "${sortOrder}",
+  "dataElements": "${dataElements}",
+  "programStages": "${programStages}",
+  "translations": "${translations}"
+}

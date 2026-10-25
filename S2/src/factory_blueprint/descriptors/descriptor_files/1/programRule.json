@@ -1,0 +1,39 @@
+{
+  "dhis2Type": "programRule",
+  "resource": "metadata.programRule",
+  "payloadKey": "programRules",
+  "tier": 1,
+  "versionRange": ["2.41", "2.43"],
+  "requiredFields": ["name", "program", "condition"],
+  "dependencies": [
+    {
+      "field": "program",
+      "targetType": "program",
+      "required": true
+    },
+    {
+      "field": "programStages",
+      "targetType": "programStage",
+      "required": false,
+      "itemField": "id",
+      "wrapper": "programStages"
+    }
+  ],
+  "controlableFields": ["name", "description"],
+  "translatableFields": ["name", "description"],
+  "forbiddenFields": [
+    "href",
+    "id",
+    "created",
+    "lastUpdated",
+    "access",
+    "displayUrl",
+    "externalAccess"
+  ],
+  "implicit": ["SHARING_FROM_ACCESS_MODEL"],
+  "template": "programRule.template.json",
+  "sortKey": "businessKey",
+  "rules": ["PR_CONDITION_PARSE", "PR_SCOPE_WITHIN_PROGRAM"],
+  "embeddedInParent": null,
+  "descriptorVersion": "1"
+}

@@ -1,0 +1,183 @@
+{
+  "id": "mapping-update-shared-option-set-question",
+  "kind": "golden",
+  "agentType": "MAPPING",
+  "stage": "MAPPING",
+  "title": "Adding an option to a shared set is HIGH impact and must be confirmed",
+  "note": "AI-AG-012, FR-MAP-003, AI-BR-05: a high-impact or low-confidence decision goes out as a Question and is never self-adopted; an element with no defensible expression is declared notMapped rather than forced.",
+  "context": {
+    "baseVersion": "33",
+    "decisionConfidenceThreshold": 0.7,
+    "extractionConfidenceThreshold": 0.7,
+    "designReferenceEnvironment": "env-reference-stg",
+    "items": [
+      {
+        "kind": "APPROVED_ENTRY",
+        "ref": "entry:registry/entries/reg.gender",
+        "label": "registry/entries/reg.gender",
+        "content": "{\"businessKey\": \"reg.gender\", \"dhis2Type\": \"optionSet\", \"disposition\": \"REUSE\", \"status\": \"APPROVED\", \"code\": \"GENDER\", \"observedUid\": \"Kq9BdxRt3Lm\"}"
+      },
+      {
+        "kind": "INPUT_ARTIFACT",
+        "ref": "art-syntheticinput000000000000009",
+        "label": "programme-note.md",
+        "content": "The register now records a third gender option, and the note also asks for a graph that shows the whole cohort's weight trend over time."
+      }
+    ],
+    "similarObjects": [
+      {
+        "kind": "optionSet",
+        "code": "GENDER",
+        "name": "Sex",
+        "observedUid": "Kq9BdxRt3Lm",
+        "pointer": "/optionSets/7",
+        "optionCodes": [
+          "MALE",
+          "FEMALE"
+        ],
+        "score": 1.0,
+        "basis": [
+          "code"
+        ]
+      }
+    ]
+  },
+  "expected": {
+    "summary": "The third gender option means changing GENDER, an option set other programmes in the reference environment already use, so the Registry entry becomes an UPDATE listing exactly the controlled field and a HIGH-impact decision that the user must confirm. The cohort weight trend has no standard object that expresses it, and it is declared notMapped instead of being forced into a predictor. GENDER is the similar object found and it is the object this decision changes.",
+    "decisions": [
+      {
+        "id": "MAP-013",
+        "subject": "reg.gender",
+        "selected": {
+          "option": "update the shared GENDER option set with one extra option"
+        },
+        "alternatives": [
+          {
+            "option": "create a programme-local option set with three options",
+            "reasonRejected": "It would duplicate the two existing options and split every report that already reads GENDER."
+          },
+          {
+            "option": "reuse GENDER unchanged and record the third value elsewhere",
+            "reasonRejected": "The register has nowhere to put the new value, so the data would be lost."
+          }
+        ],
+        "rationale": "Changing an object this project does not own is the smallest edit that keeps the existing reports correct, but the blast radius is not this project's to accept.",
+        "risks": [
+          {
+            "description": "Every other programme binding to GENDER inherits the new option.",
+            "level": "HIGH"
+          }
+        ],
+        "confidence": 0.55,
+        "impactLevel": "HIGH"
+      },
+      {
+        "id": "MAP-014",
+        "subject": "map.cohort.weightTrend",
+        "selected": {
+          "option": "not mapped in this design"
+        },
+        "alternatives": [
+          {
+            "option": "a predictor over the visit data element",
+            "reasonRejected": "A predictor forecasts a future value; the ask is a historical trend of a cohort."
+          }
+        ],
+        "rationale": "Nothing in the standard metadata expresses a cohort trend chart, and the last resort in the design checks is a DataStore or SQL view, which this stage cannot size without knowing the report.",
+        "confidence": 0.8,
+        "impactLevel": "LOW"
+      }
+    ],
+    "patch": {
+      "baseVersion": "33",
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/registry/entries/reg.gender",
+          "value": {
+            "businessKey": "reg.gender",
+            "dhis2Type": "optionSet",
+            "disposition": "UPDATE",
+            "status": "PROPOSED",
+            "managed": false,
+            "decisionId": "MAP-013",
+            "code": "GENDER",
+            "controlledFields": [
+              "options"
+            ],
+            "observedUid": "Kq9BdxRt3Lm",
+            "sourceEnvironment": "env-reference-stg",
+            "observedLastUpdated": "2026-02-02T14:05:00Z",
+            "observedHash": "sha256:9b1e7c44d2a0f8361c5e07ba4d9f2c6e1b0a7d3854c0ef9126b3da74c81f0e5b",
+            "discoveryResultId": "art-syntheticdiscovery000000000001",
+            "notes": "One option added; nothing else about the set is touched.",
+            "source": {
+              "decisionId": "MAP-013",
+              "note": "third gender option requested by the programme note"
+            }
+          }
+        },
+        {
+          "op": "add",
+          "path": "/mapping/entries/-",
+          "value": {
+            "businessKey": "map.cohort.weightTrend",
+            "notMapped": true,
+            "notMappedReason": "No standard metadata object expresses a cohort weight trend; the ask is a report shape and needs a decision about DataStore or SQL view that this stage cannot size alone.",
+            "source": {
+              "artifactId": "art-syntheticinput000000000000009",
+              "location": "line:1"
+            }
+          }
+        }
+      ]
+    },
+    "questions": [
+      {
+        "id": "Q1",
+        "text": "The new gender option can only be recorded by changing GENDER, an option set shared with other programmes in the reference environment. Do you accept that change?",
+        "severity": "HIGH",
+        "affects": ["MAP-013", "reg.gender"],
+        "suggestions": [
+          {
+            "id": "S1",
+            "text": "Add the option to GENDER",
+            "rationale": "Keeps one authoritative set; every report over GENDER must then handle the third value.",
+            "changesUid": false,
+            "regenerates": true
+          },
+          {
+            "id": "S2",
+            "text": "Do not touch GENDER; the third value is out of scope for this project",
+            "rationale": "Leaves the shared set alone and drops the requirement rather than changing a neighbour's data.",
+            "changesUid": false,
+            "regenerates": false
+          }
+        ]
+      },
+      {
+        "id": "Q2",
+        "text": "The cohort weight trend is left unmapped. Should it become a DataStore-backed view, or is a standard report enough?",
+        "severity": "MEDIUM",
+        "affects": ["MAP-014", "map.cohort.weightTrend"],
+        "suggestions": [
+          {
+            "id": "S1",
+            "text": "Accept the standard report over the visit data",
+            "rationale": "Answers the question without a custom object.",
+            "changesUid": false,
+            "regenerates": false
+          },
+          {
+            "id": "S2",
+            "text": "Design a DataStore view in a later change request",
+            "rationale": "The trend needs shapes no metadata object holds.",
+            "changesUid": false,
+            "regenerates": true
+          }
+        ]
+      }
+    ],
+    "confidence": 0.6
+  }
+}

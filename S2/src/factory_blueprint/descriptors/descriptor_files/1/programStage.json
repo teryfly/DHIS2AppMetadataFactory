@@ -1,0 +1,57 @@
+{
+  "dhis2Type": "programStage",
+  "resource": "metadata.programStage",
+  "payloadKey": "programStages",
+  "tier": 1,
+  "versionRange": ["2.41", "2.43"],
+  "requiredFields": ["name", "program"],
+  "dependencies": [
+    {
+      "field": "program",
+      "targetType": "program",
+      "required": true
+    },
+    {
+      "field": "categoryCombo",
+      "targetType": "categoryCombo",
+      "required": false
+    },
+    {
+      "field": "programStageDataElements",
+      "targetType": "dataElement",
+      "required": false,
+      "itemField": "dataElement",
+      "wrapper": "programStageDataElements"
+    },
+    {
+      "field": "programStageSections",
+      "targetType": "programStageSection",
+      "required": false,
+      "itemField": "id",
+      "wrapper": "programStageSections"
+    }
+  ],
+  "controlableFields": [
+    "name",
+    "shortName",
+    "description",
+    "formName",
+    "executionDateLabel"
+  ],
+  "translatableFields": ["name", "shortName", "description", "formName"],
+  "forbiddenFields": [
+    "href",
+    "id",
+    "created",
+    "lastUpdated",
+    "access",
+    "displayUrl",
+    "externalAccess"
+  ],
+  "implicit": ["SHARING_FROM_ACCESS_MODEL"],
+  "template": "programStage.template.json",
+  "sortKey": "businessKey",
+  "rules": ["PS_DUE_DATE_FIELDS_COHERENT", "PS_ALLOW_GENERATION_MATCHES_TYPE"],
+  "embeddedInParent": null,
+  "descriptorVersion": "1"
+}

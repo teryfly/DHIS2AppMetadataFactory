@@ -1,0 +1,218 @@
+{
+  "id": "api-edit-visit-detail-page",
+  "kind": "golden",
+  "agentType": "API",
+  "stage": "PAGE_DESIGN",
+  "title": "Correcting one intent of one page, and leaving the neighbouring page to its own run",
+  "note": "AI-AG-004, FR-API-004, AI-AG-013: an add, a replace of an existing intent by key and a remove all stay inside apiIntents/items of one page; the input asks for the list page's operation too and the answer declines it, because spanning two pages is refused whatever its quality.",
+  "context": {
+    "baseVersion": "18",
+    "decisionConfidenceThreshold": 0.7,
+    "extractionConfidenceThreshold": 0.7,
+    "mappingFrozen": true,
+    "items": [
+      {
+        "kind": "APPROVED_ENTRY",
+        "ref": "entry:pages/items/anc-visit-detail",
+        "label": "pages/items/anc-visit-detail",
+        "content": "{\"pageKey\": \"anc-visit-detail\", \"name\": {\"default\": \"Antenatal visit\"}, \"purpose\": \"Show one recorded visit, let a supervisor correct it and let them void a visit recorded twice.\", \"routes\": [\"/visits/{event}\"], \"useCases\": [\"uc.correctVisit\", \"uc.voidVisit\"], \"actors\": [\"actor.supervisor\"], \"registryRefs\": [\"reg.ancVisit.event\"], \"source\": {\"artifactId\": \"art-ancdesign000000000000003\", \"location\": \"section:pages\"}}"
+      },
+      {
+        "kind": "APPROVED_ENTRY",
+        "ref": "entry:apiIntents/items/anc-detail-load",
+        "label": "apiIntents/items/anc-detail-load",
+        "content": "{\"intentKey\": \"anc-detail-load\", \"pageKey\": \"anc-visit-detail\", \"operationKey\": \"loadVisit\", \"purpose\": \"Read one visit.\", \"resource\": \"tracker.event.get\", \"method\": \"GET\", \"source\": {\"artifactId\": \"art-ancdesign000000000000003\", \"location\": \"section:apiIntents\"}}"
+      },
+      {
+        "kind": "APPROVED_ENTRY",
+        "ref": "entry:apiIntents/items/anc-detail-history",
+        "label": "apiIntents/items/anc-detail-history",
+        "content": "{\"intentKey\": \"anc-detail-history\", \"pageKey\": \"anc-visit-list\", \"operationKey\": \"listEarlierVisits\", \"purpose\": \"Earlier visits of the same pregnancy.\", \"resource\": \"tracker.event.query\", \"method\": \"GET\", \"source\": {\"artifactId\": \"art-ancdesign000000000000003\", \"location\": \"section:apiIntents\"}}"
+      },
+      {
+        "kind": "INPUT_ARTIFACT",
+        "ref": "art-ancdetailnotes00000000001",
+        "label": "detail-page-notes.md",
+        "content": "Review notes for the detail page: the load call must also bring back who corrected the record and when. Add the save and the void. While you are in this file, add the paged earlier-visits query to the list page as well so both screens are finished in one go."
+      }
+    ]
+  },
+  "expected": {
+    "summary": "Designed the detail page only: replaced its load intent so the correction audit comes back with the record, added the save and the void, and left the earlier-visits query of the list page alone — the note asks for it here, but this run has one page in scope and the entry already exists under the other page's key, so its own run owns it. Every path addresses apiIntents/items, and no identifier or Registry write appears.",
+    "decisions": [
+      {
+        "id": "API-020",
+        "subject": "anc-detail-void",
+        "selected": {
+          "option": "void the event rather than delete it"
+        },
+        "alternatives": [
+          {
+            "option": "delete the event",
+            "reasonRejected": "A double-recorded visit has to stay visible as voided, or the totals change without anyone being able to see why."
+          }
+        ],
+        "rationale": "The use case is a supervisor correcting a duplicate, which is a status change on the record, not its removal.",
+        "confidence": 1.0,
+        "impactLevel": "LOW"
+      }
+    ],
+    "patch": {
+      "baseVersion": "18",
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/apiIntents/items/anc-detail-load",
+          "value": {
+            "intentKey": "anc-detail-load",
+            "pageKey": "anc-visit-detail",
+            "operationKey": "loadVisit",
+            "purpose": "Read one recorded visit with the correction history a supervisor needs before editing it.",
+            "resource": "tracker.event.get",
+            "method": "GET",
+            "pathParams": {
+              "event": {
+                "from": "route",
+                "required": true
+              }
+            },
+            "fields": [
+              "event",
+              "occurredAt",
+              "status",
+              "dataValues[dataElement,value,providedByUpdated,lastUpdated]",
+              "lastUpdatedBy"
+            ],
+            "preconditions": [
+              "the event in the route exists and the caller may read its organisation unit"
+            ],
+            "errorHandling": [
+              {
+                "condition": "the visit was deleted since the link was opened",
+                "handling": "show the empty state and offer the list page, not an error"
+              }
+            ],
+            "permissions": [
+              "TRACKED_ENTITY_VIEW"
+            ],
+            "registryRefs": [
+              "reg.ancVisit.event"
+            ],
+            "source": {
+              "artifactId": "art-ancdetailnotes00000000001",
+              "location": "line:1"
+            }
+          }
+        },
+        {
+          "op": "add",
+          "path": "/apiIntents/items/-",
+          "value": {
+            "intentKey": "anc-detail-save",
+            "pageKey": "anc-visit-detail",
+            "operationKey": "correctVisit",
+            "purpose": "Save the corrected values of a visit that was already recorded.",
+            "resource": "tracker.event.update",
+            "method": "PATCH",
+            "pathParams": {
+              "event": {
+                "from": "route",
+                "required": true
+              }
+            },
+            "requestBodyShape": [
+              {
+                "field": "dataValues",
+                "valueType": "COMPLEX",
+                "required": true
+              },
+              {
+                "field": "occurredAt",
+                "valueType": "DATE",
+                "required": false
+              }
+            ],
+            "dependsOn": [
+              "loadVisit"
+            ],
+            "preconditions": [
+              "loadVisit returned a visit the caller may correct",
+              "the form validates"
+            ],
+            "postconditions": [
+              "the stored values are the ones on screen, with the corrector and time recorded"
+            ],
+            "errorHandling": [
+              {
+                "condition": "another correction landed first",
+                "handling": "refuse to overwrite, show both values and ask the supervisor to confirm which stands"
+              }
+            ],
+            "permissions": [
+              "TRACKED_ENTITY_DATA_WRITE"
+            ],
+            "registryRefs": [
+              "reg.ancVisit.event"
+            ],
+            "source": {
+              "artifactId": "art-ancdetailnotes00000000001",
+              "location": "line:1"
+            }
+          }
+        },
+        {
+          "op": "add",
+          "path": "/apiIntents/items/-",
+          "value": {
+            "intentKey": "anc-detail-void",
+            "pageKey": "anc-visit-detail",
+            "operationKey": "voidVisit",
+            "purpose": "Mark a duplicate visit void without erasing it.",
+            "resource": "tracker.event.update",
+            "method": "PATCH",
+            "pathParams": {
+              "event": {
+                "from": "route",
+                "required": true
+              }
+            },
+            "requestBodyShape": [
+              {
+                "field": "status",
+                "valueType": "TEXT",
+                "required": true
+              }
+            ],
+            "dependsOn": [
+              "loadVisit"
+            ],
+            "preconditions": [
+              "the supervisor confirmed the void on screen"
+            ],
+            "postconditions": [
+              "the visit is still readable and is excluded from every total"
+            ],
+            "errorHandling": [
+              {
+                "condition": "the status change is refused",
+                "handling": "leave the record as it is and say that the void did not happen"
+              }
+            ],
+            "permissions": [
+              "TRACKED_ENTITY_DATA_WRITE"
+            ],
+            "registryRefs": [
+              "reg.ancVisit.event"
+            ],
+            "source": {
+              "artifactId": "art-ancdetailnotes00000000001",
+              "location": "line:1"
+            }
+          }
+        }
+      ]
+    },
+    "questions": [],
+    "confidence": 0.9
+  }
+}

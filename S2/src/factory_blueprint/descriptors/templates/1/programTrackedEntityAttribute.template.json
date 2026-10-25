@@ -1,0 +1,7 @@
+{
+  "attribute": { "id": "${attribute}" },
+  "mandatory": "${mandatory}",
+  "searchable": "${searchable}",
+  "displayInList": "${displayInList}",
+  "sortOrder": "${sortOrder}"
+}

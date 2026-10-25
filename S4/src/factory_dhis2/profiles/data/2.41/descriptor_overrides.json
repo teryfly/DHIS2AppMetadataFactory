@@ -1,0 +1,15 @@
+{
+  "overrides": [],
+  "notes": [
+    "类型描述器覆盖（DX-CAP-001、总体 SRS 14.3）：表达某个对象类型在这一版本里的字段差异。",
+    "每一项形如 {\"dhis2Type\": \"dataElement\", \"required\": [...], \"forbidden\": [...],",
+    "\"controlableFields\": [...], \"properties\": {\"字段\": {\"type\": \"TEXT\", \"readOnly\": false}}}：",
+    "三个清单出现了就整项替换（写空列表是「这个版本不禁/不管这些字段」，不是「没写」），",
+    "properties 按键合并、覆盖项赢。优先级是 覆盖 > 实例 /api/schemas 同步 > schemas.json。",
+    "生效位置只有一个：VersionProfile.object_schema，并且合成进 CAPABILITY_PROFILE 产物——",
+    "S2 只读产物（DX-CAP-003），覆盖若没进产物就等于没生效。由 tests/unit/",
+    "test_descriptor_overrides.py 逐条钉住。",
+    "2.41 相对 S2 的描述器基线目前没有需要覆盖的字段，因此这里是空的；出现差异时改这份",
+    "数据，不改执行器（DX-NFR-07）。"
+  ]
+}

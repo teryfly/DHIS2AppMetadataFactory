@@ -1,0 +1,26 @@
+{
+  "dhis2Type": "optionSet",
+  "resource": "metadata.optionSet",
+  "payloadKey": "optionSets",
+  "tier": 1,
+  "versionRange": ["2.41", "2.43"],
+  "requiredFields": ["name"],
+  "dependencies": [],
+  "controlableFields": ["name", "shortName", "description"],
+  "translatableFields": ["name", "shortName", "description"],
+  "forbiddenFields": [
+    "href",
+    "id",
+    "created",
+    "lastUpdated",
+    "access",
+    "displayUrl",
+    "externalAccess"
+  ],
+  "implicit": ["SHARING_FROM_ACCESS_MODEL"],
+  "template": "optionSet.template.json",
+  "sortKey": "businessKey",
+  "rules": ["OS_VALUE_TYPE_MATCHES_REFERENCES", "OS_OPTIONS_PRESENT"],
+  "embeddedInParent": null,
+  "descriptorVersion": "1"
+}

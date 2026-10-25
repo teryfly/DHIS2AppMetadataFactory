@@ -1,0 +1,14 @@
+{
+  "name": "${name}",
+  "shortName": "${shortName}",
+  "description": "${description}",
+  "code": "${code}",
+  "program": { "id": "${program}" },
+  "expression": "${expression}",
+  "filter": "${filter}",
+  "decimals": "${decimals}",
+  "aggregationType": "${aggregationType}",
+  "displayInForm": "${displayInForm}",
+  "translations": "${translations}",
+  "sharing": "${sharing}"
+}

@@ -1,0 +1,42 @@
+{{- if .Values.migrations.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "factory.fullname" . }}-migrate
+  labels:
+    {{- include "factory.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  template:
+    metadata:
+      labels:
+        {{- include "factory.selectorLabels" . | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: migrate
+          image: {{ include "factory.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          # Runs 00 doc 6.10 in order: core → (dx, bp, ai if installed) → cp,
+          # then initialize_foundation(), provider initialize() and S1's catalogs.
+          command:
+            - python
+            - -c
+            - |
+              from factory_control.api import prepare_process
+              from factory_control.api_service import get_startup_report
+
+              prepare_process()
+              print(get_startup_report().as_dict())
+          env:
+            {{- include "factory.env" . | nindent 12 }}
+            - name: FACTORY_MIGRATIONS_MODE
+              value: apply
+          resources:
+            {{- toYaml .Values.resources.worker | nindent 12 }}
+{{- end }}

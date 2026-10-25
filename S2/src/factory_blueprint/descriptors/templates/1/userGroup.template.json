@@ -1,0 +1,6 @@
+{
+  "name": "${name}",
+  "users": "${users}",
+  "translations": "${translations}",
+  "sharing": "${sharing}"
+}

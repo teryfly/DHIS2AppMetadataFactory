@@ -1,0 +1,15 @@
+# Keep images and virtualenvs out of every subsystem's build context
+# (the docker compose stack builds from this directory as its context root).
+**/.venv
+**/venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/.git
+**/node_modules
+**/dist
+**/.deploy
+**/coverage.xml
+**/htmlcov

@@ -1,0 +1,25 @@
+{
+  "dhis2Type": "option",
+  "resource": "metadata.optionSet",
+  "payloadKey": "options",
+  "tier": 1,
+  "versionRange": ["2.41", "2.43"],
+  "requiredFields": ["name"],
+  "dependencies": [
+    {
+      "field": "optionSet",
+      "targetType": "optionSet",
+      "required": true,
+      "wrapper": "options"
+    }
+  ],
+  "controlableFields": ["name", "description"],
+  "translatableFields": ["name"],
+  "forbiddenFields": ["href", "id", "lastUpdated"],
+  "implicit": [],
+  "template": "option.template.json",
+  "sortKey": "businessKey",
+  "rules": ["OPTION_CODE_UNIQUE_IN_SET", "OPTION_OWNED_BY_OPTION_SET"],
+  "embeddedInParent": "optionSet",
+  "descriptorVersion": "1"
+}

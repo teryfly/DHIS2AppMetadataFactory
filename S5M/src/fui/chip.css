@@ -1,0 +1,41 @@
+/*
+ * The one chip look FUI's choice groups share (UM-TECH-001). Before this file, five screens each
+ * carried their own copy of the same four rules and each drifted: one group's pressed state was a
+ * border colour only, another's was 40 px tall, and a third still pointed at a `--fui-primary-soft`
+ * token that does not exist, so its selection was invisible in light mode.
+ *
+ * Imported with `<style scoped src="./chip.css">` by FuiSegmented and FuiCheckChips, which is why
+ * the class names here are the ones tests and screens must use.
+ */
+.fui-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fui-sp-2);
+}
+
+.fui-chips__chip {
+  min-height: var(--fui-tap-min);
+  padding: 0 var(--fui-sp-3);
+  border: 1px solid var(--fui-border);
+  border-radius: var(--fui-radius-btn);
+  background: var(--fui-surface);
+  color: var(--fui-text-secondary);
+  font-size: var(--fui-fs-sm);
+}
+
+/* Pressed reads as pressed in both themes: the tint is what makes "which one is on" answerable at a
+   glance on a phone screen, where a 1 px border colour is not. */
+.fui-chips__chip--on {
+  border-color: var(--fui-primary);
+  background: var(--fui-info-bg);
+  color: var(--fui-primary);
+  font-weight: 600;
+}
+
+.fui-chips__chip--sm {
+  font-size: var(--fui-fs-xs);
+}
+
+.fui-chips__chip:disabled {
+  opacity: 0.55;
+}

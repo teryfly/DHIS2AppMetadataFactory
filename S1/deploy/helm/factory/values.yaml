@@ -1,0 +1,108 @@
+nameOverride: ""
+fullnameOverride: ""
+
+# Default values for the S1 Factory control plane.
+# The chart deploys two workloads from one image: factory-api (REST + SSE) and
+# factory-worker (stage execution + scheduled jobs).
+
+image:
+  repository: factory/s1
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+replicaCount:
+  api: 2
+  worker: 1
+
+workflowEngine: temporal # temporal | inprocess
+providerMode: auto # auto | fakes | real — fakes is development only
+fakeEnvironments: "" # e.g. "dev:TEST,prod:PRODUCTION", with providerMode=fakes
+migrationsMode: apply # apply | check | off
+migrations:
+  enabled: true # pre-install/pre-upgrade Job; the API also honours migrationsMode
+
+database:
+  # A Secret with key DATABASE_URL (postgresql+psycopg://…). S1 never reads
+  # another subsystem's schema, so one URL for the cluster is enough.
+  existingSecret: factory-db
+  secretKey: DATABASE_URL
+
+objectStore:
+  # A Secret with key OBJECT_STORE_URL (memory:// | s3://…).
+  existingSecret: factory-object-store
+  secretKey: OBJECT_STORE_URL
+
+secrets:
+  # Secret references resolved by S0 (FD-SEC-001); values never live in the chart.
+  smtpSecretRef: ""
+  webhookSecretRef: ""
+  backend: env # env | memory
+
+temporal:
+  target: temporal:7233
+  namespace: factory
+  taskQueue: factory-main
+  retentionHours: 720
+
+sse:
+  channel: factory_cp_events
+  pollSeconds: 15
+  heartbeatSeconds: 20
+
+idempotency:
+  retentionHours: 24
+
+notifications:
+  maxAttempts: 5
+  webhookTimeoutSeconds: 10
+
+uploads:
+  maxBytes: 104857600
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: false
+  className: nginx
+  host: factory.example.org
+  annotations: {}
+  tls: []
+
+resources:
+  api:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {cpu: "1", memory: 1Gi}
+  worker:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {cpu: "1", memory: 1Gi}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  fsGroup: 10001
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities: {drop: ["ALL"]}
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# M4 identity and permissions (CP-IAM-002).  ``mode: off`` keeps the MVP's declared-operator
+# regime; the OIDC client secret and the bootstrap administrator's password are referenced as
+# Secret keys only, never written into the chart (FR-SEC-006).
+auth:
+  mode: "off"
+  sessionIdleMinutes: 30
+  sessionAbsoluteHours: 12
+  oidc:
+    issuer: ""
+    clientId: ""
+    # existingSecret keys: client-secret (and bootstrap-admin-password for a local boot account)
+    existingSecret: ""
+  bootstrapAdmin:
+    subject: ""

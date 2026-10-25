@@ -1,0 +1,32 @@
+{
+  "dhis2Type": "programStageSection",
+  "resource": "metadata.programStage",
+  "payloadKey": "programStageSections",
+  "tier": 1,
+  "versionRange": ["2.41", "2.43"],
+  "requiredFields": ["name"],
+  "dependencies": [
+    {
+      "field": "programStage",
+      "targetType": "programStage",
+      "required": true,
+      "wrapper": "programStageSections"
+    },
+    {
+      "field": "dataElements",
+      "targetType": "programStageDataElement",
+      "required": false,
+      "itemField": "id",
+      "wrapper": "dataElements"
+    }
+  ],
+  "controlableFields": ["name", "description", "sortOrder"],
+  "translatableFields": ["name", "description"],
+  "forbiddenFields": ["href", "id", "lastUpdated"],
+  "implicit": [],
+  "template": "programStageSection.template.json",
+  "sortKey": "businessKey",
+  "rules": ["PSS_ITEMS_BELONG_TO_STAGE", "PSS_MEMBERSHIP_PROPERTY_VERSIONED"],
+  "embeddedInParent": "programStage",
+  "descriptorVersion": "1"
+}

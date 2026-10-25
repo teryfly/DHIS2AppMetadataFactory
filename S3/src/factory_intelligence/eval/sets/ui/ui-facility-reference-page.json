@@ -1,0 +1,179 @@
+{
+  "id": "ui-facility-reference-page",
+  "kind": "golden",
+  "agentType": "UI",
+  "stage": "PAGE_DESIGN",
+  "title": "A reference screen supplied entirely by approved Registry entries",
+  "note": "AI-AG-005, FR-UII-002 with AI-AG-004: a page may legitimately bind to no operation at all — every source is a Registry entry named by businessKey. The component the inputs cannot supply is asked about rather than filled with an invented operation.",
+  "context": {
+    "baseVersion": "16",
+    "decisionConfidenceThreshold": 0.7,
+    "extractionConfidenceThreshold": 0.7,
+    "mappingFrozen": true,
+    "apiOperationKeys": [],
+    "items": [
+      {
+        "kind": "APPROVED_ENTRY",
+        "ref": "entry:pages/items/anc-definition-view",
+        "label": "pages/items/anc-definition-view",
+        "content": "{\"pageKey\": \"anc-definition-view\", \"name\": {\"default\": \"What the fields mean\"}, \"purpose\": \"A supervisor checks how a field is defined before teaching someone to record it.\", \"routes\": [\"/definitions\"], \"useCases\": [\"uc.explainDefinitions\"], \"actors\": [\"actor.supervisor\", \"actor.midwife\"], \"registryRefs\": [\"reg.ancVisit.bloodPressureFlag\", \"reg.ancVisit.gestationalAge\", \"reg.ancVisit.program\"], \"apiIntentRefs\": [], \"source\": {\"artifactId\": \"art-ancdesign000000000000005\", \"location\": \"section:pages\"}}"
+      },
+      {
+        "kind": "REGISTRY_ENTRY",
+        "ref": "entry:registry/entries/reg.ancVisit.bloodPressureFlag",
+        "label": "registry/entries/reg.ancVisit.bloodPressureFlag",
+        "content": "{\"businessKey\": \"reg.ancVisit.bloodPressureFlag\", \"dhis2Type\": \"optionSet\", \"disposition\": \"CREATE\", \"status\": \"APPROVED\", \"code\": \"ANC_BP_FLAG\", \"name\": \"Raised blood pressure\", \"options\": [\"yes\", \"no\", \"not measured\"]}"
+      },
+      {
+        "kind": "REGISTRY_ENTRY",
+        "ref": "entry:registry/entries/reg.ancVisit.gestationalAge",
+        "label": "registry/entries/reg.ancVisit.gestationalAge",
+        "content": "{\"businessKey\": \"reg.ancVisit.gestationalAge\", \"dhis2Type\": \"dataElement\", \"disposition\": \"CREATE\", \"status\": \"APPROVED\", \"code\": \"ANC_GEST_AGE\", \"name\": \"Gestational age (weeks)\", \"valueType\": \"INTEGER\"}"
+      },
+      {
+        "kind": "REGISTRY_ENTRY",
+        "ref": "entry:registry/entries/reg.ancVisit.program",
+        "label": "registry/entries/reg.ancVisit.program",
+        "content": "{\"businessKey\": \"reg.ancVisit.program\", \"dhis2Type\": \"program\", \"disposition\": \"CREATE\", \"status\": \"APPROVED\", \"code\": \"ANC_PROGRAM\", \"name\": \"Antenatal care\"}"
+      },
+      {
+        "kind": "INPUT_ARTIFACT",
+        "ref": "art-anctrainingnote0000000001",
+        "label": "training-desk-note.txt",
+        "content": "Training desk: supervisors keep phoning to ask what \"not measured\" means and at which visit count gestational age is supposed to be taken. They want one page that just shows the definitions, nothing editable, and it should work on a phone in a district office with no network."
+      }
+    ]
+  },
+  "expected": {
+    "summary": "Designed the definitions page as a read-only reference: an option-set card for the blood pressure flag, a definition row for gestational age and a short program summary, each supplied by the Registry entry the page already cites — no operation of this page is invented to carry static approved definitions, and this page has none. The offline requirement in the note is not answerable from a UI Intent and is raised as a question. One page, no states beyond the ones a definitions screen can actually reach.",
+    "decisions": [
+      {
+        "id": "UI-020",
+        "subject": "anc-definitions-screen",
+        "selected": {
+          "option": "one card per definition, grouped under the program they belong to"
+        },
+        "alternatives": [
+          {
+            "option": "a searchable table of every element",
+            "reasonRejected": "The supervisor's question is about one field they are looking at, and a search box turns a thirty-second answer into a browse."
+          }
+        ],
+        "rationale": "The note names two fields and a relationship to the program, which is a short list, not an index.",
+        "confidence": 0.8,
+        "impactLevel": "LOW"
+      }
+    ],
+    "patch": {
+      "baseVersion": "16",
+      "operations": [
+        {
+          "op": "add",
+          "path": "/uiIntents/items/-",
+          "value": {
+            "intentKey": "anc-definitions-screen",
+            "pageKey": "anc-definition-view",
+            "route": "/definitions",
+            "purpose": "Show how the antenatal fields are defined, without letting anyone change them.",
+            "layout": [
+              "program summary at the top",
+              "one card per defined field"
+            ],
+            "components": [
+              {
+                "name": "Card",
+                "use": "Name the program these fields belong to and which visits it counts.",
+                "dataSource": {
+                  "businessKey": "reg.ancVisit.program"
+                }
+              },
+              {
+                "name": "Chip",
+                "use": "One chip per allowed answer for raised blood pressure, with the definition of each underneath.",
+                "dataSource": {
+                  "businessKey": "reg.ancVisit.bloodPressureFlag"
+                },
+                "accessibility": "each chip's meaning is in text, not only in its colour"
+              },
+              {
+                "name": "Tooltip",
+                "use": "Explain at which visit gestational age is taken and what the unit is.",
+                "dataSource": {
+                  "businessKey": "reg.ancVisit.gestationalAge"
+                }
+              }
+            ],
+            "states": [
+              "INITIAL",
+              "READY",
+              "EMPTY"
+            ],
+            "interactions": [
+              "tapping a chip reveals its definition; nothing on the page can be edited"
+            ],
+            "fieldMappings": [
+              {
+                "field": "bloodPressureFlag",
+                "label": {
+                  "default": "Raised blood pressure"
+                },
+                "businessKey": "reg.ancVisit.bloodPressureFlag",
+                "valueType": "OPTION_SET",
+                "optionSetKey": "reg.ancVisit.bloodPressureFlag",
+                "required": false
+              },
+              {
+                "field": "gestationalAge",
+                "label": {
+                  "default": "Gestational age (weeks)"
+                },
+                "businessKey": "reg.ancVisit.gestationalAge",
+                "valueType": "INTEGER",
+                "required": false
+              }
+            ],
+            "translationKeys": [
+              "anc.definitions.title",
+              "anc.definitions.bp.notmeasured"
+            ],
+            "testScenarios": [
+              "the three blood pressure answers and their definitions are all visible on a phone width",
+              "a supervisor with no data permissions still sees the definitions"
+            ],
+            "source": {
+              "artifactId": "art-anctrainingnote0000000001",
+              "location": "line:1"
+            }
+          }
+        }
+      ]
+    },
+    "questions": [
+      {
+        "id": "Q1",
+        "text": "The note asks for the page to work with no network in a district office. Reading approved definitions from the Registry needs a call, which this page does not have. Should the definitions be shipped inside the application bundle, or is a cached read acceptable?",
+        "severity": "MEDIUM",
+        "affects": [
+          "anc-definitions-screen"
+        ],
+        "suggestions": [
+          {
+            "id": "S1",
+            "text": "Ship the definitions in the bundle at build time",
+            "rationale": "Genuinely offline, and the definitions change far less often than the app is released.",
+            "changesUid": false,
+            "regenerates": true
+          },
+          {
+            "id": "S2",
+            "text": "Read once and cache",
+            "rationale": "Needs an operation added to this page by its API run, so it changes the design rather than the screen.",
+            "changesUid": false,
+            "regenerates": false
+          }
+        ]
+      }
+    ],
+    "confidence": 0.8
+  }
+}

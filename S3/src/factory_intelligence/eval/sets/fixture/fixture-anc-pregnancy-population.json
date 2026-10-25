@@ -1,0 +1,143 @@
+{
+  "id": "fixture-anc-pregnancy-population",
+  "kind": "golden",
+  "agentType": "FIXTURE",
+  "stage": "PAGE_DESIGN",
+  "title": "A synthetic population sized for the screens that have to show it",
+  "note": "AI-AG-007, FR-POL-006, FR-POL-008: specifications only — a count, a distribution and per-attribute strategies over the approved objects, spread across units and periods, with the boundary cases the pages display. No rows, and no real record as a basis.",
+  "context": {
+    "baseVersion": "9",
+    "decisionConfidenceThreshold": 0.7,
+    "extractionConfidenceThreshold": 0.7,
+    "phiArtifactIds": [
+      "art-ancpatientexport0000000001"
+    ],
+    "items": [
+      {
+        "kind": "APPROVED_ENTRY",
+        "ref": "entry:domain/entities/entity.pregnancy",
+        "label": "domain/entities/entity.pregnancy",
+        "content": "{\"businessKey\": \"entity.pregnancy\", \"displayName\": {\"default\": \"Pregnancy\"}, \"attributes\": [{\"name\": \"identifier\", \"valueType\": \"TEXT\", \"required\": true, \"sensitivity\": \"CONFIDENTIAL\"}, {\"name\": \"bookedAt\", \"valueType\": \"DATE\", \"required\": true, \"sensitivity\": \"INTERNAL\"}], \"lifecycle\": {\"states\": [{\"key\": \"enrolled\", \"name\": \"Enrolled\", \"initial\": true}, {\"key\": \"delivered\", \"name\": \"Delivered\"}, {\"key\": \"closed\", \"name\": \"Closed\"}]}}"
+      },
+      {
+        "kind": "REGISTRY_ENTRY",
+        "ref": "entry:registry/entries/reg.ancVisit.pregnancy",
+        "label": "registry/entries/reg.ancVisit.pregnancy",
+        "content": "{\"businessKey\": \"reg.ancVisit.pregnancy\", \"dhis2Type\": \"trackedEntityType\", \"disposition\": \"CREATE\", \"status\": \"APPROVED\", \"code\": \"ANC_PREGNANCY\", \"name\": \"Pregnancy\"}"
+      },
+      {
+        "kind": "REGISTRY_ENTRY",
+        "ref": "entry:registry/entries/reg.ancVisit.identifier",
+        "label": "registry/entries/reg.ancVisit.identifier",
+        "content": "{\"businessKey\": \"reg.ancVisit.identifier\", \"dhis2Type\": \"trackedEntityAttribute\", \"disposition\": \"CREATE\", \"status\": \"APPROVED\", \"code\": \"ANC_WOMAN_ID\", \"name\": \"Woman ID\", \"valueType\": \"TEXT\"}"
+      },
+      {
+        "kind": "REGISTRY_ENTRY",
+        "ref": "entry:registry/entries/reg.facility.hierarchy",
+        "label": "registry/entries/reg.facility.hierarchy",
+        "content": "{\"businessKey\": \"reg.facility.hierarchy\", \"dhis2Type\": \"orgUnitLevel\", \"disposition\": \"REFERENCE\", \"status\": \"APPROVED\", \"name\": \"Facility hierarchy\"}"
+      },
+      {
+        "kind": "INPUT_ARTIFACT",
+        "ref": "art-anctestplan00000000000001",
+        "label": "demo-acceptance.md",
+        "content": "Demo acceptance for the visit list: the list must scroll, at least one month must be empty so the empty state is visible, and every facility in the district must have something to show except one, which demonstrates the zero case. The woman identifiers must look like the real format so a trainer can point at them."
+      }
+    ]
+  },
+  "expected": {
+    "summary": "Specified the pregnancy population the antenatal pages demonstrate against: 240 tracked entities spread over the district's facilities and twelve months, an identifier generated in the approved format by prefix and sequence rather than copied, and four boundary cases the acceptance note asks for. The counts exist to make the list scroll, to leave one facility with nothing and one month empty, which are the states the screens were designed to show. Every target is an approved Registry object and every value is generated from the build seed, so the same specification rebuilds the same dataset (FR-POL-008). No data rows are written and no export is a basis.",
+    "decisions": [
+      {
+        "id": "FX-001",
+        "subject": "fx.pregnancy.population",
+        "selected": {
+          "option": "240 pregnancies over twelve months and every unit in the demo district"
+        },
+        "alternatives": [
+          {
+            "option": "5000 pregnancies to look like a real district",
+            "reasonRejected": "A demo the size of production takes longer to import than the walkthrough it is meant to support."
+          },
+          {
+            "option": "20 pregnancies, one per facility",
+            "reasonRejected": "The list page never scrolls and the coverage report shows one row per facility with no shape to it."
+          }
+        ],
+        "rationale": "Enough that paging, the empty month and the empty facility all appear in one pass through the screens.",
+        "confidence": 0.8,
+        "impactLevel": "LOW"
+      }
+    ],
+    "patch": {
+      "baseVersion": "9",
+      "operations": [
+        {
+          "op": "add",
+          "path": "/fixtures/specifications/-",
+          "value": {
+            "businessKey": "fx.pregnancy.population",
+            "targetKey": "reg.ancVisit.pregnancy",
+            "count": 240,
+            "distribution": {
+              "over": "orgUnit",
+              "weights": "one third of the population at the chief's post, the rest even across the units",
+              "acrossPeriods": true
+            },
+            "attributeValues": [
+              {
+                "attributeKey": "reg.ancVisit.identifier",
+                "strategy": "sequence",
+                "prefix": "W-ANC-"
+              }
+            ],
+            "boundaryCases": [
+              "one pregnancy in every lifecycle state: enrolled, delivered, closed",
+              "one pregnancy booked in the last week of a month, so a period filter boundary is visible",
+              "one pregnancy whose identifier is the longest the field allows"
+            ],
+            "orgUnitKeys": [
+              "reg.facility.hierarchy"
+            ],
+            "periods": {
+              "months": 12,
+              "end": "the month before the build"
+            },
+            "source": {
+              "artifactId": "art-anctestplan00000000000001",
+              "location": "line:1"
+            }
+          }
+        },
+        {
+          "op": "add",
+          "path": "/fixtures/specifications/-",
+          "value": {
+            "businessKey": "fx.pregnancy.emptyFacility",
+            "targetKey": "reg.ancVisit.pregnancy",
+            "count": 0,
+            "distribution": {
+              "over": "orgUnit",
+              "weights": "concentrated on the one unit chosen to demonstrate the empty state"
+            },
+            "boundaryCases": [
+              "exactly one facility in the demo district has no pregnancy at all, so the empty list and the zero in the coverage report are the same record"
+            ],
+            "orgUnitKeys": [
+              "reg.facility.hierarchy"
+            ],
+            "periods": {
+              "months": 12
+            },
+            "source": {
+              "artifactId": "art-anctestplan00000000000001",
+              "location": "line:3"
+            }
+          }
+        }
+      ]
+    },
+    "questions": [],
+    "confidence": 0.8
+  }
+}

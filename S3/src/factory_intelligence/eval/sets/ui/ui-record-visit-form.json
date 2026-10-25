@@ -1,0 +1,270 @@
+{
+  "id": "ui-record-visit-form",
+  "kind": "golden",
+  "agentType": "UI",
+  "stage": "PAGE_DESIGN",
+  "title": "A form page whose submit binds to the write, gated on the load that precedes it",
+  "note": "AI-AG-005, AI-AG-013, FR-UII-002: the submit's source is the page's create operation, the fields cite the approved elements they collect, the save is unreachable until the load resolved, and the states carry submitting, success and validation error. The form field the Registry cannot supply is asked about instead of invented.",
+  "context": {
+    "baseVersion": "14",
+    "decisionConfidenceThreshold": 0.7,
+    "extractionConfidenceThreshold": 0.7,
+    "mappingFrozen": true,
+    "apiOperationKeys": [
+      "loadPregnancy",
+      "createVisit",
+      "readBackVisit"
+    ],
+    "items": [
+      {
+        "kind": "APPROVED_ENTRY",
+        "ref": "entry:pages/items/anc-visit-record",
+        "label": "pages/items/anc-visit-record",
+        "content": "{\"pageKey\": \"anc-visit-record\", \"name\": {\"default\": \"Record an antenatal visit\"}, \"purpose\": \"A midwife opens a woman's pregnancy and records today's visit.\", \"routes\": [\"/pregnancies/{trackedEntity}/visits/new\"], \"useCases\": [\"uc.recordVisit\"], \"actors\": [\"actor.midwife\"], \"registryRefs\": [\"reg.ancVisit.pregnancy\", \"reg.ancVisit.weight\", \"reg.ancVisit.bloodPressureSystolic\"], \"apiIntentRefs\": [\"anc-record-open-pregnancy\", \"anc-record-save\", \"anc-record-confirm\"], \"source\": {\"artifactId\": \"art-ancdesign000000000000002\", \"location\": \"section:pages\"}}"
+      },
+      {
+        "kind": "APPROVED_ENTRY",
+        "ref": "entry:apiIntents/items/anc-record-open-pregnancy",
+        "label": "apiIntents/items/anc-record-open-pregnancy",
+        "content": "{\"intentKey\": \"anc-record-open-pregnancy\", \"pageKey\": \"anc-visit-record\", \"operationKey\": \"loadPregnancy\", \"purpose\": \"Read the pregnancy the user opened the page from.\", \"resource\": \"tracker.trackedentity.get\", \"method\": \"GET\", \"registryRefs\": [\"reg.ancVisit.pregnancy\"]}"
+      },
+      {
+        "kind": "APPROVED_ENTRY",
+        "ref": "entry:apiIntents/items/anc-record-save",
+        "label": "apiIntents/items/anc-record-save",
+        "content": "{\"intentKey\": \"anc-record-save\", \"pageKey\": \"anc-visit-record\", \"operationKey\": \"createVisit\", \"purpose\": \"Record today's visit against the opened pregnancy.\", \"resource\": \"tracker.event.create\", \"method\": \"POST\", \"dependsOn\": [\"loadPregnancy\"], \"registryRefs\": [\"reg.ancVisit.weight\", \"reg.ancVisit.bloodPressureSystolic\"]}"
+      },
+      {
+        "kind": "REGISTRY_ENTRY",
+        "ref": "entry:registry/entries/reg.ancVisit.weight",
+        "label": "registry/entries/reg.ancVisit.weight",
+        "content": "{\"businessKey\": \"reg.ancVisit.weight\", \"dhis2Type\": \"dataElement\", \"disposition\": \"CREATE\", \"status\": \"APPROVED\", \"code\": \"ANC_WEIGHT\", \"name\": \"Weight at visit (kg)\", \"valueType\": \"NUMBER\"}"
+      },
+      {
+        "kind": "REGISTRY_ENTRY",
+        "ref": "entry:registry/entries/reg.ancVisit.bloodPressureSystolic",
+        "label": "registry/entries/reg.ancVisit.bloodPressureSystolic",
+        "content": "{\"businessKey\": \"reg.ancVisit.bloodPressureSystolic\", \"dhis2Type\": \"dataElement\", \"disposition\": \"CREATE\", \"status\": \"APPROVED\", \"code\": \"ANC_BP_SYSTOLIC\", \"name\": \"Blood pressure, systolic\", \"valueType\": \"NUMBER\"}"
+      },
+      {
+        "kind": "INPUT_ARTIFACT",
+        "ref": "art-ancrecordform000000000001",
+        "label": "visit-form.md",
+        "content": "The paper form records: date of the visit, weight in kilograms, systolic blood pressure, and whether the urine dipstick was done. The midwife insists the screen must not let her save a visit for a pregnancy she did not open first."
+      }
+    ]
+  },
+  "expected": {
+    "summary": "Designed the record form: the pregnancy header reads through this page's load operation, the three fields the form carries map to their approved elements, and save posts through the create operation, which stays disabled until the load has returned an active enrollment — the order the midwife asked for is a property of the screen, not of her memory. After a save the page shows what the read-back operation returns rather than what was typed. Validation errors, submitting and success states are all designed. The urine dipstick is on the paper form but has no approved element behind it, so it is asked about rather than added to the payload.",
+    "decisions": [
+      {
+        "id": "UI-010",
+        "subject": "anc-record-form",
+        "selected": {
+          "option": "one screen, fields in the order the paper form lists them"
+        },
+        "alternatives": [
+          {
+            "option": "a two-step stepper, measurements then confirmation",
+            "reasonRejected": "The visit has four fields and the midwife enters them while the woman is present; a second step adds a round trip for no confirmation anyone reads."
+          }
+        ],
+        "rationale": "The paper form is already the order of use, and the page's job is to be faster than it, not different from it.",
+        "confidence": 0.8,
+        "impactLevel": "LOW"
+      }
+    ],
+    "patch": {
+      "baseVersion": "14",
+      "operations": [
+        {
+          "op": "add",
+          "path": "/uiIntents/items/-",
+          "value": {
+            "intentKey": "anc-record-form",
+            "pageKey": "anc-visit-record",
+            "route": "/pregnancies/{trackedEntity}/visits/new",
+            "purpose": "Record one antenatal visit against the pregnancy the user opened.",
+            "layout": [
+              "pregnancy header",
+              "visit fields",
+              "save action pinned at the bottom"
+            ],
+            "components": [
+              {
+                "name": "Card",
+                "use": "Show which pregnancy is being recorded against, so a wrong entry is visible before it is saved.",
+                "dataSource": {
+                  "operationKey": "loadPregnancy"
+                }
+              },
+              {
+                "name": "Calendar",
+                "use": "Date of the visit, defaulting to today and never later than today.",
+                "events": [
+                  "onChange marks the form dirty"
+                ],
+                "validation": [
+                  "the date may not be in the future"
+                ]
+              },
+              {
+                "name": "Input",
+                "use": "Weight in kilograms.",
+                "props": {
+                  "type": "number",
+                  "unit": "kg"
+                },
+                "validation": [
+                  "required",
+                  "between 20 and 200"
+                ]
+              },
+              {
+                "name": "Input",
+                "use": "Systolic blood pressure.",
+                "props": {
+                  "type": "number",
+                  "unit": "mmHg"
+                },
+                "validation": [
+                  "between 60 and 260"
+                ]
+              },
+              {
+                "name": "LinearProgramStage",
+                "use": "Carry the program rule that flags a raised reading onto the screen as the systolic value changes.",
+                "dataSource": {
+                  "businessKey": "reg.ancVisit.bloodPressureSystolic"
+                },
+                "visibleWhen": "a systolic value has been entered"
+              },
+              {
+                "name": "Button",
+                "use": "Save the visit.",
+                "dataSource": {
+                  "operationKey": "createVisit"
+                },
+                "props": {
+                  "primary": true
+                },
+                "events": [
+                  "onClick validates then posts"
+                ],
+                "visibleWhen": "the pregnancy loaded with an active enrollment and the form is valid"
+              },
+              {
+                "name": "NoticeBox",
+                "use": "After saving, state what was recorded and by whom.",
+                "dataSource": {
+                  "operationKey": "readBackVisit"
+                },
+                "visibleWhen": "the save succeeded"
+              }
+            ],
+            "states": [
+              "INITIAL",
+              "LOADING",
+              "READY",
+              "EMPTY",
+              "SUBMITTING",
+              "SUCCESS",
+              "VALIDATION_ERROR",
+              "API_ERROR",
+              "PERMISSION_DENIED"
+            ],
+            "interactions": [
+              "the save is unreachable until the load has returned",
+              "a rejected save keeps every typed value on screen",
+              "after a success the page shows the read-back values, not the typed ones"
+            ],
+            "programRules": [
+              "reg.ancVisit.bloodPressureFlag.rule"
+            ],
+            "fieldMappings": [
+              {
+                "field": "occurredAt",
+                "label": {
+                  "default": "Date of visit"
+                },
+                "businessKey": "reg.ancVisit.event",
+                "valueType": "DATE",
+                "required": true,
+                "validation": [
+                  "not in the future"
+                ]
+              },
+              {
+                "field": "weight",
+                "label": {
+                  "default": "Weight (kg)"
+                },
+                "businessKey": "reg.ancVisit.weight",
+                "valueType": "NUMBER",
+                "required": true,
+                "validation": [
+                  "20 to 200"
+                ]
+              },
+              {
+                "field": "bloodPressureSystolic",
+                "label": {
+                  "default": "Systolic blood pressure"
+                },
+                "businessKey": "reg.ancVisit.bloodPressureSystolic",
+                "valueType": "NUMBER",
+                "required": false,
+                "validation": [
+                  "60 to 260"
+                ]
+              }
+            ],
+            "translationKeys": [
+              "anc.record.title",
+              "anc.record.field.weight",
+              "anc.record.save",
+              "anc.record.saved"
+            ],
+            "testScenarios": [
+              "opening the page for a pregnancy with no active enrollment offers no save",
+              "a rejected weight keeps the rest of the form and names the field",
+              "after a save the confirmation shows the value the server stored"
+            ],
+            "source": {
+              "artifactId": "art-ancrecordform000000000001",
+              "location": "line:1"
+            }
+          }
+        }
+      ]
+    },
+    "questions": [
+      {
+        "id": "Q1",
+        "text": "The paper form records whether a urine dipstick was done, but no approved element carries it and this page's create operation has no field for it. Is the dipstick collected on this screen, and if so which element holds it?",
+        "severity": "MEDIUM",
+        "affects": [
+          "anc-record-form",
+          "reg.ancVisit.event"
+        ],
+        "suggestions": [
+          {
+            "id": "S1",
+            "text": "Not collected on this page",
+            "rationale": "Then the form is complete as designed and the paper step stays paper.",
+            "changesUid": false,
+            "regenerates": false
+          },
+          {
+            "id": "S2",
+            "text": "Collected, and an element has to be mapped first",
+            "rationale": "Neither this screen nor its API run can add the element; it is a MAPPING change request, after which both runs need the field.",
+            "changesUid": false,
+            "regenerates": true
+          }
+        ]
+      }
+    ],
+    "confidence": 0.8
+  }
+}

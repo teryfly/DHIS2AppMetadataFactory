@@ -1,0 +1,5 @@
+{
+  "name": "${name}",
+  "authorities": "${authorities}",
+  "sharing": "${sharing}"
+}

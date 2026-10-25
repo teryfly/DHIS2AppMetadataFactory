@@ -1,0 +1,574 @@
+{
+  "generatedBy": "scripts/check-bundle-budget.mjs",
+  "budgets": {
+    "firstScreenJsBytes": 204800,
+    "lazyChunkBytes": 153600,
+    "firstScreenCssBytes": 44000
+  },
+  "firstScreenJsBytes": 161066,
+  "firstScreenCssBytes": 38061,
+  "firstScreenInlineJsBytes": 424,
+  "firstScreenInlineCssBytes": 361,
+  "lazyChunkCount": 71,
+  "exempted": [
+    {
+      "file": "JsonEditorCore-cIFEx0jo.js",
+      "gzip": 180849,
+      "reason": "UM-NFR-02：CodeMirror 编辑器块"
+    },
+    {
+      "file": "OpenApiDoc-C-XDocJv.js",
+      "gzip": 6261,
+      "reason": "UM-NFR-02：懒加载 API 文档视图"
+    }
+  ],
+  "rows": [
+    {
+      "file": "index-CvLh3EII.js",
+      "kind": "first-screen",
+      "raw": 186772,
+      "gzip": 70076,
+      "cap": null
+    },
+    {
+      "file": "vue-BaGnRkma.js",
+      "kind": "first-screen",
+      "raw": 166383,
+      "gzip": 61337,
+      "cap": null
+    },
+    {
+      "file": "query-CdC0XRe6.js",
+      "kind": "first-screen",
+      "raw": 39443,
+      "gzip": 11473,
+      "cap": null
+    },
+    {
+      "file": "vant-B_0uKX1c.js",
+      "kind": "first-screen",
+      "raw": 48243,
+      "gzip": 17756,
+      "cap": null
+    },
+    {
+      "file": "index-DVQzTOYN.css",
+      "kind": "first-screen-css",
+      "raw": 87750,
+      "gzip": 37700,
+      "cap": 44000
+    },
+    {
+      "file": "AccessView-CpjHaM7w.js",
+      "kind": "lazy",
+      "raw": 11137,
+      "gzip": 3297,
+      "cap": 153600
+    },
+    {
+      "file": "ApiDocView-D23aQvqt.js",
+      "kind": "lazy",
+      "raw": 1740,
+      "gzip": 847,
+      "cap": 153600
+    },
+    {
+      "file": "ApiReviewView-fddUWUZ8.js",
+      "kind": "lazy",
+      "raw": 3672,
+      "gzip": 1598,
+      "cap": 153600
+    },
+    {
+      "file": "ArtifactDetailView-kjA4S1Fb.js",
+      "kind": "lazy",
+      "raw": 6300,
+      "gzip": 2625,
+      "cap": 153600
+    },
+    {
+      "file": "ArtifactGrantsView-3wpzKxPI.js",
+      "kind": "lazy",
+      "raw": 5613,
+      "gzip": 2167,
+      "cap": 153600
+    },
+    {
+      "file": "ArtifactsView-DSQrZ5A4.js",
+      "kind": "lazy",
+      "raw": 1935,
+      "gzip": 1019,
+      "cap": 153600
+    },
+    {
+      "file": "AuditView-D0VRDD_H.js",
+      "kind": "lazy",
+      "raw": 3106,
+      "gzip": 1445,
+      "cap": 153600
+    },
+    {
+      "file": "ChangeRequestsView-QO-72-S4.js",
+      "kind": "lazy",
+      "raw": 4809,
+      "gzip": 1711,
+      "cap": 153600
+    },
+    {
+      "file": "ColumnMappingView-Czl1UwlS.js",
+      "kind": "lazy",
+      "raw": 3121,
+      "gzip": 1512,
+      "cap": 153600
+    },
+    {
+      "file": "CredentialField-D1aKYkAd.js",
+      "kind": "lazy",
+      "raw": 5127,
+      "gzip": 2020,
+      "cap": 153600
+    },
+    {
+      "file": "DeploymentsView-BpUwNuHo.js",
+      "kind": "lazy",
+      "raw": 2907,
+      "gzip": 1339,
+      "cap": 153600
+    },
+    {
+      "file": "EnvironmentDetailView-BB3pBBoZ.js",
+      "kind": "lazy",
+      "raw": 3240,
+      "gzip": 1365,
+      "cap": 153600
+    },
+    {
+      "file": "EnvironmentFormSheet-BLgqv9dy.js",
+      "kind": "lazy",
+      "raw": 12880,
+      "gzip": 4079,
+      "cap": 153600
+    },
+    {
+      "file": "EnvironmentsView-BHfy9knF.js",
+      "kind": "lazy",
+      "raw": 7540,
+      "gzip": 2622,
+      "cap": 153600
+    },
+    {
+      "file": "FuiActionBar-zOIemn7D.js",
+      "kind": "lazy",
+      "raw": 1068,
+      "gzip": 589,
+      "cap": 153600
+    },
+    {
+      "file": "FuiActionButton-rDczUM23.js",
+      "kind": "lazy",
+      "raw": 1745,
+      "gzip": 857,
+      "cap": 153600
+    },
+    {
+      "file": "FuiAsync.vue_vue_type_script_setup_true_lang-DbacUKK0.js",
+      "kind": "lazy",
+      "raw": 3281,
+      "gzip": 1383,
+      "cap": 153600
+    },
+    {
+      "file": "FuiBottomSheet-DVozGzlF.js",
+      "kind": "lazy",
+      "raw": 1052,
+      "gzip": 584,
+      "cap": 153600
+    },
+    {
+      "file": "FuiButton-Cw8VRrS5.js",
+      "kind": "lazy",
+      "raw": 1152,
+      "gzip": 593,
+      "cap": 153600
+    },
+    {
+      "file": "FuiCard-Dz14Yrgo.js",
+      "kind": "lazy",
+      "raw": 1119,
+      "gzip": 534,
+      "cap": 153600
+    },
+    {
+      "file": "FuiChecklist-C0RwuxAf.js",
+      "kind": "lazy",
+      "raw": 852,
+      "gzip": 501,
+      "cap": 153600
+    },
+    {
+      "file": "FuiConclusionCard-BVtlI1gZ.js",
+      "kind": "lazy",
+      "raw": 1658,
+      "gzip": 793,
+      "cap": 153600
+    },
+    {
+      "file": "FuiDiffViewer-8v_cHzgj.js",
+      "kind": "lazy",
+      "raw": 1495,
+      "gzip": 822,
+      "cap": 153600
+    },
+    {
+      "file": "FuiEmpty-ChmpIKJV.js",
+      "kind": "lazy",
+      "raw": 1024,
+      "gzip": 582,
+      "cap": 153600
+    },
+    {
+      "file": "FuiFilterBar-DxgEDDGq.js",
+      "kind": "lazy",
+      "raw": 858,
+      "gzip": 493,
+      "cap": 153600
+    },
+    {
+      "file": "FuiOpenApiViewer.vue_vue_type_script_setup_true_lang-BUr5KulT.js",
+      "kind": "lazy",
+      "raw": 1125,
+      "gzip": 635,
+      "cap": 153600
+    },
+    {
+      "file": "FuiRadioGroup-DXcRv_st.js",
+      "kind": "lazy",
+      "raw": 659,
+      "gzip": 346,
+      "cap": 153600
+    },
+    {
+      "file": "FuiReadOnlyViewer-CojZJFB0.js",
+      "kind": "lazy",
+      "raw": 1381,
+      "gzip": 709,
+      "cap": 153600
+    },
+    {
+      "file": "FuiSegmented-DDKfvD2Q.js",
+      "kind": "lazy",
+      "raw": 1000,
+      "gzip": 557,
+      "cap": 153600
+    },
+    {
+      "file": "FuiSpinner-BSxZFI96.js",
+      "kind": "lazy",
+      "raw": 368,
+      "gzip": 250,
+      "cap": 153600
+    },
+    {
+      "file": "FuiStatusTag-CpXT3xj5.js",
+      "kind": "lazy",
+      "raw": 654,
+      "gzip": 430,
+      "cap": 153600
+    },
+    {
+      "file": "FuiSwitch-CvHe_ncK.js",
+      "kind": "lazy",
+      "raw": 430,
+      "gzip": 285,
+      "cap": 153600
+    },
+    {
+      "file": "FuiVirtualList-D2RAEG3_.js",
+      "kind": "lazy",
+      "raw": 1303,
+      "gzip": 673,
+      "cap": 153600
+    },
+    {
+      "file": "GateView-H5JVROsX.js",
+      "kind": "lazy",
+      "raw": 10396,
+      "gzip": 3598,
+      "cap": 153600
+    },
+    {
+      "file": "GovernanceView-BS55Tq68.js",
+      "kind": "lazy",
+      "raw": 15322,
+      "gzip": 4762,
+      "cap": 153600
+    },
+    {
+      "file": "GraphView-DKJyrgjU.js",
+      "kind": "lazy",
+      "raw": 20878,
+      "gzip": 7967,
+      "cap": 153600
+    },
+    {
+      "file": "HandoffView-C0h5Wd8c.js",
+      "kind": "lazy",
+      "raw": 3577,
+      "gzip": 1642,
+      "cap": 153600
+    },
+    {
+      "file": "HomeView-BfnhLTiW.js",
+      "kind": "lazy",
+      "raw": 4901,
+      "gzip": 1888,
+      "cap": 153600
+    },
+    {
+      "file": "InputsView-rV8sOn24.js",
+      "kind": "lazy",
+      "raw": 11932,
+      "gzip": 4465,
+      "cap": 153600
+    },
+    {
+      "file": "JsonEditorCore-cIFEx0jo.js",
+      "kind": "exempt",
+      "raw": 564617,
+      "gzip": 180849,
+      "cap": null
+    },
+    {
+      "file": "MeView-DZOmOM1t.js",
+      "kind": "lazy",
+      "raw": 3653,
+      "gzip": 1329,
+      "cap": 153600
+    },
+    {
+      "file": "MetadataView-Diu9uWqj.js",
+      "kind": "lazy",
+      "raw": 3267,
+      "gzip": 1435,
+      "cap": 153600
+    },
+    {
+      "file": "ModelSheet-DpQyoONt.js",
+      "kind": "lazy",
+      "raw": 13944,
+      "gzip": 4236,
+      "cap": 153600
+    },
+    {
+      "file": "NewProjectView-jc7Cyegj.js",
+      "kind": "lazy",
+      "raw": 6698,
+      "gzip": 2463,
+      "cap": 153600
+    },
+    {
+      "file": "NotFound-CvWbY4Iq.js",
+      "kind": "lazy",
+      "raw": 838,
+      "gzip": 482,
+      "cap": 153600
+    },
+    {
+      "file": "NotificationsView-B-VxBFWR.js",
+      "kind": "lazy",
+      "raw": 3462,
+      "gzip": 1596,
+      "cap": 153600
+    },
+    {
+      "file": "OidcCallbackView-Ccq2gaf6.js",
+      "kind": "lazy",
+      "raw": 1821,
+      "gzip": 905,
+      "cap": 153600
+    },
+    {
+      "file": "OpenApiDoc-C-XDocJv.js",
+      "kind": "exempt",
+      "raw": 19604,
+      "gzip": 6261,
+      "cap": null
+    },
+    {
+      "file": "PackageView-dvov8wTv.js",
+      "kind": "lazy",
+      "raw": 3057,
+      "gzip": 1336,
+      "cap": 153600
+    },
+    {
+      "file": "ProductionExemptionsView-DPsfc3gg.js",
+      "kind": "lazy",
+      "raw": 6115,
+      "gzip": 2280,
+      "cap": 153600
+    },
+    {
+      "file": "ProjectDetailView-CnZzJPeG.js",
+      "kind": "lazy",
+      "raw": 6203,
+      "gzip": 2510,
+      "cap": 153600
+    },
+    {
+      "file": "ProjectMembersView-Dtod0uEW.js",
+      "kind": "lazy",
+      "raw": 5068,
+      "gzip": 1980,
+      "cap": 153600
+    },
+    {
+      "file": "ProjectSettingsView-na-s51rI.js",
+      "kind": "lazy",
+      "raw": 7239,
+      "gzip": 2382,
+      "cap": 153600
+    },
+    {
+      "file": "ProjectsView-BpHmygXc.js",
+      "kind": "lazy",
+      "raw": 2665,
+      "gzip": 1263,
+      "cap": 153600
+    },
+    {
+      "file": "QuestionDetailView-C9kb4fD_.js",
+      "kind": "lazy",
+      "raw": 5351,
+      "gzip": 2268,
+      "cap": 153600
+    },
+    {
+      "file": "RequirementsView-DPBFw753.js",
+      "kind": "lazy",
+      "raw": 13991,
+      "gzip": 4639,
+      "cap": 153600
+    },
+    {
+      "file": "RunConsoleView-CZGYVjG-.js",
+      "kind": "lazy",
+      "raw": 9860,
+      "gzip": 3748,
+      "cap": 153600
+    },
+    {
+      "file": "SettingsView-cZdAOwUc.js",
+      "kind": "lazy",
+      "raw": 3350,
+      "gzip": 1530,
+      "cap": 153600
+    },
+    {
+      "file": "SignInView-CST006Vc.js",
+      "kind": "lazy",
+      "raw": 3320,
+      "gzip": 1471,
+      "cap": 153600
+    },
+    {
+      "file": "StageView-DjYk2Tt4.js",
+      "kind": "lazy",
+      "raw": 26982,
+      "gzip": 8629,
+      "cap": 153600
+    },
+    {
+      "file": "StartView-eenBsNKP.js",
+      "kind": "lazy",
+      "raw": 5452,
+      "gzip": 2072,
+      "cap": 153600
+    },
+    {
+      "file": "TodoView-B1Sebp6j.js",
+      "kind": "lazy",
+      "raw": 3871,
+      "gzip": 1739,
+      "cap": 153600
+    },
+    {
+      "file": "ValidationIssuesView-DgR5s4X_.js",
+      "kind": "lazy",
+      "raw": 3230,
+      "gzip": 1489,
+      "cap": 153600
+    },
+    {
+      "file": "docModel-Du9PJ4KW.js",
+      "kind": "lazy",
+      "raw": 60834,
+      "gzip": 18384,
+      "cap": 153600
+    },
+    {
+      "file": "enums-sJ8a04Vk.js",
+      "kind": "lazy",
+      "raw": 892,
+      "gzip": 533,
+      "cap": 153600
+    },
+    {
+      "file": "mutations-DtaTW9uE.js",
+      "kind": "lazy",
+      "raw": 13699,
+      "gzip": 2907,
+      "cap": 153600
+    },
+    {
+      "file": "requirementOps-Beo7Paku.js",
+      "kind": "lazy",
+      "raw": 3669,
+      "gzip": 1473,
+      "cap": 153600
+    },
+    {
+      "file": "resolveSchema-Nq2eCdY4.js",
+      "kind": "lazy",
+      "raw": 1999,
+      "gzip": 860,
+      "cap": 153600
+    },
+    {
+      "file": "startSteps-CxSFGZ8M.js",
+      "kind": "lazy",
+      "raw": 1641,
+      "gzip": 745,
+      "cap": 153600
+    },
+    {
+      "file": "useProjectWorkflow-Jazb3Ivm.js",
+      "kind": "lazy",
+      "raw": 415,
+      "gzip": 282,
+      "cap": 153600
+    },
+    {
+      "file": "useWorkflowEvents-BLd0QqpK.js",
+      "kind": "lazy",
+      "raw": 4788,
+      "gzip": 1826,
+      "cap": 153600
+    },
+    {
+      "file": "/config.js",
+      "kind": "first-screen-public",
+      "raw": null,
+      "gzip": 424,
+      "cap": null
+    },
+    {
+      "file": "(inline in index.html)",
+      "kind": "first-screen-inline",
+      "raw": null,
+      "gzip": 785,
+      "cap": null
+    }
+  ],
+  "pass": true
+}

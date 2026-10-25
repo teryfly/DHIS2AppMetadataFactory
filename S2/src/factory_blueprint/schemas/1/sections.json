@@ -1,0 +1,1035 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://damf.invalid/bp/1/sections.json",
+  "description": "Standalone JSON Schema for every Blueprint section (BP-SCH-006). Keyed lists follow the layout table in content/layout.py. S2 SRS BP-SCH-002 makes project.defaultLanguage / project.translationLanguages the only storage location for languages, so generationPolicy carries no language fields.",
+  "sections": {
+    "project": {
+      "$id": "https://damf.invalid/bp/1/sections/project.json",
+      "title": "project",
+      "description": "Delivery mode, project type, target DHIS2 version constraint and languages (BP-SCH-002). Writable only by initialization and delivery-mode upgrade, both SYSTEM-authored (appendix A).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["deliveryMode", "projectType", "targetDhis2", "defaultLanguage"],
+      "properties": {
+        "deliveryMode": { "type": "string", "enum": ["A", "B"] },
+        "projectType": { "type": "string", "enum": ["GREENFIELD", "BROWNFIELD"] },
+        "targetDhis2": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["versionConstraint"],
+          "properties": {
+            "versionConstraint": { "type": "string", "minLength": 1, "maxLength": 128 },
+            "minimumVersion": { "type": "string", "pattern": "^2\\.[0-9]+(\\.[0-9]+)?$" },
+            "maximumVersion": { "type": "string", "pattern": "^2\\.[0-9]+(\\.[0-9]+)?$" }
+          }
+        },
+        "defaultLanguage": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/locale" },
+        "translationLanguages": {
+          "type": "array",
+          "items": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/locale" },
+          "uniqueItems": true,
+          "maxItems": 32
+        },
+        "displayName": { "type": "string", "maxLength": 256 },
+        "summary": { "type": "string", "maxLength": 4096 }
+      }
+    },
+    "requirements": {
+      "$id": "https://damf.invalid/bp/1/sections/requirements.json",
+      "title": "requirements",
+      "description": "Normalized requirements referencing the original input artifacts (FR-BP-002).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["items"],
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["businessKey", "statement", "source"],
+            "properties": {
+              "businessKey": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+              "statement": { "type": "string", "minLength": 1, "maxLength": 4096 },
+              "rationale": { "type": "string", "maxLength": 4096 },
+              "priority": { "type": "string", "enum": ["MUST", "SHOULD", "COULD", "WONT"] },
+              "status": { "type": "string", "enum": ["CANDIDATE", "CONFIRMED", "REJECTED"] },
+              "confidence": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/confidence" },
+              "actors": {
+                "type": "array",
+                "items": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+                "uniqueItems": true
+              },
+              "openQuestions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["question", "severity"],
+                  "properties": {
+                    "question": { "type": "string", "maxLength": 2048 },
+                    "severity": { "type": "string", "enum": ["LOW", "MEDIUM", "HIGH"] }
+                  }
+                }
+              },
+              "source": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/source" }
+            }
+          }
+        }
+      }
+    },
+    "domain": {
+      "$id": "https://damf.invalid/bp/1/sections/domain.json",
+      "title": "domain",
+      "description": "Domain entities, their attributes, lifecycles and relationships (overall SRS 9.1). Attribute sensitivity is mandatory for PII and drives data classification, sharing and fixture generation (FR-DOM-001).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entities", "relationships"],
+      "properties": {
+        "entities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["businessKey", "displayName", "attributes", "source"],
+            "properties": {
+              "businessKey": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+              "displayName": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/localizedText" },
+              "description": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/localizedText" },
+              "lifecycle": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["states"],
+                "properties": {
+                  "states": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": ["key", "name"],
+                      "properties": {
+                        "key": { "type": "string", "pattern": "^[a-z][A-Za-z0-9]*$", "maxLength": 64 },
+                        "name": { "type": "string", "maxLength": 256 },
+                        "terminal": { "type": "boolean" },
+                        "initial": { "type": "boolean" }
+                      }
+                    }
+                  },
+                  "transitions": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": ["from", "to"],
+                      "properties": {
+                        "from": { "type": "string", "maxLength": 64 },
+                        "to": { "type": "string", "maxLength": 64 },
+                        "trigger": { "type": "string", "maxLength": 512 }
+                      }
+                    }
+                  }
+                }
+              },
+              "attributes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["name", "valueType", "required", "sensitivity"],
+                  "properties": {
+                    "name": { "type": "string", "pattern": "^[a-z][a-zA-Z0-9]*$", "maxLength": 128 },
+                    "label": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/localizedText" },
+                    "valueType": {
+                      "type": "string",
+                      "enum": [
+                        "TEXT", "LONG_TEXT", "MULTI_LINE_TEXT", "NUMBER", "INTEGER", "INTEGER_POSITIVE",
+                        "INTEGER_NEGATIVE", "INTEGER_ZERO_OR_POSITIVE", "REAL", "UNIT_INTERVAL",
+                        "PERCENTAGE", "DATE", "DATETIME", "TIME", "BOOLEAN", "TRUE_ONLY",
+                        "TEXTAREA", "EMAIL", "PHONE_NUMBER", "URL", "USERNAME", "COORDINATE",
+                        "RATING", "AGE", "OPTION_SET", "FILE_IMAGE", "FILE_LINK", "TRACKED_ENTITY_ATTRIBUTE"
+                      ]
+                    },
+                    "required": { "type": "boolean" },
+                    "range": { "type": "string", "maxLength": 512 },
+                    "optionSetKey": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+                    "sensitivity": {
+                      "type": "string",
+                      "enum": ["PUBLIC", "INTERNAL", "CONFIDENTIAL", "RESTRICTED", "PHI_PII"]
+                    }
+                  }
+                }
+              },
+              "useCases": {
+                "type": "array",
+                "items": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+                "uniqueItems": true
+              },
+              "source": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/source" }
+            }
+          }
+        },
+        "relationships": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "businessKey", "from", "to", "cardinality", "ownership",
+              "lifecycleDependent", "optional", "crossProcess", "candidateExpressions", "source"
+            ],
+            "properties": {
+              "businessKey": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+              "name": { "type": "string", "maxLength": 256 },
+              "from": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+              "to": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+              "cardinality": { "type": "string", "enum": ["ONE_TO_ONE", "ONE_TO_MANY", "MANY_TO_ONE", "MANY_TO_MANY"] },
+              "ownership": { "type": "string", "enum": ["FROM", "TO", "SHARED", "NONE"] },
+              "lifecycleDependent": { "type": "boolean" },
+              "optional": { "type": "boolean" },
+              "crossProcess": { "type": "boolean" },
+              "candidateExpressions": {
+                "type": "array",
+                "minItems": 1,
+                "items": { "type": "string", "maxLength": 128 }
+              },
+              "source": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/source" }
+            }
+          }
+        }
+      }
+    },
+    "useCases": {
+      "$id": "https://damf.invalid/bp/1/sections/useCases.json",
+      "title": "useCases",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["items"],
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["businessKey", "name", "actors", "source"],
+            "properties": {
+              "businessKey": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+              "name": { "type": "string", "maxLength": 256 },
+              "purpose": { "type": "string", "maxLength": 2048 },
+              "actors": {
+                "type": "array",
+                "minItems": 1,
+                "items": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+                "uniqueItems": true
+              },
+              "preconditions": { "type": "array", "items": { "type": "string", "maxLength": 1024 } },
+              "steps": { "type": "array", "items": { "type": "string", "maxLength": 1024 } },
+              "outcome": { "type": "string", "maxLength": 2048 },
+              "requirements": {
+                "type": "array",
+                "items": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+                "uniqueItems": true
+              },
+              "source": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/source" }
+            }
+          }
+        }
+      }
+    },
+    "actors": {
+      "$id": "https://damf.invalid/bp/1/sections/actors.json",
+      "title": "actors",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["items"],
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["businessKey", "name", "source"],
+            "properties": {
+              "businessKey": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+              "name": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/localizedText" },
+              "description": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/localizedText" },
+              "roleKeys": {
+                "type": "array",
+                "items": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+                "uniqueItems": true
+              },
+              "source": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/source" }
+            }
+          }
+        }
+      }
+    },
+    "organizationModel": {
+      "$id": "https://damf.invalid/bp/1/sections/organizationModel.json",
+      "title": "organizationModel",
+      "description": "Organisation unit hierarchy needs and references. OrganisationUnit defaults to REFERENCE (FR-COV-007).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["levels", "orgUnitRefs"],
+      "properties": {
+        "levels": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["businessKey", "name", "order"],
+            "properties": {
+              "businessKey": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+              "name": { "type": "string", "maxLength": 256 },
+              "order": { "type": "integer", "minimum": 0, "maximum": 64 }
+            }
+          }
+        },
+        "orgUnitRefs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["businessKey", "source"],
+            "properties": {
+              "businessKey": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+              "name": { "type": "string", "maxLength": 256 },
+              "code": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/code" },
+              "levelKey": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+              "source": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/source" }
+            }
+          }
+        }
+      }
+    },
+    "accessModel": {
+      "$id": "https://damf.invalid/bp/1/sections/accessModel.json",
+      "title": "accessModel",
+      "description": "Roles, user groups and sharing intention for every managed object (FR-COV-006, FR-PG-001). Changing it is a Major change (appendix B).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["roles", "userGroups", "sharingDefaults"],
+      "properties": {
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["businessKey", "name", "authorities", "source"],
+            "properties": {
+              "businessKey": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+              "name": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/localizedText" },
+              "displayName": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/localizedText" },
+              "authorities": { "type": "array", "items": { "type": "string", "maxLength": 128 }, "uniqueItems": true },
+              "userGroupKeys": {
+                "type": "array",
+                "items": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+                "uniqueItems": true
+              },
+              "source": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/source" }
+            }
+          }
+        },
+        "userGroups": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["businessKey", "name", "source"],
+            "properties": {
+              "businessKey": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+              "name": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/localizedText" },
+              "description": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/localizedText" },
+              "roleKeys": {
+                "type": "array",
+                "items": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+                "uniqueItems": true
+              },
+              "orgUnitLevels": { "type": "array", "items": { "type": "string", "maxLength": 128 } },
+              "source": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/source" }
+            }
+          }
+        },
+        "sharingDefaults": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/sharing" },
+        "sharingOverrides": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["businessKey", "sharing"],
+            "properties": {
+              "businessKey": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+              "sharing": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/sharing" }
+            }
+          }
+        }
+      }
+    },
+    "architecture": {
+      "$id": "https://damf.invalid/bp/1/sections/architecture.json",
+      "title": "architecture",
+      "description": "Architecture decision records (ADR). Frozen with the mapping by ARCHITECTURE_GATE (BP-BR-07).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decisions"],
+      "properties": {
+        "decisions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["decisionId", "title", "context", "decision", "status"],
+            "properties": {
+              "decisionId": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/decisionId" },
+              "title": { "type": "string", "maxLength": 256 },
+              "context": { "type": "string", "maxLength": 8192 },
+              "decision": { "type": "string", "maxLength": 8192 },
+              "status": { "type": "string", "enum": ["PROPOSED", "ACCEPTED", "SUPERSEDED", "REJECTED"] },
+              "alternatives": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["option", "reasonRejected"],
+                  "properties": {
+                    "option": { "type": "string", "maxLength": 1024 },
+                    "reasonRejected": { "type": "string", "maxLength": 2048 }
+                  }
+                }
+              },
+              "risks": { "type": "array", "items": { "type": "string", "maxLength": 1024 } },
+              "confirmation": { "$ref": "#/definitions/confirmation" },
+              "supersedes": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/decisionId" }
+            }
+          }
+        }
+      },
+      "definitions": {
+        "confirmation": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "questionId": { "type": "string", "maxLength": 64 },
+            "answerer": { "type": "string", "maxLength": 128 },
+            "operator": { "type": "string", "maxLength": 128 },
+            "answeredAt": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/dateTime" }
+          }
+        }
+      }
+    },
+    "mapping": {
+      "$id": "https://damf.invalid/bp/1/sections/mapping.json",
+      "title": "mapping",
+      "description": "Domain element to DHIS2 expression, with rejected alternatives, risks, confidence and the decision that produced it (FR-MAP-001, overall SRS 5.4). Object definitions are compiled from here, so raw metadata JSON is not allowed (FR-BP-002).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entries"],
+      "properties": {
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["businessKey", "source"],
+            "properties": {
+              "businessKey": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+              "notMapped": { "type": "boolean" },
+              "notMappedReason": { "type": "string", "maxLength": 2048 },
+              "dhis2Type": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/dhis2Type" },
+              "fields": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/fieldValues" },
+              "structure": {
+                "type": "object",
+                "description": "Composition of the mapped object: nested parts such as program stages, sections, rule lists or option sets.",
+                "additionalProperties": true
+              },
+              "alternatives": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["option", "reasonRejected"],
+                  "properties": {
+                    "option": { "type": "string", "maxLength": 1024 },
+                    "reasonRejected": { "type": "string", "maxLength": 2048 }
+                  }
+                }
+              },
+              "risks": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["description", "level"],
+                  "properties": {
+                    "description": { "type": "string", "maxLength": 1024 },
+                    "level": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/impactLevel" }
+                  }
+                }
+              },
+              "confidence": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/confidence" },
+              "decisionId": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/decisionId" },
+              "approvalRef": { "type": "string", "maxLength": 128 },
+              "confirmation": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/confirmation" },
+              "affectedArtifacts": { "type": "array", "items": { "type": "string", "maxLength": 64 }, "uniqueItems": true },
+              "source": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/source" }
+            },
+            "allOf": [
+              {
+                "if": { "properties": { "notMapped": { "const": false } }, "required": ["notMapped"] },
+                "then": { "required": ["dhis2Type", "decisionId"] }
+              },
+              {
+                "if": { "properties": { "notMapped": { "const": true } }, "required": ["notMapped"] },
+                "then": { "required": ["notMappedReason"], "not": { "required": ["dhis2Type"] } }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "registry": {
+      "$id": "https://damf.invalid/bp/1/sections/registry.json",
+      "title": "registry",
+      "description": "Metadata Registry: the normalized identity index and the only source of UIDs (overall SRS 5.5). Per-environment bindings are NOT part of version content (BP-REG-010.4) and therefore have no property here.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entries"],
+      "properties": {
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["businessKey", "dhis2Type", "disposition", "status", "source"],
+            "properties": {
+              "businessKey": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+              "dhis2Type": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/dhis2Type" },
+              "uid": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/uid" },
+              "observedUid": {
+                "description": "The UID S2 observed for this existing object in the design reference environment. A patch may record an observation; only S2 turns it into the entry's uid, so a patch can never invent identity (BP-DRF-005.4, BP-REG-001).",
+                "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/uid"
+              },
+              "code": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/code" },
+              "disposition": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/disposition" },
+              "managed": { "type": "boolean" },
+              "controlledFields": {
+                "type": "array",
+                "items": { "type": "string", "pattern": "^[a-z][A-Za-z0-9]{0,63}$", "maxLength": 64 },
+                "uniqueItems": true
+              },
+              "status": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/entryStatus" },
+              "decisionId": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/decisionId" },
+              "sourceEnvironment": { "type": "string", "maxLength": 64 },
+              "observedLastUpdated": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/dateTime" },
+              "observedHash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+              "discoveryResultId": { "type": "string", "maxLength": 64 },
+              "notes": { "type": "string", "maxLength": 2048 },
+              "source": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/source" }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": { "disposition": { "const": "UPDATE" } },
+                  "required": ["disposition"]
+                },
+                "then": {
+                  "required": ["controlledFields", "observedUid", "sourceEnvironment", "observedLastUpdated", "observedHash"]
+                }
+              },
+              {
+                "if": {
+                  "properties": { "disposition": { "enum": ["REUSE", "REFERENCE"] } },
+                  "required": ["disposition"]
+                },
+                "then": { "required": ["sourceEnvironment", "observedLastUpdated", "observedHash"] }
+              },
+              {
+                "if": {
+                  "properties": { "disposition": { "enum": ["REUSE", "REFERENCE"] } },
+                  "required": ["disposition"]
+                },
+                "then": { "required": ["observedUid"] }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "pages": {
+      "$id": "https://damf.invalid/bp/1/sections/pages.json",
+      "title": "pages",
+      "description": "Page model (delivery mode B). Every page references Registry entries only (FR-PG-002).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["items"],
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["pageKey", "name", "purpose", "routes", "useCases", "actors", "registryRefs", "source"],
+            "properties": {
+              "pageKey": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/pageKey" },
+              "name": { "type": "string", "maxLength": 256 },
+              "purpose": { "type": "string", "maxLength": 2048 },
+              "routes": { "type": "array", "minItems": 1, "items": { "type": "string", "maxLength": 512 }, "uniqueItems": true },
+              "useCases": {
+                "type": "array",
+                "minItems": 1,
+                "items": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+                "uniqueItems": true
+              },
+              "actors": {
+                "type": "array",
+                "minItems": 1,
+                "items": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+                "uniqueItems": true
+              },
+              "apiIntentRefs": { "type": "array", "items": { "type": "string", "maxLength": 128 }, "uniqueItems": true },
+              "uiIntentRef": { "type": "string", "maxLength": 128 },
+              "registryRefs": {
+                "type": "array",
+                "items": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+                "uniqueItems": true
+              },
+              "navigation": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "from": {
+                    "type": "array",
+                    "items": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/pageKey" },
+                    "uniqueItems": true
+                  },
+                  "to": {
+                    "type": "array",
+                    "items": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/pageKey" },
+                    "uniqueItems": true
+                  }
+                }
+              },
+              "acceptanceCriteria": { "type": "array", "items": { "type": "string", "maxLength": 1024 } },
+              "source": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/source" }
+            }
+          }
+        }
+      }
+    },
+    "apiIntents": {
+      "$id": "https://damf.invalid/bp/1/sections/apiIntents.json",
+      "title": "apiIntents",
+      "description": "Page-level DHIS2 API intents (overall SRS 10.2). resource is a logical name resolved by the Capability Profile; version-specific paths and UIDs are forbidden here (FR-API-001, FR-PG-002).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["items"],
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["intentKey", "pageKey", "operationKey", "purpose", "resource", "method", "source"],
+            "properties": {
+              "intentKey": { "type": "string", "pattern": "^[a-z][a-zA-Z0-9-]*$", "minLength": 2, "maxLength": 128 },
+              "pageKey": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/pageKey" },
+              "operationKey": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/operationKey" },
+              "purpose": { "type": "string", "maxLength": 2048 },
+              "resource": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9]*(\\.[a-z][a-zA-Z0-9]*)+$",
+                "maxLength": 128
+              },
+              "method": { "type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"] },
+              "pathParams": { "type": "object", "additionalProperties": { "$ref": "#/definitions/paramSource" } },
+              "queryParams": { "type": "object", "additionalProperties": { "$ref": "#/definitions/paramSource" } },
+              "fields": { "type": "array", "items": { "type": "string", "maxLength": 256 }, "maxItems": 256 },
+              "filters": { "type": "array", "items": { "type": "string", "maxLength": 512 } },
+              "order": { "type": "array", "items": { "type": "string", "maxLength": 128 } },
+              "paging": { "type": "object", "additionalProperties": true },
+              "requestBodyShape": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["field"],
+                  "properties": {
+                    "field": { "type": "string", "maxLength": 128 },
+                    "businessKey": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+                    "valueType": { "type": "string", "maxLength": 64 },
+                    "required": { "type": "boolean" },
+                    "children": { "type": "array", "items": { "type": "object", "additionalProperties": true } }
+                  }
+                }
+              },
+              "dependsOn": { "type": "array", "items": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/operationKey" }, "uniqueItems": true },
+              "preconditions": { "type": "array", "items": { "type": "string", "maxLength": 1024 } },
+              "postconditions": { "type": "array", "items": { "type": "string", "maxLength": 1024 } },
+              "errorHandling": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["condition", "handling"],
+                  "properties": {
+                    "condition": { "type": "string", "maxLength": 256 },
+                    "handling": { "type": "string", "maxLength": 1024 }
+                  }
+                }
+              },
+              "permissions": { "type": "array", "items": { "type": "string", "maxLength": 128 }, "uniqueItems": true },
+              "registryRefs": {
+                "type": "array",
+                "items": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+                "uniqueItems": true
+              },
+              "source": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/source" }
+            }
+          }
+        }
+      },
+      "definitions": {
+        "paramSource": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Where a parameter value comes from: route, user input, a previous call result, or a Registry constant (overall SRS 10.2).",
+          "required": ["from"],
+          "properties": {
+            "from": { "type": "string", "maxLength": 256 },
+            "literal": {},
+            "businessKey": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+            "required": { "type": "boolean" },
+            "multiple": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "uiIntents": {
+      "$id": "https://damf.invalid/bp/1/sections/uiIntents.json",
+      "title": "uiIntents",
+      "description": "Page structure and behaviour (overall SRS 10.3). Component names should come from @dhis2/ui (FR-UII-001) and every data source must resolve to an operationKey or Registry entry (FR-UII-002).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["items"],
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["intentKey", "pageKey", "route", "purpose", "components", "states", "fieldMappings", "source"],
+            "properties": {
+              "intentKey": { "type": "string", "pattern": "^[a-z][a-zA-Z0-9-]*$", "minLength": 2, "maxLength": 128 },
+              "pageKey": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/pageKey" },
+              "route": { "type": "string", "maxLength": 512 },
+              "purpose": { "type": "string", "maxLength": 2048 },
+              "layout": { "type": "array", "items": { "type": "string", "maxLength": 512 } },
+              "components": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["name", "use"],
+                  "properties": {
+                    "name": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9.]*$", "maxLength": 128 },
+                    "use": { "type": "string", "maxLength": 1024 },
+                    "props": { "type": "object", "additionalProperties": true },
+                    "dataSource": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "operationKey": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/operationKey" },
+                        "businessKey": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" }
+                      },
+                      "anyOf": [
+                        { "required": ["operationKey"] },
+                        { "required": ["businessKey"] }
+                      ]
+                    },
+                    "events": { "type": "array", "items": { "type": "string", "maxLength": 256 } },
+                    "validation": { "type": "array", "items": { "type": "string", "maxLength": 512 } },
+                    "visibleWhen": { "type": "string", "maxLength": 1024 },
+                    "accessibility": { "type": "string", "maxLength": 1024 }
+                  }
+                }
+              },
+              "states": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "INITIAL", "LOADING", "READY", "EMPTY", "SUBMITTING", "SUCCESS",
+                    "VALIDATION_ERROR", "API_ERROR", "PERMISSION_DENIED", "NETWORK_ERROR"
+                  ]
+                },
+                "uniqueItems": true
+              },
+              "interactions": { "type": "array", "items": { "type": "string", "maxLength": 1024 } },
+              "fieldMappings": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["field", "businessKey", "valueType"],
+                  "properties": {
+                    "field": { "type": "string", "maxLength": 128 },
+                    "label": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/localizedText" },
+                    "businessKey": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+                    "valueType": { "type": "string", "maxLength": 64 },
+                    "optionSetKey": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+                    "required": { "type": "boolean" },
+                    "validation": { "type": "array", "items": { "type": "string", "maxLength": 512 } }
+                  }
+                }
+              },
+              "programRules": { "type": "array", "items": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" }, "uniqueItems": true },
+              "translationKeys": { "type": "array", "items": { "type": "string", "maxLength": 256 }, "uniqueItems": true },
+              "testScenarios": { "type": "array", "items": { "type": "string", "maxLength": 2048 } },
+              "source": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/source" }
+            }
+          }
+        }
+      }
+    },
+    "rules": {
+      "$id": "https://damf.invalid/bp/1/sections/rules.json",
+      "title": "rules",
+      "description": "Validation rules, program rules, rule variables and indicators. Expressions reference objects by businessKey; the compiler substitutes the environment UID (FR-CMP-010).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["validationRules", "programRules", "programRuleVariables", "programIndicators"],
+      "properties": {
+        "validationRules": { "$ref": "#/definitions/ruleArray" },
+        "programRules": { "$ref": "#/definitions/ruleArray" },
+        "programRuleVariables": { "$ref": "#/definitions/ruleArray" },
+        "programIndicators": { "$ref": "#/definitions/ruleArray" },
+        "others": { "$ref": "#/definitions/ruleArray" }
+      },
+      "definitions": {
+        "ruleArray": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["businessKey", "name", "source"],
+            "properties": {
+              "businessKey": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+              "name": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/localizedText" },
+              "description": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/localizedText" },
+              "kind": { "type": "string", "maxLength": 64 },
+              "programKey": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+              "programStageKey": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+              "expression": { "type": "string", "maxLength": 8192 },
+              "leftExpression": { "type": "string", "maxLength": 8192 },
+              "rightExpression": { "type": "string", "maxLength": 8192 },
+              "missingValueStrategy": {
+                "type": "string",
+                "enum": ["NONE", "SKIP_WHEN_EMPTY", "SKIP_IF_ANY_VALUE_MISSING"]
+              },
+              "periodType": { "type": "string", "maxLength": 64 },
+              "actions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["type"],
+                  "properties": {
+                    "type": { "type": "string", "maxLength": 64 },
+                    "target": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+                    "data": { "type": "string", "maxLength": 2048 },
+                    "content": { "type": "string", "maxLength": 2048 }
+                  }
+                }
+              },
+              "variables": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["name"],
+                  "properties": {
+                    "name": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9]*$", "maxLength": 128 },
+                    "valueType": { "type": "string", "maxLength": 64 },
+                    "sourceField": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" }
+                  }
+                }
+              },
+              "decisionId": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/decisionId" },
+              "confirmation": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "questionId": { "type": "string", "maxLength": 64 },
+                  "answerer": { "type": "string", "maxLength": 128 },
+                  "operator": { "type": "string", "maxLength": 128 }
+                }
+              },
+              "source": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/source" }
+            }
+          }
+        }
+      }
+    },
+    "fixtures": {
+      "$id": "https://damf.invalid/bp/1/sections/fixtures.json",
+      "title": "fixtures",
+      "description": "Synthetic demo data specifications (overall SRS 20.4). Only specifications live here; the Fixture Compiler generates values from the seed in the build context (FR-POL-006/008). Demo users carry no password (FR-COV-008).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["specifications", "demoUsers"],
+      "properties": {
+        "specifications": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["businessKey", "targetKey", "count", "source"],
+            "properties": {
+              "businessKey": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+              "targetKey": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+              "count": { "type": "integer", "minimum": 0, "maximum": 100000 },
+              "distribution": { "type": "object", "additionalProperties": true },
+              "boundaryCases": { "type": "array", "items": { "type": "string", "maxLength": 512 } },
+              "attributeValues": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["attributeKey", "strategy"],
+                  "properties": {
+                    "attributeKey": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+                    "strategy": { "type": "string", "maxLength": 128 },
+                    "prefix": { "type": "string", "maxLength": 32 },
+                    "range": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 },
+                    "optionWeights": { "type": "object", "additionalProperties": { "type": "number" } }
+                  }
+                }
+              },
+              "orgUnitKeys": {
+                "type": "array",
+                "items": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+                "uniqueItems": true
+              },
+              "periods": { "type": "object", "additionalProperties": true },
+              "source": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/source" }
+            }
+          }
+        },
+        "demoUsers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["businessKey", "username", "roleKeys"],
+            "properties": {
+              "businessKey": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+              "username": { "type": "string", "pattern": "^[a-z][a-z0-9._-]{2,63}$" },
+              "displayName": { "type": "string", "maxLength": 256 },
+              "roleKeys": {
+                "type": "array",
+                "minItems": 1,
+                "items": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+                "uniqueItems": true
+              },
+              "userGroupKeys": {
+                "type": "array",
+                "items": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+                "uniqueItems": true
+              },
+              "orgUnitScope": {
+                "type": "array",
+                "items": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+                "uniqueItems": true
+              }
+            },
+            "not": {
+              "description": "A fixture specification must never carry a credential (FR-COV-008, FR-FE-005).",
+              "anyOf": [
+                { "required": ["password"] },
+                { "required": ["passwordHash"] },
+                { "required": ["secret"] }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "environmentConstraints": {
+      "$id": "https://damf.invalid/bp/1/sections/environmentConstraints.json",
+      "title": "environmentConstraints",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["items"],
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["businessKey", "constraint", "source"],
+            "properties": {
+              "businessKey": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/businessKey" },
+              "constraint": { "type": "string", "maxLength": 2048 },
+              "environmentKey": { "type": "string", "maxLength": 64 },
+              "requiredCapabilities": { "type": "array", "items": { "type": "string", "maxLength": 128 }, "uniqueItems": true },
+              "source": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/source" }
+            }
+          }
+        }
+      }
+    },
+    "generationPolicy": {
+      "$id": "https://damf.invalid/bp/1/sections/generationPolicy.json",
+      "title": "generationPolicy",
+      "description": "Code prefix and naming convention, UID pool sizing, per-type environment binding rules, deletion policy and the two confidence thresholds (BP-SCH-003). Languages are excluded: project is their only storage location (BP-SCH-002).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["codePrefix", "namingConvention", "uidPool", "deletionPolicy"],
+      "properties": {
+        "codePrefix": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]{0,15}$" },
+        "namingConvention": {
+          "type": "string",
+          "enum": ["PREFIX_TYPE_KEY", "PREFIX_TYPE_INDEX", "TYPE_KEY"],
+          "description": "How the stable code of a managed object is derived (FR-REG-008)."
+        },
+        "uidPool": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["batchSize", "lowWaterMark"],
+          "properties": {
+            "batchSize": { "type": "integer", "minimum": 1, "maximum": 10000 },
+            "lowWaterMark": { "type": "integer", "minimum": 0, "maximum": 10000 }
+          }
+        },
+        "environmentBindingRules": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "defaultMatch": { "type": "string", "enum": ["CODE_THEN_UID", "CODE", "UID"] },
+            "byType": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["dhis2Type", "match"],
+                "properties": {
+                  "dhis2Type": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/dhis2Type" },
+                  "match": { "type": "string", "enum": ["CODE_THEN_UID", "CODE", "UID"] }
+                }
+              }
+            }
+          }
+        },
+        "deletionPolicy": {
+          "type": "string",
+          "enum": ["FORBIDDEN", "CANDIDATE_WITH_APPROVED_CR"],
+          "description": "Deletion is never part of a default compile (FR-CMP-009)."
+        },
+        "decisionConfidenceThreshold": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/confidence" },
+        "extractionConfidenceThreshold": { "$ref": "https://damf.invalid/bp/1/defs.json#/definitions/confidence" }
+      }
+    }
+  }
+}

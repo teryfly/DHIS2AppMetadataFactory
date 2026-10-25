@@ -1,0 +1,24 @@
+{
+  "baseline": {
+    "README.md": "sha256:c4040706d86d4a906ab3423cb2b2b56db14510f9292ea16bc04112392274f23f",
+    "change-summary.json": "sha256:1dd9787f182d6f00f69b8a1798fdbab26784daf6f0951c4494533369feaf442d",
+    "dependency-graph.json": "sha256:9780f6a51c5b1cfaac17bb22b6781688d2f7c85e27ac68a5671be6585ccd3742",
+    "metadata-baseline.json": "sha256:f7afe237c3e01744a61e04532c949e5ada669ac69cb2e1db2ef95a48c3eed2d6"
+  },
+  "baselineGraph": "sha256:c967b97d4755ce8cc1e659d55e4517f6b4dff94f7edf2cf32e5758e396913436",
+  "baselinePackageHash": "sha256:ef211b0f5828b5bec6114c913f7b2690c651a9d762573fbdb8118e4d809a7dab",
+  "blueprintVersion": "0.3.0",
+  "environment": {
+    "README.md": "sha256:5339b07cbe941f1428ce07bed0b3cd38e67a15ea761366cb5f06a831af40893d",
+    "change-summary.json": "sha256:aa7f0fb7b494ca5ee7f67b2b8946cd80c719f73c975f3f3786c70e657d407926",
+    "dependency-graph.json": "sha256:73708b40a83953dba96cc662655d90c0447adf2476631805b874691ce989d29c",
+    "metadata.json": "sha256:b60dc1d20244ae8411edf78bcf7a32b693ab6a02aa0384b790ac18fd59c2c2a5",
+    "metadata_manifest.json": "sha256:e4a24c79bd6de5f5029c6e8df468c56b57ba3debda5ed0c7ac1964adeb8c9916",
+    "views/dataElements.json": "sha256:3bdab6eb757a64e97b83b352d4fac1efeb55bddbf0a3c6f98ef7cf1e2c55d55a",
+    "views/programs.json": "sha256:78b772d5d955ade82a3cb849b0fce7ddd74e97a6f2f9a2e8b5d7f524676b8ba7",
+    "views/trackedEntityTypes.json": "sha256:02d8296c35085a57613a59b85a1f89efd2e86038bcfbee1987534ab443210018"
+  },
+  "environmentGraph": "sha256:af231f3edd144dd76683d1264658d8f2755cce2834fe9aa028cd3c2a46a4b534",
+  "environmentPackageHash": "sha256:54b513f8fffcffbabd6da868591be4be6d001aa9b7defff0b10e099fe94286cb",
+  "environmentPayloadHash": "sha256:d365c4c2631c57e294ebc41863e3ebda351624f1952d3c0b9b26520d560cfddd"
+}

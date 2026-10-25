@@ -1,0 +1,106 @@
+{
+  "id": "metadata-program-indicator-expression",
+  "kind": "golden",
+  "agentType": "METADATA_DESIGN",
+  "stage": "MAPPING",
+  "title": "A coverage indicator drafted as one expression over approved keys",
+  "note": "AI-AG-006, FR-CMP-010, AI-BR-01: the indicator is a draft expression naming businessKeys, not the compiled programIndicator document.",
+  "context": {
+    "baseVersion": "41",
+    "decisionConfidenceThreshold": 0.7,
+    "extractionConfidenceThreshold": 0.7,
+    "designReferenceEnvironment": "env-reference-stg",
+    "items": [
+      {
+        "kind": "APPROVED_ENTRY",
+        "ref": "entry:mapping/entries/map.visit.dosesGiven",
+        "label": "mapping/entries/map.visit.dosesGiven",
+        "content": "{\"businessKey\": \"map.visit.dosesGiven\", \"dhis2Type\": \"dataElement\", \"decisionId\": \"MAP-015\"}"
+      },
+      {
+        "kind": "APPROVED_ENTRY",
+        "ref": "entry:mapping/entries/map.visit.dosesDue",
+        "label": "mapping/entries/map.visit.dosesDue",
+        "content": "{\"businessKey\": \"map.visit.dosesDue\", \"dhis2Type\": \"dataElement\", \"decisionId\": \"MAP-016\"}"
+      },
+      {
+        "kind": "APPROVED_ENTRY",
+        "ref": "entry:registry/entries/reg.anc.program",
+        "label": "registry/entries/reg.anc.program",
+        "content": "{\"businessKey\": \"reg.anc.program\", \"dhis2Type\": \"program\", \"disposition\": \"CREATE\", \"status\": \"APPROVED\", \"code\": \"ANC_PROGRAM\"}"
+      },
+      {
+        "kind": "INPUT_ARTIFACT",
+        "ref": "art-syntheticinput000000000000011",
+        "label": "report-spec.md",
+        "content": "The district wants a monthly share: doses given divided by doses due, reported per facility, and it should be blank when a facility has no visits at all that month."
+      }
+    ]
+  },
+  "expected": {
+    "summary": "Drafted the coverage indicator as one division over the two approved data elements, with a condition that leaves it empty when nothing was due, which is what the report spec's blank rule means. Recorded as a decision because the alternative was defensible.",
+    "decisions": [
+      {
+        "id": "MD-002",
+        "subject": "rule.indicator.doseCoverage",
+        "selected": {
+          "option": "a program indicator with an only-when condition"
+        },
+        "alternatives": [
+          {
+            "option": "a predictor over the two data elements",
+            "reasonRejected": "A predictor writes a value back into the data; the district wants a number that stays recomputed from the visits."
+          },
+          {
+            "option": "a legend set over the ratio",
+            "reasonRejected": "That classifies coverage rather than reporting it, and the spec asks for the share."
+          }
+        ],
+        "rationale": "A ratio over collected values, recomputed per period, is an indicator; the blank rule is its only-when condition.",
+        "confidence": 0.8,
+        "impactLevel": "MEDIUM"
+      }
+    ],
+    "patch": {
+      "baseVersion": "41",
+      "operations": [
+        {
+          "op": "add",
+          "path": "/rules/programIndicators/-",
+          "value": {
+            "businessKey": "rule.indicator.doseCoverage",
+            "name": {
+              "default": "Dose coverage"
+            },
+            "description": {
+              "default": "Doses given as a share of doses due, per facility and month."
+            },
+            "kind": "PROGRAM_INDICATOR",
+            "programKey": "reg.anc.program",
+            "expression": "D2:DIVISION( V{dosesGiven}, V{dosesDue} )",
+            "periodType": "Monthly",
+            "variables": [
+              {
+                "name": "dosesGiven",
+                "valueType": "NUMBER",
+                "sourceField": "map.visit.dosesGiven"
+              },
+              {
+                "name": "dosesDue",
+                "valueType": "NUMBER",
+                "sourceField": "map.visit.dosesDue"
+              }
+            ],
+            "decisionId": "MD-002",
+            "source": {
+              "artifactId": "art-syntheticinput000000000000011",
+              "location": "line:1"
+            }
+          }
+        }
+      ]
+    },
+    "questions": [],
+    "confidence": 0.8
+  }
+}

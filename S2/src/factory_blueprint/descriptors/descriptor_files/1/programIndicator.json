@@ -1,0 +1,32 @@
+{
+  "dhis2Type": "programIndicator",
+  "resource": "metadata.programIndicator",
+  "payloadKey": "programIndicators",
+  "tier": 1,
+  "versionRange": ["2.41", "2.43"],
+  "requiredFields": ["name", "program", "expression"],
+  "dependencies": [
+    {
+      "field": "program",
+      "targetType": "program",
+      "required": true
+    }
+  ],
+  "controlableFields": ["name", "shortName", "description"],
+  "translatableFields": ["name", "shortName", "description"],
+  "forbiddenFields": [
+    "href",
+    "id",
+    "created",
+    "lastUpdated",
+    "access",
+    "displayUrl",
+    "externalAccess"
+  ],
+  "implicit": ["SHARING_FROM_ACCESS_MODEL"],
+  "template": "programIndicator.template.json",
+  "sortKey": "businessKey",
+  "rules": ["PI_EXPRESSION_PARSE", "PI_AGGREGATION_MATCHES_EXPRESSION"],
+  "embeddedInParent": null,
+  "descriptorVersion": "1"
+}

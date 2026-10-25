@@ -1,0 +1,28 @@
+{
+  "dhis2Type": "userRole",
+  "resource": "metadata.userRole",
+  "payloadKey": "userRoles",
+  "tier": 1,
+  "versionRange": ["2.41", "2.43"],
+  "requiredFields": ["name"],
+  "dependencies": [],
+  "controlableFields": ["name"],
+  "translatableFields": [],
+  "forbiddenFields": [
+    "href",
+    "id",
+    "created",
+    "lastUpdated",
+    "access",
+    "displayUrl",
+    "externalAccess",
+    "password",
+    "userCredentials"
+  ],
+  "implicit": ["SHARING_FROM_ACCESS_MODEL"],
+  "template": "userRole.template.json",
+  "sortKey": "businessKey",
+  "rules": ["NO_PASSWORD_IN_PAYLOAD", "UR_AUTHORITIES_ARE_TOKENS"],
+  "embeddedInParent": null,
+  "descriptorVersion": "1"
+}

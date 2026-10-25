@@ -1,0 +1,117 @@
+{
+  "id": "mapping-reuse-exact-code-match",
+  "kind": "golden",
+  "agentType": "MAPPING",
+  "stage": "MAPPING",
+  "title": "An exact code match in the design-basis environment is a REUSE, not a new object",
+  "note": "AI-AG-011, FR-DSC-003: every similar object gets a REUSE or CREATE decision with a reason; observedUid is recorded and uid never is.",
+  "context": {
+    "baseVersion": "33",
+    "decisionConfidenceThreshold": 0.7,
+    "extractionConfidenceThreshold": 0.7,
+    "designReferenceEnvironment": "env-reference-stg",
+    "items": [
+      {
+        "kind": "APPROVED_ENTRY",
+        "ref": "entry:domain/entities/entity.ancOutcome",
+        "label": "domain/entities/entity.ancOutcome",
+        "content": "{\"businessKey\": \"entity.ancOutcome\", \"attributes\": [{\"name\": \"outcome\", \"valueType\": \"OPTION_SET\", \"required\": true, \"sensitivity\": \"INTERNAL\"}]}"
+      },
+      {
+        "kind": "REGISTRY_ENTRY",
+        "ref": "entry:registry/entries/reg.outcome.set",
+        "label": "registry/entries/reg.outcome.set",
+        "content": "{\"businessKey\": \"reg.outcome.set\", \"dhis2Type\": \"optionSet\", \"disposition\": \"REUSE\", \"status\": \"APPROVED\"}"
+      }
+    ],
+    "similarObjects": [
+      {
+        "kind": "optionSet",
+        "code": "ANC_OUTCOME",
+        "name": "Antenatal attendance outcome",
+        "observedUid": "Ht4VnRq8Lz2",
+        "pointer": "/optionSets/41",
+        "optionCodes": [
+          "MISSED",
+          "ATTENDED",
+          "REFERRED"
+        ],
+        "score": 1.0,
+        "basis": [
+          "code",
+          "options"
+        ]
+      }
+    ]
+  },
+  "expected": {
+    "summary": "The outcome attribute maps onto ANC_OUTCOME, which the reference environment already has under the exact code the design uses, so the Registry entry is a REUSE carrying the observed identifier and the discovery evidence. No new option set was created.",
+    "decisions": [
+      {
+        "id": "MAP-012",
+        "subject": "map.visit.outcome",
+        "selected": {
+          "option": "reuse ANC_OUTCOME"
+        },
+        "alternatives": [
+          {
+            "option": "create a programme-specific option set",
+            "reasonRejected": "The existing set has the same code and the same three options; a second one would split every report that counts outcomes."
+          }
+        ],
+        "rationale": "An exact code match with identical option codes is not a judgement call; reusing it keeps the reference environment's reports working.",
+        "confidence": 0.95,
+        "impactLevel": "LOW"
+      }
+    ],
+    "patch": {
+      "baseVersion": "33",
+      "operations": [
+        {
+          "op": "add",
+          "path": "/mapping/entries/-",
+          "value": {
+            "businessKey": "map.visit.outcome",
+            "dhis2Type": "dataElement",
+            "decisionId": "MAP-012",
+            "confidence": 0.95,
+            "fields": {
+              "name": "Attendance outcome",
+              "shortName": "Outcome",
+              "optionSet": "ANC_OUTCOME"
+            },
+            "source": {
+              "decisionId": "MAP-012",
+              "note": "domain attribute outcome on entity.ancOutcome"
+            }
+          }
+        },
+        {
+          "op": "replace",
+          "path": "/registry/entries/reg.outcome.set",
+          "value": {
+            "businessKey": "reg.outcome.set",
+            "dhis2Type": "optionSet",
+            "disposition": "REUSE",
+            "status": "APPROVED",
+            "managed": false,
+            "decisionId": "MAP-012",
+            "code": "ANC_OUTCOME",
+            "observedUid": "Ht4VnRq8Lz2",
+            "sourceEnvironment": "env-reference-stg",
+            "observedLastUpdated": "2026-03-11T09:24:00Z",
+            "observedHash": "sha256:3f2a6c1d0b4e5f6789012345abcdef6789012345abcdef6789012345abcdef67",
+            "discoveryResultId": "art-syntheticdiscovery0000000000001",
+            "notes": "Reused because the reference environment's ANC_OUTCOME has the same three option codes as the designed outcome values.",
+            "source": {
+              "decisionId": "MAP-012",
+              "note": "similarity search hit /optionSets/41"
+            }
+          }
+        }
+      ]
+    },
+    "questions": [],
+    "confidence": 0.95
+  }
+}

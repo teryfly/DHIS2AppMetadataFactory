@@ -1,0 +1,30 @@
+{
+  "dhis2Type": "programTrackedEntityAttribute",
+  "resource": "metadata.program",
+  "payloadKey": "programTrackedEntityAttributes",
+  "tier": 1,
+  "versionRange": ["2.41", "2.43"],
+  "requiredFields": ["attribute"],
+  "dependencies": [
+    {
+      "field": "attribute",
+      "targetType": "trackedEntityAttribute",
+      "required": true
+    },
+    {
+      "field": "program",
+      "targetType": "program",
+      "required": true,
+      "wrapper": "programTrackedEntityAttributes"
+    }
+  ],
+  "controlableFields": ["mandatory", "searchable", "displayInList"],
+  "translatableFields": [],
+  "forbiddenFields": ["href", "id", "lastUpdated"],
+  "implicit": [],
+  "template": "programTrackedEntityAttribute.template.json",
+  "sortKey": "businessKey",
+  "rules": ["PTEA_ATTRIBUTE_IS_TE_ATTRIBUTE", "PTEA_MOUNTED_ON_TRACKER_PROGRAM"],
+  "embeddedInParent": "program",
+  "descriptorVersion": "1"
+}

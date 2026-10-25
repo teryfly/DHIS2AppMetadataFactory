@@ -1,0 +1,15 @@
+{
+  "name": "${name}",
+  "shortName": "${shortName}",
+  "description": "${description}",
+  "formName": "${formName}",
+  "code": "${code}",
+  "valueType": "${valueType}",
+  "aggregationType": "${aggregationType}",
+  "pattern": "${pattern}",
+  "unique": "${unique}",
+  "displayInListNoProgram": "${displayInListNoProgram}",
+  "optionSet": { "id": "${optionSet}" },
+  "translations": "${translations}",
+  "sharing": "${sharing}"
+}

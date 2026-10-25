@@ -1,0 +1,42 @@
+{
+  "dhis2Type": "dataElement",
+  "resource": "metadata.dataElement",
+  "payloadKey": "dataElements",
+  "tier": 1,
+  "versionRange": ["2.41", "2.43"],
+  "requiredFields": ["name", "shortName", "valueType", "domainType", "categoryCombo"],
+  "dependencies": [
+    {
+      "field": "categoryCombo",
+      "targetType": "categoryCombo",
+      "required": true
+    },
+    {
+      "field": "optionSet",
+      "targetType": "optionSet",
+      "required": false
+    },
+    {
+      "field": "commentOptionSet",
+      "targetType": "optionSet",
+      "required": false
+    }
+  ],
+  "controlableFields": ["name", "shortName", "description", "formName", "displayOptions"],
+  "translatableFields": ["name", "shortName", "description", "formName"],
+  "forbiddenFields": [
+    "href",
+    "id",
+    "created",
+    "lastUpdated",
+    "access",
+    "displayUrl",
+    "externalAccess"
+  ],
+  "implicit": ["DEFAULT_CATEGORY_COMBO", "SHARING_FROM_ACCESS_MODEL"],
+  "template": "dataElement.template.json",
+  "sortKey": "businessKey",
+  "rules": ["DE_VALUE_TYPE_MATCHES_DOMAIN", "DE_OPTION_SET_VALUE_TYPE_COMPATIBLE"],
+  "embeddedInParent": null,
+  "descriptorVersion": "1"
+}

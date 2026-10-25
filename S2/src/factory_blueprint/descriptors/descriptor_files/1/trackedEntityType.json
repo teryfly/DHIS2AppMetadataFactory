@@ -1,0 +1,47 @@
+{
+  "dhis2Type": "trackedEntityType",
+  "resource": "metadata.trackedEntityType",
+  "payloadKey": "trackedEntityTypes",
+  "tier": 1,
+  "versionRange": ["2.41", "2.43"],
+  "requiredFields": ["name", "shortName"],
+  "dependencies": [
+    {
+      "field": "attributes",
+      "targetType": "trackedEntityAttribute",
+      "required": false,
+      "itemField": "id",
+      "wrapper": "attributes"
+    },
+    {
+      "field": "relationshipTraits",
+      "targetType": "relationshipType",
+      "required": false,
+      "itemField": "id",
+      "wrapper": "relationshipTraits"
+    }
+  ],
+  "controlableFields": [
+    "name",
+    "shortName",
+    "description",
+    "formName",
+    "minAttributesRequiredSearching"
+  ],
+  "translatableFields": ["name", "shortName", "description", "formName"],
+  "forbiddenFields": [
+    "href",
+    "id",
+    "created",
+    "lastUpdated",
+    "access",
+    "displayUrl",
+    "externalAccess"
+  ],
+  "implicit": ["SHARING_FROM_ACCESS_MODEL"],
+  "template": "trackedEntityType.template.json",
+  "sortKey": "businessKey",
+  "rules": ["TE_TYPE_SEARCH_MIN_WITHIN_ATTRIBUTES", "TE_TYPE_ATTRIBUTES_ARE_TE_ATTRIBUTES"],
+  "embeddedInParent": null,
+  "descriptorVersion": "1"
+}

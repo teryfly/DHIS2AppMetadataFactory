@@ -1,0 +1,124 @@
+{
+  "id": "mapping-create-numeric-data-element",
+  "kind": "golden",
+  "agentType": "MAPPING",
+  "stage": "MAPPING",
+  "title": "A measured attribute becomes a new data element with a forced choice",
+  "note": "AI-AG-003, FR-MAP-001, 总体 SRS 9.3 rule 5: a simple property is a DataElement or a TrackedEntityAttribute, and the rejected alternative is recorded.",
+  "context": {
+    "baseVersion": "33",
+    "decisionConfidenceThreshold": 0.7,
+    "extractionConfidenceThreshold": 0.7,
+    "designReferenceEnvironment": "env-reference-stg",
+    "items": [
+      {
+        "kind": "APPROVED_ENTRY",
+        "ref": "entry:domain/entities/entity.antenatalVisit",
+        "label": "domain/entities/entity.antenatalVisit",
+        "content": "{\"businessKey\": \"entity.antenatalVisit\", \"attributes\": [{\"name\": \"birthWeight\", \"valueType\": \"REAL\", \"required\": true, \"sensitivity\": \"INTERNAL\"}]}"
+      },
+      {
+        "kind": "APPROVED_ENTRY",
+        "ref": "entry:mapping/entries/map.delivery.outcome",
+        "label": "mapping/entries/map.delivery.outcome",
+        "content": "{\"businessKey\": \"map.delivery.outcome\", \"dhis2Type\": \"dataElement\", \"decisionId\": \"MAP-004\"}"
+      }
+    ],
+    "similarObjects": [
+      {
+        "kind": "dataElement",
+        "code": "BIRTH_WEIGHT_KG",
+        "name": "Birth weight (kg)",
+        "observedUid": "Mp7KqLst9Qz",
+        "pointer": "/dataElements/118",
+        "score": 0.61,
+        "basis": [
+          "name"
+        ]
+      }
+    ]
+  },
+  "expected": {
+    "summary": "Mapped the visit's birthWeight as a new data element on the programme's event, because the value is measured at a point in time rather than carried by the woman. The one similar object the search returned, BIRTH_WEIGHT_KG, was considered and rejected: it is a child weight under five and its aggregation would collide with the antenatal series.",
+    "decisions": [
+      {
+        "id": "MAP-011",
+        "subject": "map.visit.birthWeight",
+        "selected": {
+          "option": "dataElement on the antenatal event"
+        },
+        "alternatives": [
+          {
+            "option": "trackedEntityAttribute on the pregnancy",
+            "reasonRejected": "The weight belongs to the visit, not to the woman; one attribute per visit would need a fixed number of visits."
+          },
+          {
+            "option": "reuse BIRTH_WEIGHT_KG",
+            "reasonRejected": "That data element is a child weight under five with its own aggregation; the antenatal series would inherit the wrong rule."
+          }
+        ],
+        "rationale": "A fact measured at a point in time is an event data value (总体 SRS 9.3 rule 3 and 5).",
+        "risks": [
+          {
+            "description": "Two data elements named for birth weight will confuse report writers.",
+            "level": "LOW"
+          }
+        ],
+        "confidence": 0.85,
+        "impactLevel": "MEDIUM"
+      }
+    ],
+    "patch": {
+      "baseVersion": "33",
+      "operations": [
+        {
+          "op": "add",
+          "path": "/mapping/entries/-",
+          "value": {
+            "businessKey": "map.visit.birthWeight",
+            "dhis2Type": "dataElement",
+            "decisionId": "MAP-011",
+            "confidence": 0.85,
+            "fields": {
+              "name": "Birth weight at this visit (kg)",
+              "shortName": "Birth weight",
+              "aggregationType": "AVERAGE_SUM_ORG_UNIT",
+              "valueType": "NUMBER",
+              "domainType": "aggregate"
+            },
+            "alternatives": [
+              {
+                "option": "trackedEntityAttribute on the pregnancy",
+                "reasonRejected": "The measurement is per visit, not per woman."
+              }
+            ],
+            "source": {
+              "note": "domain entity entity.antenatalVisit attribute birthWeight",
+              "location": "entry:domain/entities/entity.antenatalVisit"
+            }
+          }
+        },
+        {
+          "op": "add",
+          "path": "/registry/entries/-",
+          "value": {
+            "businessKey": "map.visit.birthWeight",
+            "dhis2Type": "dataElement",
+            "disposition": "CREATE",
+            "status": "PROPOSED",
+            "managed": true,
+            "decisionId": "MAP-011",
+            "code": "ANC_BIRTH_WEIGHT_KG",
+            "sourceEnvironment": "env-reference-stg",
+            "source": {
+              "decisionId": "MAP-011",
+              "note": "created by the mapping decision, not observed"
+            }
+          }
+        }
+      ]
+    },
+    "questions": [],
+    "confidence": 0.85
+  }
+}

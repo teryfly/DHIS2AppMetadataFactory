@@ -1,0 +1,89 @@
+{
+  "url": "http://127.0.0.1:4173/",
+  "chrome": "/home/ubuntu/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome",
+  "lighthouseVersion": "13.5.0",
+  "fetchTime": "2026-10-01T10:38:43.238Z",
+  "throttling": "Lighthouse 内置 4G 模拟（1.6 Mbps / RTT 150 ms）",
+  "host": {
+    "cores": 2,
+    "load1": 3.54,
+    "load5": 3.35,
+    "freeMB": 771,
+    "totalMB": 1968,
+    "runs": 3,
+    "performanceAttestable": false
+  },
+  "scores": {
+    "performance": 82,
+    "accessibility": 100,
+    "best-practices": 100
+  },
+  "thresholds": {
+    "performance": 85,
+    "accessibility": 95,
+    "best-practices": 90
+  },
+  "metrics": {
+    "fcpMs": 3219,
+    "lcpMs": 3524,
+    "tbtMs": 40,
+    "cls": 0
+  },
+  "lowScoringAudits": [
+    {
+      "id": "first-contentful-paint",
+      "score": 0.42,
+      "title": "First Contentful Paint"
+    },
+    {
+      "id": "largest-contentful-paint",
+      "score": 0.63,
+      "title": "Largest Contentful Paint"
+    },
+    {
+      "id": "speed-index",
+      "score": 0.66,
+      "title": "Speed Index"
+    },
+    {
+      "id": "mainthread-work-breakdown",
+      "score": 0,
+      "title": "Minimize main-thread work"
+    },
+    {
+      "id": "bootup-time",
+      "score": 0,
+      "title": "Reduce JavaScript execution time"
+    },
+    {
+      "id": "unused-css-rules",
+      "score": 0.5,
+      "title": "Reduce unused CSS"
+    },
+    {
+      "id": "unused-javascript",
+      "score": 0,
+      "title": "Reduce unused JavaScript"
+    },
+    {
+      "id": "bf-cache",
+      "score": 0,
+      "title": "Page prevented back/forward cache restoration"
+    },
+    {
+      "id": "forced-reflow-insight",
+      "score": 0,
+      "title": "Forced reflow"
+    },
+    {
+      "id": "network-dependency-tree-insight",
+      "score": 0,
+      "title": "Network dependency tree"
+    },
+    {
+      "id": "render-blocking-insight",
+      "score": 0.5,
+      "title": "Render-blocking requests"
+    }
+  ]
+}
