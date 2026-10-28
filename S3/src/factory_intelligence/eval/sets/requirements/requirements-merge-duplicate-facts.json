@@ -82,14 +82,14 @@
             "text": "One count per facility per month",
             "rationale": "The note names the facility, and the district office is the level above it.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           },
           {
             "id": "S2",
             "text": "One count per district per month",
             "rationale": "Cheaper to produce and enough for the report the district reads.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           }
         ]
       },
@@ -104,7 +104,7 @@
             "text": "A delivery outcome of live birth, stillbirth or neonatal death",
             "rationale": "The protocol asks for an outcome without listing its values.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           }
         ]
       }

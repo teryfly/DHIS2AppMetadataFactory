@@ -193,14 +193,14 @@
             "text": "Coverage counts visits only, as designed",
             "rationale": "Then the missing element belongs to another page's question and not to this one.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           },
           {
             "id": "S2",
             "text": "The report must show weight coverage too",
             "rationale": "Then an element has to be mapped and registered first, which is a MAPPING change request; this run cannot and did not write the Registry section.",
             "changesUid": false,
-            "regenerates": true
+            "regenerates": ["..."]
           }
         ]
       }

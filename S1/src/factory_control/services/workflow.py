@@ -30,6 +30,7 @@ from factory_control.domain.enums import (
     ChangeRequestStatus,
     GateStatus,
     GateType,
+    QuestionSeverity,
     QuestionStatus,
     RunStatus,
     StageStatus,
@@ -607,6 +608,7 @@ def _stage_run(
             # it checked, the count it hit, the outcome it produced), and the last writer
             # must not erase what the earlier ones said.
             existing.result = {**dict(existing.result or {}), **result}
+            existing.completed_at = ctx.clock.now()
         ctx.session.flush()
         return existing
     row = StageRun(
@@ -620,6 +622,7 @@ def _stage_run(
         input_blueprint_ref=stage.input_blueprint_ref,
         output_artifact_ids=list(output_artifact_ids or []),
         result=result,
+        completed_at=ctx.clock.now() if result is not None else None,
     )
     ctx.session.add(row)
     ctx.session.flush()
@@ -917,8 +920,9 @@ def allowed_actions_for_workflow(runtime: Runtime, workflow_id: str, *, operator
 
         stage_snapshots = []
         for stage in stages:
-            open_high = any(
-                q.severity == "HIGH" and q.status == QuestionStatus.OPEN.value
+            open_gating = any(
+                q.status == QuestionStatus.OPEN.value
+                and (q.blocking or q.severity == QuestionSeverity.HIGH.value)
                 for q in S.questions_of(ctx.session, workflow.id, stage_id=stage.id)
             )
             stage_snapshots.append(
@@ -926,7 +930,7 @@ def allowed_actions_for_workflow(runtime: Runtime, workflow_id: str, *, operator
                     stage_id=stage.id,
                     stage_type=StageType(stage.stage_type),
                     status=StageStatus(stage.status),
-                    has_open_high_question=open_high,
+                    has_open_question=open_gating,
                 )
             )
 
@@ -952,6 +956,7 @@ def allowed_actions_for_workflow(runtime: Runtime, workflow_id: str, *, operator
                 status=GateStatus(g.status),
                 stage_id=g.stage_id,
                 deployment_run_id=g.deployment_run_id,
+                environment_key=g.environment_key,
                 open_warnings=len(g.warnings or []),
             )
             for g in gates

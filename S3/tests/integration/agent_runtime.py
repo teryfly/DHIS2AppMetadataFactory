@@ -254,3 +254,34 @@ def question(
         "severity": severity,
         "affects": affects or ["req-record-weight"],
     }
+
+
+def suggested_question(
+    local_id: str = "Q1",
+    text: str = "Which programme owns the weight record?",
+    severity: str = "HIGH",
+    affects: list[str] | None = None,
+) -> dict[str, Any]:
+    """A blocking question in the shape the repair turn is asked to produce."""
+    return {
+        **question(local_id, text, severity, affects),
+        "answerMode": "SINGLE",
+        "suggestions": [
+            {
+                "id": "S1",
+                "text": "The child programme owns it; reuse its existing weight data element.",
+                "rationale": "Reuses an approved object and avoids a duplicate data element.",
+                "recommended": True,
+                "changesUid": False,
+                "regenerates": [],
+            },
+            {
+                "id": "S2",
+                "text": "Create a dedicated weight data element for this follow-up programme.",
+                "rationale": "Keeps the follow-up programme independent but creates a new object.",
+                "recommended": False,
+                "changesUid": False,
+                "regenerates": [],
+            },
+        ],
+    }

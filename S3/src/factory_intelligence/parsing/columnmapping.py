@@ -711,7 +711,7 @@ def mapping_review_questions(fragment: Fragment) -> list[dict[str, Any]]:
                         "confirms the entries it produced"
                     ),
                     "changesUid": False,
-                    "regenerates": False,
+                    "regenerates": [],
                     "columnMapping": dict(sorted(mapping.items())),
                 }
             )
@@ -724,7 +724,7 @@ def mapping_review_questions(fragment: Fragment) -> list[dict[str, Any]]:
                     "entries stay CANDIDATE because nothing was confirmed about their meaning"
                 ),
                 "changesUid": False,
-                "regenerates": False,
+                "regenerates": [],
                 "columnMapping": {},
             }
         )

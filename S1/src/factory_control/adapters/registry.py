@@ -19,6 +19,7 @@ session), and everything else (the provider manages its own connection).
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from factory_control.adapters.delegating import DelegatingAdapter
@@ -29,6 +30,29 @@ from factory_control.ports.protocols import BlueprintPort, ExecutionPort, Intell
 _MODE_AUTO = "auto"
 _MODE_FAKES = "fakes"
 _MODE_REAL = "real"
+
+_NON_PREFIX_CHARS = re.compile(r"[^A-Za-z0-9_]")
+
+
+def _default_code_prefix(display_name: str | None, project_id: str) -> str:
+    """A project-scoped ``generationPolicy.codePrefix`` for projects created without one.
+
+    S2 derives every managed object's code as ``<codePrefix>_<type>_<key>`` (BP-REG-009)
+    and its fallback prefix is the constant ``GEN``; on a target instance shared between
+    projects (``sbtest``), two unprefixed projects therefore collide on the same derived
+    code and BPV-ENV-002 blocks the freeze.  The project's own name — or, when it holds no
+    ASCII at all, the tail of its globally unique id — makes the prefix project-scoped and
+    the collision impossible to reproduce.  Must match ``_CODE_PREFIX`` in the create-body
+    schema: starts with a letter, letters/digits/underscores, at most 16 characters.
+    """
+    slug = _NON_PREFIX_CHARS.sub("", str(display_name or "")).upper()
+    if slug and slug[0].isdigit():
+        slug = f"P{slug}"
+    slug = slug[:16]
+    if slug:
+        return slug
+    tail = re.sub(r"[^0-9A-Z]", "", project_id.upper())[-6:]
+    return f"PRJ{tail}" if tail else "GEN"
 
 
 def _evidence_ids(deployment_evidence: dict[str, Any]) -> list[str]:
@@ -178,8 +202,13 @@ class BlueprintAdapter(DelegatingAdapter):
             summary=semantics.get("summary"),
             # S2 derives every managed object's code from this (BP-REG-009) and replaces an
             # author-supplied code, so the prefix is the only run-scoped identity a shared
-            # target instance can be cleaned up by (FR-TST-002).
-            code_prefix=(str(semantics.get("codePrefix") or "").strip() or None),
+            # target instance can be cleaned up by (FR-TST-002).  A project created without
+            # one gets a project-scoped prefix instead of S2's shared "GEN", so two projects
+            # on one target instance stop deriving colliding codes.
+            code_prefix=(
+                str(semantics.get("codePrefix") or "").strip()
+                or _default_code_prefix(semantics.get("displayName") or semantics.get("name"), project_id)
+            ),
         )
         handle = self._function("prepare_initial_blueprint")(project_id, info)
         return _handle_id(handle)

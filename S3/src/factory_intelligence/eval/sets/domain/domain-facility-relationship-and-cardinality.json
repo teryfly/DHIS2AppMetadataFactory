@@ -134,14 +134,14 @@
             "text": "The visit's facility is enough",
             "rationale": "One place per visit is what the totals need.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           },
           {
             "id": "S2",
             "text": "Also keep the woman's usual post on the visit",
             "rationale": "Lets the usual post see the visits it missed.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           }
         ]
       }

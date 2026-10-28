@@ -199,14 +199,14 @@
             "text": "The supervisor arrives from the visit list",
             "rationale": "Then nothing is missing and no search box is built.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           },
           {
             "id": "S2",
             "text": "Search belongs on this screen",
             "rationale": "The page's API run has to design a search operation for this page first; this answer cannot bind to one and did not invent it.",
             "changesUid": false,
-            "regenerates": true
+            "regenerates": ["..."]
           }
         ]
       }

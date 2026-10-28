@@ -261,14 +261,14 @@
             "text": "Only the systolic figure is collected",
             "rationale": "Then the design is complete and the form's single box is the whole fact.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           },
           {
             "id": "S2",
             "text": "Both figures are collected and diastolic is missing from the Registry",
             "rationale": "The payload cannot be finished here: an element has to be mapped first, which is a MAPPING change and not this page's to make.",
             "changesUid": false,
-            "regenerates": true
+            "regenerates": ["..."]
           }
         ]
       }

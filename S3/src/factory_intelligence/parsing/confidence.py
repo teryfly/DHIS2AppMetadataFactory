@@ -128,7 +128,7 @@ def low_confidence_question(entry: NrrEntry, *, threshold: float) -> dict[str, A
                 "text": entry.statement,
                 "rationale": f"accept the extraction as it was read at {location}",
                 "changesUid": False,
-                "regenerates": False,
+                "regenerates": [],
             },
             {
                 "id": "S2",
@@ -138,7 +138,7 @@ def low_confidence_question(entry: NrrEntry, *, threshold: float) -> dict[str, A
                     "verdict (AI-INP-008)"
                 ),
                 "changesUid": False,
-                "regenerates": False,
+                "regenerates": [],
             },
         ],
         "details": {

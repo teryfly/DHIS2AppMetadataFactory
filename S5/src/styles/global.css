@@ -1540,6 +1540,27 @@ button.route-tab--active {
   color: var(--ds-text-muted);
   white-space: nowrap;
 }
+/* A row the stage's rejection named (freeze/Gate issue): the object the operator must fix. */
+.record-table__row--conflict {
+  background: var(--ds-warning-soft);
+}
+.record-table__row--conflict > td:first-child {
+  box-shadow: inset 3px 0 0 var(--ds-warning);
+}
+/* The questionnaire's single submit stays reachable while the operator scrolls the page. */
+.questionnaire-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  margin: 0 -12px -12px;
+  background: var(--ds-surface, #fff);
+  border-top: 1px solid var(--ds-border);
+}
 .url-cell {
   max-width: 320px;
   overflow-wrap: anywhere;
@@ -2296,6 +2317,48 @@ textarea::placeholder {
   margin: 0;
   font-size: 13px;
   line-height: 1.55;
+}
+.runlog-runs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.runlog-run {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+.runlog-run:hover {
+  background: var(--ds-surface-subtle);
+}
+.runlog-run--active {
+  border-color: var(--ds-brand);
+  background: var(--ds-brand-soft);
+}
+.runlog-run__attempt {
+  font-weight: 600;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+.runlog-run__time {
+  margin-left: auto;
+  color: var(--ds-text-muted);
+  font-size: 11.5px;
+  white-space: nowrap;
 }
 .runlog-entries {
   list-style: none;

@@ -81,7 +81,13 @@ _QUESTION_SCHEMA: dict[str, Any] = {
                     "recommended": {"type": "boolean"},
                     # the SRS spells these two in camelCase, in the model's own schema
                     "changesUid": {"type": "boolean"},
-                    "regenerates": {"type": "boolean"},
+                    # S5IF-FLD08: the artifacts this option would rebuild, named (S1 answers
+                    # them to the review screen as a list; an unnamed boolean has nothing to show)
+                    "regenerates": {
+                        "type": "array",
+                        "items": {"type": "string", "maxLength": 255},
+                        "maxItems": 20,
+                    },
                 },
             },
         },

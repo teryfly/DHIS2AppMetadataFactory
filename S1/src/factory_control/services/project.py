@@ -185,6 +185,9 @@ def create_project(
             "versionConstraints": request.version_constraints,
             "languages": [request.default_language, *request.translation_languages],
             "codePrefix": request.code_prefix,
+            # The adapter falls back to a project-scoped code prefix when none was given
+            # (BPV-ENV-002 collisions on shared target instances); the name is the seed.
+            "name": request.name,
         },
     )
 

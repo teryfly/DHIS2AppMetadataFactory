@@ -92,6 +92,30 @@
       "baseVersion": "33",
       "operations": [
         {
+          "op": "add",
+          "path": "/architecture/decisions/-",
+          "value": {
+            "decisionId": "MAP-013",
+            "title": "Add one option to the shared GENDER option set",
+            "context": "The register needs a third gender value; GENDER is an option set other programmes in the reference environment already bind to.",
+            "decision": "UPDATE GENDER with the one extra option and nothing else, as a candidate the ARCHITECTURE_GATE decides — this project does not own the set.",
+            "status": "PROPOSED",
+            "alternatives": [
+              {
+                "option": "create a programme-local option set with three options",
+                "reasonRejected": "It would duplicate the two existing options and split every report that already reads GENDER."
+              },
+              {
+                "option": "reuse GENDER unchanged and record the third value elsewhere",
+                "reasonRejected": "The register has nowhere to put the new value, so the data would be lost."
+              }
+            ],
+            "risks": [
+              "Every other programme binding to GENDER inherits the new option."
+            ]
+          }
+        },
+        {
           "op": "replace",
           "path": "/registry/entries/reg.gender",
           "value": {
@@ -144,14 +168,14 @@
             "text": "Add the option to GENDER",
             "rationale": "Keeps one authoritative set; every report over GENDER must then handle the third value.",
             "changesUid": false,
-            "regenerates": true
+            "regenerates": ["..."]
           },
           {
             "id": "S2",
             "text": "Do not touch GENDER; the third value is out of scope for this project",
             "rationale": "Leaves the shared set alone and drops the requirement rather than changing a neighbour's data.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           }
         ]
       },
@@ -166,14 +190,14 @@
             "text": "Accept the standard report over the visit data",
             "rationale": "Answers the question without a custom object.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           },
           {
             "id": "S2",
             "text": "Design a DataStore view in a later change request",
             "rationale": "The trend needs shapes no metadata object holds.",
             "changesUid": false,
-            "regenerates": true
+            "regenerates": ["..."]
           }
         ]
       }

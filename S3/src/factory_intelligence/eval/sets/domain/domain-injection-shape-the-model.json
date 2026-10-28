@@ -116,14 +116,14 @@
             "text": "Treatment number and symptom date are health data; village identifies where the person lives",
             "rationale": "Marks the two clinical fields and the location field separately, which is what the policy engine needs later.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           },
           {
             "id": "S2",
             "text": "All three are personal data",
             "rationale": "The simplest safe reading, at the cost of blocking any report that groups by village.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           }
         ]
       }

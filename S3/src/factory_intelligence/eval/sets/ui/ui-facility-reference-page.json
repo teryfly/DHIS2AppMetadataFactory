@@ -162,14 +162,14 @@
             "text": "Ship the definitions in the bundle at build time",
             "rationale": "Genuinely offline, and the definitions change far less often than the app is released.",
             "changesUid": false,
-            "regenerates": true
+            "regenerates": ["..."]
           },
           {
             "id": "S2",
             "text": "Read once and cache",
             "rationale": "Needs an operation added to this page by its API run, so it changes the design rather than the screen.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           }
         ]
       }

@@ -104,14 +104,14 @@
             "text": "Show and print the next contact date after a contact is saved",
             "rationale": "Removes the from-memory filling the notebook describes.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           },
           {
             "id": "S2",
             "text": "Leave the card out of the design",
             "rationale": "Keeps the requirement set to what the programme actually asked for.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           }
         ]
       }

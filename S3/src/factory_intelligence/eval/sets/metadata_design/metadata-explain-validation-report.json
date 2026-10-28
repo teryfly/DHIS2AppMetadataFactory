@@ -52,14 +52,14 @@
             "text": "Reopen the MAPPING decision and make dosesDue optional",
             "rationale": "Matches what the stage actually records and leaves the indicator honest.",
             "changesUid": false,
-            "regenerates": true
+            "regenerates": ["..."]
           },
           {
             "id": "S2",
             "text": "Add dosesDue to the visit form as a required field",
             "rationale": "Keeps the design as approved and pushes the work to the page stage.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           }
         ]
       }

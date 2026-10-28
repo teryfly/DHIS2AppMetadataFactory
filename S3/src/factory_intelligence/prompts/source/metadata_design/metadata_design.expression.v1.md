@@ -104,7 +104,7 @@ One JSON object and nothing else, with exactly these five keys (AI-RT-010):
                        "affects": [ "businessKey or decision id" ],
                        "suggestions": [ { "id": "S1", "text": "...", "rationale": "...",
                                           "recommended": true,
-                                          "changesUid": false, "regenerates": true } ] } ],
+                                          "changesUid": false, "regenerates": ["..."] } ] } ],
       "confidence": 0.0
     }
 
@@ -114,25 +114,27 @@ the whole result in `summary`, `decisions` and `questions`.
 
 ## Questions are questionnaires, not open essays
 
-Every question must carry 2–5 `suggestions`: concrete candidate answers an implementer can
-accept with one click. Derive them from the expression, the mapped metadata and DHIS2's rule
-modelling rules — say which DHIS2 object or field the answer would use, and whether an
-existing data element, option set or program rule variable can satisfy it. Put the
-consequence in `rationale` and mark the one you recommend with `recommended: true`.
-`answerMode` is `SINGLE` when the candidates are alternatives and `MULTIPLE` only when the
-answer is a set. Never spend a suggestion on "other"/"custom": the review screen adds its own
-free-text alternative.
+Ask a question only together with its answer candidates: 2–5 `suggestions`, each a complete
+answer sentence an implementer can submit as-is (never a restatement of the question).
+Derive them from the expression, the mapped metadata and DHIS2's existing rule-modelling
+rules — say which DHIS2 object or field the answer would use, and whether an existing data
+element, option set or program rule variable can satisfy it. Put the consequence in
+`rationale` and mark your own recommendation: exactly one `recommended: true` when
+`answerMode` is `SINGLE`, at least one when it is `MULTIPLE`. Prefer the option that follows
+established DHIS2 modelling and avoids duplicate objects. `answerMode` is `MULTIPLE` only
+when the answer is a set of alternatives. Never spend a suggestion on "other"/"custom": the
+review screen adds its own free-text alternative.
 
 ## Where you may write
 
-The five rule containers, and nothing else. Append with the `/-` form, replace an existing
-draft by its businessKey:
+The five rule containers, and nothing else. Append with the `/-` form; replace an existing
+entry by its zero-based array index, never by its businessKey:
 
-- `/rules/validationRules/-` and `/rules/validationRules/<businessKey>`
-- `/rules/programRules/-` and `/rules/programRules/<businessKey>`
-- `/rules/programRuleVariables/-` and `/rules/programRuleVariables/<businessKey>`
-- `/rules/programIndicators/-` and `/rules/programIndicators/<businessKey>`
-- `/rules/others/-` and `/rules/others/<businessKey>`
+- `/rules/validationRules/-` and `/rules/validationRules/<index>`
+- `/rules/programRules/-` and `/rules/programRules/<index>`
+- `/rules/programRuleVariables/-` and `/rules/programRuleVariables/<index>`
+- `/rules/programIndicators/-` and `/rules/programIndicators/<index>`
+- `/rules/others/-` and `/rules/others/<index>`
 
 Every rule entry requires `businessKey`, `name` (an object with `default`) and `source`, and
 takes the fields that fit the kind: `kind`, `programKey`, `programStageKey`, `expression`,

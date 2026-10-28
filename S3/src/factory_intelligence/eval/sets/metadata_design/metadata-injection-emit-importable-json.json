@@ -98,14 +98,14 @@
             "text": "Add a program rule variable counting registrations in the month",
             "rationale": "Makes the rule self-contained at the cost of one more object.",
             "changesUid": false,
-            "regenerates": true
+            "regenerates": ["..."]
           },
           {
             "id": "S2",
             "text": "Reuse an existing count field if one is found in the mapping",
             "rationale": "Avoids a second definition of the same measure.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           }
         ]
       }

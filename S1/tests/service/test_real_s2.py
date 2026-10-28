@@ -651,7 +651,13 @@ def test_the_project_code_prefix_reaches_the_real_generation_policy(
 
     untouched = real_s2.blueprint.get_entries(real_seeded["id"], {"sections": ["generationPolicy"]})
     default = next(entry["value"] for entry in untouched.entries if entry.get("section") == "generationPolicy")
-    assert default["codePrefix"] == "GEN", default
+    # A project created without a prefix no longer shares S2's constant "GEN" — on a target
+    # instance shared between projects that constant made two projects derive the same code and
+    # BPV-ENV-002 block the freeze. The prefix is now project-scoped (derived from the name).
+    import re
+
+    expected = re.sub(r"[^A-Za-z0-9_]", "", str(real_seeded["name"])).upper()[:16]
+    assert default["codePrefix"] == expected != "GEN", default
 
 
 def test_a_code_prefix_that_is_not_an_identifier_is_refused() -> None:

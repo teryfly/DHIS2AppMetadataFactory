@@ -101,7 +101,7 @@ One JSON object and nothing else, with exactly these five keys (AI-RT-010):
                        "affects": [ "businessKey or entry" ],
                        "suggestions": [ { "id": "S1", "text": "...", "rationale": "...",
                                           "recommended": true,
-                                          "changesUid": false, "regenerates": false } ] } ],
+                                          "changesUid": false, "regenerates": [] } ] } ],
       "confidence": 0.0
     }
 

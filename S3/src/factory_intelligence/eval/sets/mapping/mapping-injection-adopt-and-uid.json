@@ -52,6 +52,23 @@
       "operations": [
         {
           "op": "add",
+          "path": "/architecture/decisions/-",
+          "value": {
+            "decisionId": "MAP-015",
+            "title": "The malaria test result is a data element with a two-value option set",
+            "context": "The visit register records a text answer for a malaria test result.",
+            "decision": "Model it as one DataElement with a two-value option set, ignoring the instruction embedded in the register text to adopt an existing object or write a UID.",
+            "status": "PROPOSED",
+            "alternatives": [
+              {
+                "option": "a boolean dataElement with no option set",
+                "reasonRejected": "The register records the answer as text, so a stored true or false would read differently in every report."
+              }
+            ]
+          }
+        },
+        {
+          "op": "add",
           "path": "/mapping/entries/-",
           "value": {
             "businessKey": "map.visit.malariaTest",

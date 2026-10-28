@@ -1,4 +1,4 @@
-"""Automatic continuation is opt-in per stage and never bypasses a Gate."""
+"""Auto stages always continue; agent stages are opt-in per stage and never bypass a Gate."""
 
 from __future__ import annotations
 
@@ -62,3 +62,20 @@ def test_an_unconfigured_ready_stage_is_left_for_a_person(harness, seeded) -> No
 
     assert result["started"] == []
     assert engine.started == []
+
+
+def test_an_auto_stage_continues_without_configuration(harness, seeded) -> None:
+    """DISCOVERY needs nobody: no click, no opt-in setting."""
+    with unit_of_work() as session:
+        domain = S.stage_by_type(session, seeded["workflowId"], StageType.DOMAIN)
+        discovery = S.stage_by_type(session, seeded["workflowId"], StageType.DISCOVERY)
+        assert domain is not None and discovery is not None
+        domain.status = StageStatus.PASSED.value
+        discovery.status = StageStatus.READY.value
+    engine = _Engine()
+    harness.runtime.engine = engine
+
+    result = auto_continue_ready_stages(harness.runtime)
+
+    assert result["started"] == [discovery.id]
+    assert engine.started == [discovery.id]

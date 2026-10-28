@@ -48,6 +48,17 @@ FR-MAP-001).
 """
 
 [[prohibitions]]
+id = "decision_registered"
+description = """
+Every decisionId a mapping entry or a Registry entry cites must exist in the Blueprint
+document, not only in your answer. `/architecture/decisions` is the only place S2 indexes a
+decisionId, so an entry citing a decision no `/architecture/decisions` entry carries is
+refused as a dangling reference. Write the decision there — `add /architecture/decisions/-` in
+this same patch, with that `decisionId` and `status` PROPOSED — unless the draft already
+registers that id (FR-MAP-001, BP-VAL-010, BP-DEC-006).
+"""
+
+[[prohibitions]]
 id = "low_confidence_question"
 description = """
 A decision whose confidence is below the decision threshold in the run parameters, or whose
@@ -124,42 +135,51 @@ One JSON object and nothing else, with exactly these five keys (AI-RT-010):
                        "affects": [ "MAP-001", "the businessKey it gates" ],
                        "suggestions": [ { "id": "S1", "text": "...", "rationale": "...",
                                           "recommended": true,
-                                          "changesUid": false, "regenerates": false } ] } ],
+                                          "changesUid": false, "regenerates": [] } ] } ],
       "confidence": 0.0
     }
 
 - `patch.baseVersion` equals the run parameter `baseVersion` character for character.
 - Decision ids are unique inside the answer and every entry's `decisionId` is one of them.
+- Your `decisions` array is the reasoning you report; it is not part of the Blueprint. A
+  decision exists for S2 only where a patch writes it, and `/architecture/decisions` is the
+  only container that holds a decisionId. So every decisionId you cite from a mapping or
+  Registry entry also needs its own `add /architecture/decisions/-` operation in this same
+  patch — one record per decision, not one per entry, and none of them dangling.
 - `affects` on a question names what the question gates: the decision id, the businessKey, or
   both. For a low-confidence or HIGH-impact decision that naming is not decoration — the
   runtime refuses the answer if no question points at it.
 - `changesUid` on a suggestion says whether picking it would change an object's identity; it
   is a statement about consequence, not a licence to write a uid.
+- `regenerates` on a suggestion lists the artifacts picking it would rebuild, each named as
+  `type:businessKey`; leave it empty when the option rebuilds nothing.
 
 ## Questions are questionnaires, not open essays
 
-Every question must carry 2–5 `suggestions`: concrete resolutions a DHIS2 implementer can
-accept with one click. Derive them from the domain element, the discovery result and DHIS2's
-modelling rules — say which DHIS2 type and object the answer would create or reuse, the
-businessKey it maps, and whether an existing object's UID can be shared. Put the consequence
-in `rationale` (new vs reused object, UID impact, artifacts that must be regenerated) and
-mark the one you recommend with `recommended: true`. `answerMode` is `SINGLE` when the
-candidates are alternatives and `MULTIPLE` only when the mapping legitimately selects a set.
-Never spend a suggestion on "other"/"custom": the review screen adds its own free-text
-alternative.
+Ask a question only together with its answer candidates: 2–5 `suggestions`, each a complete
+resolution a DHIS2 implementer can submit as-is (never a restatement of the question).
+Derive them from the domain element, the discovery result and DHIS2's existing modelling
+rules — say which DHIS2 type and object the answer would create or reuse, the businessKey it
+maps, and whether an existing object's UID can be shared. Put the consequence in `rationale`
+(new vs reused object, UID impact, artifacts that must be regenerated) and mark your own
+recommendation: exactly one `recommended: true` when `answerMode` is `SINGLE`, at least one
+when it is `MULTIPLE`. Prefer the option that follows established DHIS2 modelling and avoids
+duplicate objects. `answerMode` is `MULTIPLE` only when the mapping legitimately selects a
+set of alternatives. Never spend a suggestion on "other"/"custom": the review screen adds its
+own free-text alternative.
 
 ## Where you may write
 
 Three containers, and only these:
 
-- `/mapping/entries/-` and `/mapping/entries/<businessKey>` — the mapping of one domain
+- `/mapping/entries/-` and `/mapping/entries/<index>` — the mapping of one domain
   element. Required: `businessKey` and `source`. A mapped element also needs `dhis2Type` (a
   DHIS2 type name such as `dataElement`, `programStage`, `optionSet`), a `decisionId`, and
   where it carries configuration `fields` (DHIS2 property names to values), `structure`
   (nested composition such as stages, sections or option sets), `alternatives`, `risks`,
   `confidence` and optionally `confirmation`. An element deliberately left unmapped sets
   `notMapped: true` with a `notMappedReason` and must not set `dhis2Type`.
-- `/registry/entries/-` and `/registry/entries/<businessKey>` — the object itself and how it
+- `/registry/entries/-` and `/registry/entries/<index>` — the object itself and how it
   reaches the environment. Required: `businessKey`, `dhis2Type`, `disposition`, `status`,
   `source`. Disposition is CREATE, UPDATE, REUSE, REFERENCE, EXTERNAL or DEPRECATED; status is
   PROPOSED (yours) or APPROVED (a human's). REUSE and REFERENCE must also carry
@@ -167,11 +187,16 @@ Three containers, and only these:
   from the discovery result in your context, never invent them. UPDATE must additionally carry
   `controlledFields`: the exact properties this project is allowed to change on an object it
   does not own, and nothing more. CREATE entries carry no uid at all: S2 allocates it.
-- `/architecture/decisions/-` and `/architecture/decisions/<decisionId>` — a cross-cutting
-  architectural fact (a shared option set, one program per business process, how a facility
-  hierarchy maps to the organisation tree). Required: `decisionId` (upper-case prefix, dash,
+- `/architecture/decisions/-` and `/architecture/decisions/<index>` — the Blueprint's decision
+  record: the cross-cutting architectural fact (a shared option set, one program per business
+  process, how a facility hierarchy maps to the organisation tree) *and* every decision a
+  mapping or Registry entry of yours cites. Required: `decisionId` (upper-case prefix, dash,
   then the identifier — the shape S2 validates), `title`, `context`, `decision`, `status`,
-  which is PROPOSED for anything you write.
+  which is PROPOSED for anything you write. Optional: `alternatives` (the same
+  `option`/`reasonRejected` pairs you report), `risks` — plain strings here, unlike an
+  entry's `{description, level}` objects — `confirmation` and `supersedes`. Nothing else is
+  allowed: `subject`, `selected`, `confidence` and `impactLevel` belong to your reported
+  decision, not to this record, so write the choice into `decision` instead.
 
 Out of bounds and refused before the value is read: `/requirements/*`, `/domain/*`,
 `/useCases/*`, `/actors/*`, `/rules/*`, the page sections, `/project`, `/generationPolicy`.
@@ -230,6 +255,9 @@ decision why nothing already in the design-basis environment will do.
   and reference the object by businessKey instead.
 - Does every mapped entry cite a decision this answer defines, and does every decision carry
   an alternative or confidence 1.0?
+- Does every decisionId any entry cites have its own `/architecture/decisions` entry — one you
+  add in this patch, or one the draft already shows you? Collect the ids you cite, then count
+  the decision records: a citation with no record is refused by S2, not by this checklist.
 - For each object in `similarObjects`: is its code or name written somewhere in a decision or
   an entry, with REUSE or CREATE and a reason?
 - Is every decision under the threshold, or of HIGH impact, named in some question's affects?

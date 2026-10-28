@@ -1,8 +1,13 @@
 """Automatic continuation between design stages (CP-WF-028 sibling).
 
 The workbench already unlocks the next stage when one passes; whether that stage starts has
-always been a human click.  This service is the scheduled side of the opt-in setting
-``stage_auto_continue``: a READY stage named there is claimed on the next tick.
+always been a human click.  This service is the scheduled side of two rules:
+
+* the design-line stages in ``AUTO_STAGES`` (DISCOVERY, BASELINE_COMPILE) have no agent, no
+  question and no submission — nobody is ever needed at them — so they always continue on
+  their own, with no configuration and no click.
+* an agent stage named in the opt-in setting ``stage_auto_continue`` is claimed on the next
+  tick; the setting stays the only way to automate a stage a person might want to start.
 
 Two boundaries are deliberate:
 
@@ -18,7 +23,7 @@ from typing import Any
 
 from sqlalchemy import select
 
-from factory_control.domain.enums import DESIGN_STAGES, StageStatus
+from factory_control.domain.enums import AUTO_STAGES, DESIGN_STAGES, StageStatus
 from factory_control.foundation import get_logger
 from factory_control.models import Project, Stage, Workflow
 from factory_control.runtime import Runtime
@@ -27,9 +32,14 @@ _logger = get_logger("factory_control.auto_continue")
 
 _STAGE_ORDER = {stage.value: index for index, stage in enumerate(DESIGN_STAGES)}
 
+#: Design-line stages that execution cannot wait on a person for (附录 A 触发说明).
+ALWAYS_CONTINUE: frozenset[str] = frozenset(
+    stage.value for stage in set(AUTO_STAGES) & set(DESIGN_STAGES)
+)
+
 
 def auto_continue_ready_stages(runtime: Runtime, *, operator: str = "auto") -> dict[str, Any]:
-    """Start READY stages whose type is configured for automatic continuation.
+    """Start READY stages the system runs on its own, plus the configured agent stages.
 
     One stage per workflow per tick: the next one can only become READY after this one passes,
     so serialising here matches the design line's own rule and never races a human click.
@@ -39,9 +49,7 @@ def auto_continue_ready_stages(runtime: Runtime, *, operator: str = "auto") -> d
 
     selected: list[tuple[str, str]] = []
     with runtime.transaction(operator="system") as ctx:
-        configured = set(ctx.settings.auto_continue_stages())
-        if not configured:
-            return {"started": [], "failed": []}
+        configured = set(ctx.settings.auto_continue_stages()) | ALWAYS_CONTINUE
         rows = ctx.session.execute(
             select(Stage, Workflow, Project)
             .join(Workflow, Workflow.id == Stage.workflow_id)

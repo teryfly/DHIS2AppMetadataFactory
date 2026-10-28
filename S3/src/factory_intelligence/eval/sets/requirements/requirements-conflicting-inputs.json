@@ -67,21 +67,21 @@
             "text": "Supervisor, within seven days",
             "rationale": "Follows the job description, the document that assigns the role.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           },
           {
             "id": "S2",
             "text": "Facility in-charge, same day",
             "rationale": "Follows the standard operating procedure, the document the programme audits against.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           },
           {
             "id": "S3",
             "text": "Either role, within seven days",
             "rationale": "Accepts both and takes the looser deadline; simplest to build, weakest audit trail.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           }
         ]
       }

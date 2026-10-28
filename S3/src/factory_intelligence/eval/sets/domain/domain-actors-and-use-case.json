@@ -120,14 +120,14 @@
             "text": "The clinic supervisor, as part of the monthly sign-off",
             "rationale": "The supervisor is the only reviewing role the interview mentions.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           },
           {
             "id": "S2",
             "text": "An outreach worker the programme has not named yet",
             "rationale": "If nobody in the clinic chases missed visits, the list needs an owner outside it.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           }
         ]
       }

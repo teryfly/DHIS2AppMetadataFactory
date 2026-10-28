@@ -138,14 +138,14 @@
             "text": "One district is enough",
             "rationale": "The walkthrough never changes scope, and a second district doubles the import for a step nobody performs.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           },
           {
             "id": "S2",
             "text": "Add a second district and a second officer account",
             "rationale": "Then the scope switch is demonstrable, and every specification above has to be sized again.",
             "changesUid": false,
-            "regenerates": true
+            "regenerates": ["..."]
           }
         ]
       }

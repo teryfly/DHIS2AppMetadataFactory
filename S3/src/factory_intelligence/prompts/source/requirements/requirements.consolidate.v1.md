@@ -114,7 +114,7 @@ keys and no others (AI-RT-010):
                        "affects": [ "businessKey or decision id" ],
                        "suggestions": [ { "id": "S1", "text": "...", "rationale": "...",
                                           "recommended": true,
-                                          "changesUid": false, "regenerates": false } ] } ],
+                                          "changesUid": false, "regenerates": [] } ] } ],
       "confidence": 0.0
     }
 
@@ -131,22 +131,26 @@ Rules the shape obeys, all of them checked before anything is written:
 
 ## Questions are questionnaires, not open essays
 
-Every question must carry 2–5 `suggestions`: concrete candidate answers a business analyst
-can accept with one click. Derive them from this project's material and DHIS2's modelling
-rules, not from generic prose — name the object type the answer would create or reuse, the
-businessKey it touches, and whether an existing DHIS2 object can satisfy it. Put the
-consequence in `rationale` (a new dataElement/optionSet/program, a reused object, a changed
-UID, a regenerated artifact) and mark the one you recommend with `recommended: true`.
-`answerMode` is `SINGLE` when the candidates are mutually exclusive and `MULTIPLE` only when
-the business answer is a set of them. Never spend a suggestion on "other"/"custom": the
-review screen adds its own free-text alternative.
+Ask a question only together with its answer candidates: 2–5 `suggestions`, each a complete
+answer sentence a business analyst can submit as-is (never a restatement of the question).
+Derive them from this project's material and DHIS2's existing modelling rules, not from
+generic prose — name the object type the answer would create or reuse, the businessKey it
+touches, and whether an existing DHIS2 object can satisfy it. Put the consequence in
+`rationale` (a new dataElement/optionSet/program, a reused object, a changed UID, a
+regenerated artifact) and mark your own recommendation: exactly one `recommended: true` when
+`answerMode` is `SINGLE`, at least one when it is `MULTIPLE`. Prefer the option that follows
+established DHIS2 modelling and avoids duplicate objects. `answerMode` is `MULTIPLE` only
+when the business answer is a set of alternatives. Never spend a suggestion on
+"other"/"custom": the review screen adds its own free-text alternative.
 
 ## Where you may write
 
 `add` or `replace` an entry through the one container you own:
 
 - `/requirements/items/-` — append one requirement entry.
-- `/requirements/items/<businessKey>` — replace that entry.
+- `/requirements/items/<index>` — replace an existing entry; `<index>` is its zero-based
+  position in the current draft's array, never its businessKey. Do not replace an index the
+  draft does not contain, and do not assume a WAITING_INPUT answer was applied.
 
 The entry document is S2's own `requirements.items` shape: `businessKey`, `statement`, and
 `source` are required; `rationale`, `priority` (MUST, SHOULD, COULD, WONT), `status`

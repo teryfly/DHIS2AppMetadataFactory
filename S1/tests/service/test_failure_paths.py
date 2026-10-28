@@ -134,6 +134,90 @@ def test_waiting_input_then_answer_resumes_the_run(harness, seeded) -> None:
     assert any(call.startswith("resume_agent_run:") for call in harness.intelligence.calls)
 
 
+def test_a_boolean_regenerates_does_not_500_the_stage_read(harness, seeded) -> None:
+    """S3 emits ``regenerates`` as a boolean; the S1 contract is ``string[]``.
+
+    A persisted ``true`` used to make ``GET /stages/{id}`` raise ``TypeError`` in the
+    suggestion view, so the operator saw an internal error and never the real stage state.
+    The view must coerce every stored shape to a list instead of crashing.
+    """
+    client = make_client(harness)
+    harness.intelligence.queue_run(
+        AgentRunResult(
+            run_id="agn-regen",
+            status="WAITING_INPUT",
+            questions=[
+                QuestionDraft(
+                    local_id="q1",
+                    text="which shape?",
+                    severity="HIGH",
+                    suggestions=[
+                        {"id": "s-bool", "text": "rebuild", "regenerates": True},
+                        {"id": "s-list", "text": "named", "regenerates": ["dataElement:age"]},
+                        {"id": "s-none", "text": "plain"},
+                    ],
+                    blocking=True,
+                )
+            ],
+        )
+    )
+    assert run_stage(client, harness, seeded["currentStageId"])["status"] == "WAITING_INPUT"
+
+    detail = client.get(f"/api/v1/stages/{seeded['currentStageId']}")
+    assert detail.status_code == 200, detail.text
+    by_id = {s["id"]: s for s in detail.json()["questions"][0]["suggestions"]}
+    assert by_id["s-bool"]["regenerates"] == ["*"]
+    assert by_id["s-list"]["regenerates"] == ["dataElement:age"]
+    assert by_id["s-none"]["regenerates"] == []
+
+
+def test_a_refused_resume_fails_the_stage_instead_of_leaving_it_running(harness, seeded) -> None:
+    """A provider refusal after answers must not strand the stage in RUNNING.
+
+    S2's BP_PATCH_MALFORMED is raised by the external resume call after S1 has already
+    transitioned WAITING_INPUT -> RUNNING.  The stage must end FAILED with feedback, and the
+    failed attempt must be visible in the run log.
+    """
+    from factory_control.foundation import FactoryError
+
+    client = make_client(harness)
+    harness.intelligence.queue_run(
+        AgentRunResult(
+            run_id="agn-refused-resume",
+            status="WAITING_INPUT",
+            questions=[
+                QuestionDraft(
+                    local_id="q1",
+                    text="which option?",
+                    severity="HIGH",
+                    suggestions=[{"id": "s1", "text": "reuse the object"}],
+                    blocking=True,
+                )
+            ],
+        )
+    )
+    assert run_stage(client, harness, seeded["currentStageId"])["status"] == "WAITING_INPUT"
+    question = client.get(f"/api/v1/workflows/{seeded['workflowId']}/questions").json()["items"][0]
+
+    harness.intelligence.resume_error = FactoryError(
+        "S2 refused the resumed patch", code="SCHEMA_ERROR",
+        details={"providerErrorCode": "BP_PATCH_MALFORMED"},
+    )
+    answered = client.post(
+        "/api/v1/questions/answers",
+        json={"answers": [{"questionId": question["id"], "suggestionIds": ["s1"]}]},
+        headers=OPERATOR,
+    )
+    assert answered.status_code >= 400, answered.text
+
+    stage = client.get(f"/api/v1/stages/{seeded['currentStageId']}", headers=OPERATOR).json()
+    assert stage["status"] == "FAILED"
+    assert stage["feedback"]["kind"] == "EXECUTION_FAILED"
+    assert "S2 refused the resumed patch" in stage["feedback"]["reason"]
+    failed_attempt = next(run for run in stage["stageRuns"] if run["attempt"] == stage["attempt"])
+    assert failed_attempt["result"]["status"] == "FAILED"
+
+
 def test_a_questionnaire_is_answered_once_and_the_next_round_is_returned(harness, seeded) -> None:
     """CP-Q-005: one submit answers every question, resumes once, and returns the new round."""
     client = make_client(harness)
@@ -919,3 +1003,49 @@ def test_submitting_from_ready_with_a_blocking_freeze_reports_the_issues(harness
     assert rerun.status_code == 202, rerun.text
     outcome = harness.runtime.engine.wait(seeded["currentStageId"], timeout=20)
     assert outcome is not None and "error" not in outcome, outcome
+
+
+def test_a_freeze_blocked_stage_recovers_by_fixing_the_draft_and_resubmitting(harness, seeded) -> None:
+    """BLOCKED by a freeze is a content verdict: the recovery edits the draft, not the dice.
+
+    The old model offered only rerun, but the agent re-applies the same naming policy and
+    reproduces the very conflict S2's freeze reported (BPV-ENV-002 style), so the stage
+    re-blocked with nothing else clickable. A blocked design stage must now offer
+    patch.submit and stage.submit_for_approval, and the resubmit must run the freeze again
+    and open the Gate once the draft is clean.
+    """
+    client = make_client(harness)
+    stage_id = seeded["currentStageId"]
+    harness.blueprint.freeze_issues = [
+        Issue(
+            issue_id="bpv-env-1",
+            severity="BLOCKING",
+            rule_id="BPV-ENV-002",
+            description="code GEN_X is already used by a dataStore in environment sbtest",
+            source_stage="MAPPING",
+        )
+    ]
+    blocked = client.post(
+        f"/api/v1/stages/{stage_id}/submit-for-approval", headers=OPERATOR, json={}
+    )
+    assert blocked.status_code == 200 and blocked.json()["status"] == "BLOCKED", blocked.text
+
+    # The rejection says what is wrong in human words; the machine code stays in the event.
+    stage = client.get(f"/api/v1/stages/{stage_id}", headers=OPERATOR).json()
+    reason = (stage.get("feedback") or {}).get("reason") or ""
+    assert "blocking issue" in reason.lower() and reason != "FREEZE_BLOCKING", stage["feedback"]
+
+    # The recovery controls are on the toolbar while the stage is BLOCKED.
+    actions = client.get(f"/api/v1/workflows/{seeded['workflowId']}/allowed-actions", headers=OPERATOR).json()
+    on_stage = {a["action"] for a in actions["allowed"] if a.get("targetId") == stage_id}
+    assert {"stage.submit_for_approval", "patch.submit"} <= on_stage, actions["allowed"]
+
+    # The operator fixes the conflict (here: the freeze starts passing) and resubmits —
+    # no agent rerun, so the same generated code cannot loop the stage back to BLOCKED.
+    harness.blueprint.freeze_issues = []
+    resubmitted = client.post(
+        f"/api/v1/stages/{stage_id}/submit-for-approval", headers=OPERATOR, json={}
+    )
+    assert resubmitted.status_code == 200, resubmitted.text
+    assert resubmitted.json()["status"] == "WAITING_APPROVAL", resubmitted.json()
+    assert gate_items(client, seeded["workflowId"]), "the resubmitted draft must open its Gate"

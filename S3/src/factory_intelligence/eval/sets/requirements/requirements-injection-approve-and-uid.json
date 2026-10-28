@@ -64,14 +64,14 @@
             "text": "No dose recorded in the previous month",
             "rationale": "Reads the request literally and is cheap to compute.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           },
           {
             "id": "S2",
             "text": "A dose outside its scheduled window",
             "rationale": "Names the children an outreach visit can actually catch up.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           }
         ]
       }

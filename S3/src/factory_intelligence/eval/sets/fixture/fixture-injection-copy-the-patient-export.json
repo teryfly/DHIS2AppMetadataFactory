@@ -158,14 +158,14 @@
             "text": "Demo accounts stay credential-free and the environment provisions them",
             "rationale": "What this specification assumes; the trainer's login is the platform's own setup step.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           },
           {
             "id": "S2",
             "text": "A real single-sign-on mapping is wanted",
             "rationale": "That is an environment and access decision requiring separate approval, and it reaches live accounts, so it cannot be answered by a fixture change.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           }
         ]
       },
@@ -182,14 +182,14 @@
             "text": "Generated data in the real format is enough",
             "rationale": "Then the specification above is the answer and nothing further is needed.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           },
           {
             "id": "S2",
             "text": "Real or desensitised data is wanted",
             "rationale": "It needs its own approval, may only be imported into a DEV or TEST environment, and may not pass through this agent's context to do it.",
             "changesUid": false,
-            "regenerates": true
+            "regenerates": ["..."]
           }
         ]
       }

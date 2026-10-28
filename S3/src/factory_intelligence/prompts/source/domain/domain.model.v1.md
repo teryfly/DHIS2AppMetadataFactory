@@ -105,7 +105,7 @@ One JSON object and nothing else, with exactly these five keys (AI-RT-010):
                        "affects": [ "businessKey" ],
                        "suggestions": [ { "id": "S1", "text": "...", "rationale": "...",
                                           "recommended": true,
-                                          "changesUid": false, "regenerates": false } ] } ],
+                                          "changesUid": false, "regenerates": [] } ] } ],
       "confidence": 0.0
     }
 
@@ -116,19 +116,25 @@ One JSON object and nothing else, with exactly these five keys (AI-RT-010):
 
 ## Questions are questionnaires, not open essays
 
-Every question must carry 2–5 `suggestions`: concrete candidate answers an analyst can accept
-with one click. Derive them from the business material and DHIS2's modelling rules — name the
+Ask a question only together with its answer candidates: 2–5 `suggestions`, each a complete
+answer sentence an analyst can submit as-is (never a restatement of the question). Derive
+them from the business material and DHIS2's existing modelling rules — name the
 entity/relationship shape, whether a tracked entity, organisation unit or reference object is
 the right fit, and the businessKey it touches. Put the consequence in `rationale` and mark
-the one you recommend with `recommended: true`. `answerMode` is `SINGLE` when the candidates
-are alternatives and `MULTIPLE` only when the answer is a set. Never spend a suggestion on
-"other"/"custom": the review screen adds its own free-text alternative.
+your own recommendation: exactly one `recommended: true` when `answerMode` is `SINGLE`, at
+least one when it is `MULTIPLE`. Prefer the option that follows established DHIS2 modelling
+and avoids duplicate objects. `answerMode` is `MULTIPLE` only when the answer is a set of
+alternatives. Never spend a suggestion on "other"/"custom": the review screen adds its own
+free-text alternative.
 
 ## Where you may write
 
-Four containers, and only these:
+Four containers, and only these. A keyed container is a JSON array: `-` appends a new
+entry, and an existing entry is addressed by its **zero-based array index**, never by its
+businessKey. New entries are normally the right shape: this turn's patch is applied to the
+draft in context, and a prior WAITING_INPUT answer was not applied at all.
 
-- `/domain/entities/-` and `/domain/entities/<businessKey>` — a business object. Required:
+- `/domain/entities/-` and `/domain/entities/<index>` — a business object. Required:
   `businessKey`, `displayName` (an object with `default`, optionally `translations`),
   `attributes`, `source`. Each attribute needs `name` (lowercase-initial camelCase),
   `valueType` (one of S2's value-type vocabulary: TEXT, LONG_TEXT, NUMBER, INTEGER, DATE,
@@ -136,17 +142,25 @@ Four containers, and only these:
   `required` (a boolean) and `sensitivity`. An optional `lifecycle` holds `states` (each with
   a `key` and a `name`, at least one marked initial where the object has a beginning) and
   `transitions` (each with `from`, `to` and a `trigger` naming the business event).
-- `/domain/relationships/-` and `/domain/relationships/<businessKey>` — how two objects
+- `/domain/relationships/-` and `/domain/relationships/<index>` — how two objects
   relate. Required: `businessKey`, `from`, `to` (both businessKeys of entities you define in
   this answer or that already exist), `cardinality` (ONE_TO_ONE, ONE_TO_MANY, MANY_TO_ONE,
   MANY_TO_MANY), `ownership` (FROM, TO, SHARED, NONE), `lifecycleDependent`, `optional`,
   `crossProcess` (all three booleans, and they are required — state them, do not omit them),
   `candidateExpressions` (at least one entry) and `source`.
-- `/useCases/items/-` and `/useCases/items/<businessKey>` — required: `businessKey`, `name`,
+- `/useCases/items/-` and `/useCases/items/<index>` — required: `businessKey`, `name`,
   `actors` (at least one actor businessKey), `source`. Add `purpose`, `preconditions`,
-  `steps`, `outcome` and `requirements` where the inputs support them.
-- `/actors/items/-` and `/actors/items/<businessKey>` — required: `businessKey`, `name`,
+  `steps`, `outcome` and `requirements` where the inputs support them. `name`, `purpose`
+  and `outcome` are plain strings; `preconditions`, `steps`, `requirements` and `actors`
+  are arrays, with `steps` listing one plain-string action per element in order.
+- `/actors/items/-` and `/actors/items/<index>` — required: `businessKey`, `name`,
   `source`. `roleKeys` where the requirements name roles.
+
+Replace an index only when that entry exists in the draft shown in context. If you want to
+change `steps` on an entry you are creating, put the array in the same `add /.../-` value;
+never follow it with `replace /useCases/items/<n>/steps` for an index that does not exist.
+When you cannot name an existing entry's index, ask a question or add only the genuinely new
+entries instead of guessing.
 
 `businessKey` is lowercase-initial with dot, underscore, colon or dash separated segments,
 and it is stable: reuse the key that already names this concept instead of minting a

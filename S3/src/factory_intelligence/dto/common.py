@@ -65,7 +65,26 @@ class Suggestion(ApiModel):
     changes_uid: bool = Field(
         default=False, validation_alias=AliasChoices("changes_uid", "changesUid")
     )
-    regenerates: bool = False
+    #: the artifacts picking this suggestion would rebuild, addressed as ``type:businessKey``
+    #: references (S5IF-FLD08 — the review screen counts them).
+    regenerates: list[str] = Field(default_factory=list)
+
+    @field_validator("regenerates", mode="before")
+    @classmethod
+    def _regenerates_to_references(cls, value: Any) -> Any:
+        """AI-RT-010 spelled ``regenerates`` as a bool; the field contract (S5IF-FLD08)
+        is a list of artifact references.  Older prompt versions still teach the bool and
+        rows already in ``cp.questions`` carry it, so a ``true`` normalizes to one unnamed
+        artifact rather than being refused or silently dropped."""
+        if value is None or value is False:
+            return []
+        if value is True:
+            return ["*"]
+        if isinstance(value, str):
+            return [value]
+        if isinstance(value, (list, tuple, set)):
+            return [str(item) for item in value]
+        return value
 
 
 class Question(ApiModel):

@@ -253,14 +253,14 @@
             "text": "Not collected on this page",
             "rationale": "Then the form is complete as designed and the paper step stays paper.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           },
           {
             "id": "S2",
             "text": "Collected, and an element has to be mapped first",
             "rationale": "Neither this screen nor its API run can add the element; it is a MAPPING change request, after which both runs need the field.",
             "changesUid": false,
-            "regenerates": true
+            "regenerates": ["..."]
           }
         ]
       }

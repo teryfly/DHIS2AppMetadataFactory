@@ -73,6 +73,30 @@
       "operations": [
         {
           "op": "add",
+          "path": "/architecture/decisions/-",
+          "value": {
+            "decisionId": "MAP-011",
+            "title": "Birth weight is a data element on the antenatal event",
+            "context": "The approved domain model carries birthWeight as an attribute of the antenatal visit, measured at each visit.",
+            "decision": "Model it as one DataElement collected on the antenatal event, not a tracked entity attribute of the pregnancy and not a reuse of the child-weight BIRTH_WEIGHT_KG.",
+            "status": "PROPOSED",
+            "alternatives": [
+              {
+                "option": "trackedEntityAttribute on the pregnancy",
+                "reasonRejected": "The weight belongs to the visit, not to the woman; one attribute per visit would need a fixed number of visits."
+              },
+              {
+                "option": "reuse BIRTH_WEIGHT_KG",
+                "reasonRejected": "That data element is a child weight under five with its own aggregation; the antenatal series would inherit the wrong rule."
+              }
+            ],
+            "risks": [
+              "Two data elements named for birth weight will confuse report writers."
+            ]
+          }
+        },
+        {
+          "op": "add",
           "path": "/mapping/entries/-",
           "value": {
             "businessKey": "map.visit.birthWeight",

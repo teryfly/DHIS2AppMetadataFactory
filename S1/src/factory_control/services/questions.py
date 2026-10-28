@@ -30,6 +30,25 @@ from factory_control.runtime import ControlContext, Runtime
 from factory_control.services.recording import record_change, write_audit
 
 
+def _regenerates_view(value: Any) -> list[str]:
+    """Normalise a suggestion's ``regenerates`` to ``list[str]`` (S5IF-FLD08).
+
+    The contract and the review screen treat ``regenerates`` as the list of artifacts a
+    suggestion would rebuild (UI shows ``regenerates.length``), but S3's own model and
+    prompt emit it as a *boolean* — and that boolean is persisted verbatim through the
+    ``list[dict]`` port mirror.  A view must never 500 over what is already in the row:
+    coerce every stored shape into a list, so a ``true`` becomes the one marker the reader
+    can count on and a real list of artifact references passes through untouched.
+    """
+    if isinstance(value, (list, tuple, set)):
+        return [str(item) for item in value]
+    if isinstance(value, bool):
+        return ["*"] if value else []
+    if value in (None, ""):
+        return []
+    return [str(value)]
+
+
 def _suggestion_view(raw: dict[str, Any]) -> dict[str, Any]:
     """S3 spells this key both ways (``changes_uid`` / ``changesUid``); S1 answers
     with one (S5IF-FLD08).  A column-mapping suggestion keeps its proposal."""
@@ -37,9 +56,9 @@ def _suggestion_view(raw: dict[str, Any]) -> dict[str, Any]:
     if changes is None:
         changes = raw.get("changes_uid")
     return {
-        **{k: v for k, v in raw.items() if k not in ("changes_uid", "columnMapping")},
+        **{k: v for k, v in raw.items() if k not in ("changes_uid", "columnMapping", "regenerates")},
         "changesUid": changes,
-        "regenerates": list(raw.get("regenerates") or []),
+        "regenerates": _regenerates_view(raw.get("regenerates")),
         **(
             {"columnMapping": dict(raw["columnMapping"])}
             if isinstance(raw.get("columnMapping"), dict)
@@ -460,43 +479,86 @@ def _resume_after_answers(
     language: str | None = None,
 ) -> dict[str, Any]:
     """CP-Q-005: once every blocking question of a run is answered, continue the run."""
+    retention_days = 7
     with runtime.transaction(operator=operator, project_id=project_id, workflow_id=workflow_id) as ctx:
         answers = _answers_for_run(ctx, run_id)
         idempotency_key = f"resume:{run_id}"
         # The stage parked in WAITING_INPUT when the run asked its questions.  A continuation
         # is a RUNNING stage again: apply_agent_result then makes the one legal move from
         # RUNNING (back to WAITING_INPUT for a new round, or on to the approval Gate).
-        from factory_control.services.workflow import reload_stage, transition
+        from factory_control.services.workflow import open_stage_run, reload_stage, transition
 
         stage = ctx.session.get(Stage, stage_id) if stage_id else None
         if stage is not None and stage.status == StageStatus.WAITING_INPUT.value:
-            transition(
+            stage = transition(
                 ctx,
                 stage=reload_stage(ctx, stage),
                 target=StageStatus.RUNNING,
                 event_type="stage.started",
                 payload={"reason": "ANSWERS_RECEIVED", "runId": run_id},
             )
+            # The attempt row must exist before the external call: the run log needs a row to
+            # attach this turn's progress to, and the console must not keep showing the previous
+            # attempt while the provider is thinking.
+            attempt = open_stage_run(ctx, stage, idempotency_key=idempotency_key)
+            attempt.agent_run_ids = list({*(attempt.agent_run_ids or []), run_id})
+            attempt.result = {**dict(attempt.result or {}), "status": "RUNNING"}
+            retention_days = ctx.settings.event_retention_days()
 
     # External I/O: no unit of work may be open here.
-    result = runtime.intelligence.resume_agent_run(
-        run_id,
-        answers,
-        idempotency_key,
-        language=language,
-        progress=None,
-        cancel=stage_cancel(),
+    from factory_control.progress import EventStreamProgressReporter
+
+    reporter = EventStreamProgressReporter(
+        workflow_id=workflow_id,
+        session_factory=runtime.session_factory,
+        kind="agent",
+        stage_id=stage_id,
+        run_id=run_id,
+        retention_days=retention_days,
     )
+    try:
+        result = runtime.intelligence.resume_agent_run(
+            run_id,
+            answers,
+            idempotency_key,
+            language=language,
+            progress=reporter,
+            cancel=stage_cancel(),
+        )
+    except Exception as exc:
+        # The stage was moved to RUNNING before this call.  If the provider refuses the
+        # resumed answer (S2's BP_PATCH_MALFORMED is the common one), leaving it RUNNING
+        # strands the workflow and the console polls a run that no longer exists.
+        _fail_resume_stage(
+            runtime,
+            stage_id=stage_id,
+            project_id=project_id,
+            workflow_id=workflow_id,
+            operator=operator,
+            error=exc,
+        )
+        raise
 
     from factory_control.services.workflow import apply_agent_result
 
     applied: dict[str, Any] = {}
-    with runtime.transaction(operator=operator, project_id=project_id, workflow_id=workflow_id) as ctx:
-        stage = ctx.session.get(Stage, stage_id)
-        if stage is not None:
-            applied = apply_agent_result(
-                ctx, stage=stage, result=result, idempotency_key=idempotency_key
-            )
+    try:
+        with runtime.transaction(operator=operator, project_id=project_id, workflow_id=workflow_id) as ctx:
+            stage = ctx.session.get(Stage, stage_id)
+            if stage is not None:
+                applied = apply_agent_result(
+                    ctx, stage=stage, result=result, idempotency_key=idempotency_key
+                )
+    except Exception as exc:
+        _fail_resume_stage(
+            runtime,
+            stage_id=stage_id,
+            project_id=project_id,
+            workflow_id=workflow_id,
+            operator=operator,
+            error=exc,
+        )
+        raise
     if applied.get("readyForApproval") and stage_id is not None:
         # A continued run that completed has the same finish line as a first run: freeze the
         # draft and open the Gate (run_claimed does this for the first attempt).
@@ -509,6 +571,107 @@ def _resume_after_answers(
         "resumed": True,
         "runId": run_id,
     }
+
+
+def _fail_resume_stage(
+    runtime: Runtime,
+    *,
+    stage_id: str | None,
+    project_id: str,
+    workflow_id: str,
+    operator: str,
+    error: BaseException,
+) -> bool:
+    """Leave a stage that could not continue with a stable FAILED outcome.
+
+    ``_resume_after_answers`` transitions to RUNNING before the provider call because the
+    transition is local state and the call is external I/O.  When that call (or applying its
+    result) raises, the workflow has no live run behind the RUNNING status.  This records the
+    failure, a failed attempt row for the run log, and one SSE/audit event; the exception then
+    continues to the caller so the submit is still reported as refused.
+    """
+    from factory_control.domain import feedback as FB
+    from factory_control.services.notifications import notify_stage_event
+    from factory_control.services.workflow import open_stage_run, reload_stage, transition
+
+    if stage_id is None:
+        return False
+    message = str(getattr(error, "message", None) or error or error.__class__.__name__)[:2000]
+    error_code = getattr(error, "error_code", None)
+    details = getattr(error, "details", None)
+
+    with runtime.transaction(
+        operator=operator, project_id=project_id, workflow_id=workflow_id, stage_id=stage_id
+    ) as ctx:
+        stage = ctx.session.get(Stage, stage_id)
+        if stage is None or stage.status != StageStatus.RUNNING.value:
+            return False
+        stage = reload_stage(ctx, stage)
+        attempt = open_stage_run(
+            ctx,
+            stage,
+            idempotency_key=f"resume-failed:{stage.id}:{stage.attempt}",
+        )
+        attempt.result = {
+            "status": "FAILED",
+            "summary": message,
+            "errorCode": error_code,
+        }
+        attempt.completed_at = ctx.clock.now()
+        transition(
+            ctx,
+            stage=stage,
+            target=StageStatus.FAILED,
+            event_type="stage.failed",
+            payload={"reason": "RESUME_FAILED", "errorCode": error_code},
+            failure_source_stage=stage.stage_type,
+            feedback=FB.stage_feedback(
+                FB.EXECUTION_FAILED,
+                message,
+                source_stage=stage.stage_type,
+                created_at=ctx.clock.now(),
+                extra={"errorCode": error_code, "details": details or {}},
+            ),
+        )
+        notify_stage_event(ctx, stage=stage, kind="failed", detail=f"{stage.stage_type} 续跑失败：{message}")
+    return True
+
+
+def reconcile_interrupted_stages(runtime: Runtime, *, operator: str = "system") -> int:
+    """Fail RUNNING stages left behind by a dead in-process execution.
+
+    The in-process engine runs a stage in the API/worker process.  A restart, a crash or a
+    request that died between the RUNNING transition and the result leaves no thread that can
+    ever finish it, and the console would otherwise poll "running" forever.  Only used for the
+    in-process engine; a Temporal worker owns its own retries.
+    """
+    import logging
+
+    from sqlalchemy import select
+
+    log = logging.getLogger(__name__)
+    with runtime.transaction(operator=operator) as ctx:
+        rows = list(
+            ctx.session.execute(
+                select(Stage).where(Stage.status == StageStatus.RUNNING.value)
+            ).scalars()
+        )
+        targets = [(row.id, row.project_id, row.workflow_id) for row in rows]
+    reconciled = 0
+    for stage_id, project_id, workflow_id in targets:
+        try:
+            if _fail_resume_stage(
+                runtime,
+                stage_id=stage_id,
+                project_id=project_id,
+                workflow_id=workflow_id,
+                operator=operator,
+                error=RuntimeError("服务重启或执行进程中断，阶段未能完成，请重新运行。"),
+            ):
+                reconciled += 1
+        except Exception:  # noqa: BLE001 - one bad row must not stop the others
+            log.exception("could not reconcile interrupted stage %s", stage_id)
+    return reconciled
 
 
 def _answers_for_run(ctx: ControlContext, run_id: str) -> list[Any]:
@@ -581,6 +744,7 @@ __all__ = [
     "open_questions",
     "question_view",
     "record_questions",
+    "reconcile_interrupted_stages",
     "stage_is_waiting_input",
     "supersede_open_questions",
     "unanswered_blocking",

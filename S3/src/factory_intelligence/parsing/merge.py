@@ -208,7 +208,7 @@ class Conflict:
                     )
                     or f"asserted in {_artifact_label(fact.entries[0].source_artifact_id)}",
                     "changesUid": False,
-                    "regenerates": False,
+                    "regenerates": [],
                 }
                 for index, fact in enumerate(self.values, start=1)
             ],

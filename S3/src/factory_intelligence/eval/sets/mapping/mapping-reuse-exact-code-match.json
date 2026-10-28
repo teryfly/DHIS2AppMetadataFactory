@@ -69,6 +69,23 @@
       "operations": [
         {
           "op": "add",
+          "path": "/architecture/decisions/-",
+          "value": {
+            "decisionId": "MAP-012",
+            "title": "The visit outcome reuses the existing ANC outcome option set",
+            "context": "The reference environment already publishes ANC_OUTCOME with exactly the three options the visit register records.",
+            "decision": "Reuse ANC_OUTCOME instead of creating a programme-specific option set, because an exact code match is not a judgement call.",
+            "status": "PROPOSED",
+            "alternatives": [
+              {
+                "option": "create a programme-specific option set",
+                "reasonRejected": "The existing set has the same code and the same three options; a second one would split every report that counts outcomes."
+              }
+            ]
+          }
+        },
+        {
+          "op": "add",
           "path": "/mapping/entries/-",
           "value": {
             "businessKey": "map.visit.outcome",

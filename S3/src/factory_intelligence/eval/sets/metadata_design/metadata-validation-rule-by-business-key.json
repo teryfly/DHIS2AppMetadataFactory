@@ -86,14 +86,14 @@
             "text": "Add map.visit.earlyVisitReason to the mapping and keep the 12-week boundary",
             "rationale": "The rule cannot fire without a field to test.",
             "changesUid": false,
-            "regenerates": true
+            "regenerates": ["..."]
           },
           {
             "id": "S2",
             "text": "Warn instead of blocking, so no new field is needed yet",
             "rationale": "Keeps the guideline's intent without a mapping change.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           }
         ]
       }

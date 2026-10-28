@@ -98,6 +98,24 @@ class TestStageActions:
         assert "stage.run" in asked
         assert "stage.rerun" not in asked
 
+    def test_blocked_design_stage_can_be_fixed_and_resubmitted(self) -> None:
+        """A freeze-blocked design stage is a content verdict, so the recovery is a patch plus
+        a resubmit — offering only rerun would loop, because the naming policy reproduces the
+        exact conflict that blocked it."""
+        ctx = context(stages=[A.StageSnapshot("s1", StageType.MAPPING, StageStatus.BLOCKED)])
+        by_name = {a.name: a for a in A.stage_actions(ctx)}
+        assert by_name["stage.submit_for_approval"].available is True
+        assert by_name["patch.submit"].available is True
+        assert by_name["stage.rerun"].available is True
+
+    def test_blocked_run_step_offers_no_resubmit(self) -> None:
+        """A Deployment Run step is blocked by conditions outside the draft, so it gets neither
+        the submit nor the patch affordance the design stages use to recover."""
+        ctx = context(stages=[A.StageSnapshot("s1", StageType.COMMIT, StageStatus.BLOCKED)])
+        by_name = {a.name: a for a in A.stage_actions(ctx)}
+        assert by_name["stage.submit_for_approval"].available is False
+        assert "patch.submit" not in by_name
+
     def test_manual_check_offers_resolution_only(self) -> None:
         """附录 A: MANUAL_CHECK leaves via a user verdict."""
         ctx = context(stages=[A.StageSnapshot("s1", StageType.COMMIT, StageStatus.MANUAL_CHECK)])
@@ -131,11 +149,28 @@ class TestStageActions:
         ctx = context(
             stages=[
                 A.StageSnapshot(
-                    "s1", StageType.REQUIREMENTS, StageStatus.WAITING_INPUT, has_open_high_question=True
+                    "s1", StageType.REQUIREMENTS, StageStatus.WAITING_INPUT, has_open_question=True
                 )
             ]
         )
         assert any(a.name == "question.answer" and a.available for a in A.stage_actions(ctx))
+
+    def test_a_medium_blocking_question_still_offers_question_answer(self) -> None:
+        """The answer action is gated on *blocking*, not on severity.
+
+        A MEDIUM-severity question raised as blocking parks the stage in WAITING_INPUT and the
+        run resumes only once it is answered — so the review screen must be able to submit an
+        answer. Gating on HIGH only left that questionnaire with no enabled submit button.
+        """
+        ctx = context(stages=[A.StageSnapshot("s1", StageType.MAPPING, StageStatus.WAITING_INPUT, has_open_question=True)])
+        answer = next(a for a in A.stage_actions(ctx) if a.name == "question.answer")
+        assert answer.available is True
+
+    def test_a_stage_without_open_questions_refuses_question_answer(self) -> None:
+        ctx = context(stages=[A.StageSnapshot("s1", StageType.MAPPING, StageStatus.READY)])
+        answer = next(a for a in A.stage_actions(ctx) if a.name == "question.answer")
+        assert answer.available is False
+        assert answer.reason_code == A.NO_OPEN_QUESTION
 
     def test_action_serialisation_carries_reason_only_when_blocked(self) -> None:
         ok = A.Action("stage.run", True, target_id="s1").as_dict()
@@ -159,6 +194,52 @@ class TestGateAndRunActions:
             gates=[A.GateSnapshot("g1", "DEPLOY_GATE", GateStatus.WAITING)],
         )
         assert [a.reason_code for a in A.gate_actions(ctx)] == [A.PROJECT_ARCHIVED]
+
+    def test_gate_actions_ask_for_the_precise_gate_permission(self) -> None:
+        """A role holds ``gate.approve.DOMAIN_GATE``, never the coarse ``gate.approve``."""
+        asked: list[str] = []
+
+        def evaluate(names: object) -> dict[str, SimpleNamespace]:
+            asked.extend(str(name) for name in names)  # type: ignore[union-attr]
+            return {
+                name: SimpleNamespace(
+                    allowed=name == "gate.approve.DOMAIN_GATE",
+                    reason_code="PERMISSION_DENIED",
+                    details={},
+                )
+                for name in asked
+            }
+
+        payload = A.compute_actions(
+            context(
+                gates=[A.GateSnapshot("g1", "DOMAIN_GATE", GateStatus.WAITING)],
+                evaluate=evaluate,
+            )
+        )
+        assert "gate.approve.DOMAIN_GATE" in asked
+        assert "gate.approve" not in asked
+        allowed = {item["action"] for item in payload["allowed"]}
+        assert {"gate.approve", "gate.reject"} <= allowed
+
+    def test_deploy_gate_asks_for_the_environment_qualified_permission(self) -> None:
+        asked: list[str] = []
+
+        def evaluate(names: object) -> dict[str, SimpleNamespace]:
+            asked.extend(str(name) for name in names)  # type: ignore[union-attr]
+            return {name: SimpleNamespace(allowed=True, reason_code="", details={}) for name in asked}
+
+        A.compute_actions(
+            context(
+                gates=[
+                    A.GateSnapshot(
+                        "g1", "DEPLOY_GATE", GateStatus.WAITING, environment_key="prod"
+                    )
+                ],
+                environments=[A.EnvironmentFacts("prod", "PRODUCTION")],
+                evaluate=evaluate,
+            )
+        )
+        assert "gate.approve.DEPLOY_GATE.PRODUCTION" in asked
 
     def test_open_warnings_block_approval_only(self) -> None:
         ctx = context(

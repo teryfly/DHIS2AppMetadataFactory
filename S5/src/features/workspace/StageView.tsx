@@ -17,12 +17,12 @@ import { Disclosure } from '@/components/Disclosure';
 import { EmptyState } from '@/components/EmptyState';
 import { Icon } from '@/components/icons';
 import { QuestionCard } from './questions/QuestionCard';
-import { ManualAuthoring } from './ManualAuthoring';
+import { ManualAuthoring, STAGE_SECTIONS } from './ManualAuthoring';
 import { NrrCard } from './NrrCard';
 import { RunLogPanel } from './RunLogPanel';
 const ObjectGraph = lazy(() => import('@/features/review/ObjectGraph').then((module) => ({ default: module.ObjectGraph })));
 import type { WorkspaceContext } from './WorkspaceContext';
-import { stagesOptions, stageDetailOptions, questionsOptions, blueprintDraftOptions } from '@/api/queries';
+import { stagesOptions, stageDetailOptions, questionsOptions, blueprintEntriesOptions } from '@/api/queries';
 import {
   useRunStage,
   useResolveManualCheck,
@@ -32,7 +32,7 @@ import {
 import { ACTION } from '@/api/actions';
 import { useUiStore, type WorkspaceViewMode } from '@/stores/ui';
 import { useProgressStore } from '@/sse/progress';
-import { runStatusLabel } from '@/lib/labels';
+import { runStatusLabel, severityLabel } from '@/lib/labels';
 import type { StageView as StageViewType } from '@/api/types';
 
 export function StageView() {
@@ -52,7 +52,6 @@ export function StageView() {
   const detailQuery = useQuery(stageDetailOptions(stageId, runRequested || listStage?.status === 'RUNNING'));
   const stage = detailQuery.data ?? listStage;
   const questionsQuery = useQuery(questionsOptions(workflowId));
-  const draftQuery = useQuery(blueprintDraftOptions(projectId));
 
   // The route component can survive a stage-to-stage navigation; a run state belongs to one stage.
   useEffect(() => {
@@ -84,6 +83,13 @@ export function StageView() {
   const openHigh = stageQuestions.filter(
     (question) => question.severity === 'HIGH' && question.status !== 'ANSWERED' && !question.answer,
   ).length;
+
+  // Which businessKeys the rejection says are wrong, so the entry table can mark exactly them.
+  const conflicts = new Map<string, ConflictInfo>();
+  for (const issue of feedback?.issues ?? []) {
+    const key = issue.businessKey || issue.objectKey;
+    if (key) conflicts.set(key, { ruleId: issue.ruleId || undefined, suggestedAction: issue.suggestedAction || undefined });
+  }
 
   return (
     <div className="stack" style={{ gap: 16 }}>
@@ -143,6 +149,28 @@ export function StageView() {
                 {t('workspace.failureFromStage')}: {t(`stageTypes.${feedback.sourceStage}`, { defaultValue: feedback.sourceStage })}
               </span>
             ) : null}
+            {feedback.issues?.length ? (
+              <ul>
+                {feedback.issues.map((issue, index) => (
+                  <li key={issue.issueId || `feedback-issue-${index}`}>
+                    <div className="row" style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <Tag negative={issue.level === 'BLOCKING'} neutral={issue.level !== 'BLOCKING'}>
+                        {severityLabel(issue.level)}
+                      </Tag>
+                      {issue.ruleId ? <span className="muted mono">{issue.ruleId}</span> : null}
+                    </div>
+                    <div>
+                      <span className="mono">{issue.businessKey ?? issue.objectKey ?? ''}</span>
+                      {issue.businessKey || issue.objectKey ? ' — ' : ''}
+                      {issue.description}
+                    </div>
+                    {issue.suggestedAction ? (
+                      <div className="muted">{t('workspace.suggestedAction')}: {issue.suggestedAction}</div>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </div>
         </NoticeBar>
       ) : null}
@@ -197,7 +225,7 @@ export function StageView() {
         <NrrCard workflowId={workflowId} projectId={projectId} />
       ) : null}
 
-      <EntriesCard projectId={projectId} stageType={stage.stageType} />
+      <EntriesCard projectId={projectId} stageType={stage.stageType} conflicts={conflicts} />
 
       <Disclosure
         label={t('manual.title')}
@@ -207,7 +235,6 @@ export function StageView() {
           stageId={stageId}
           workflowId={workflowId ?? ''}
           projectId={projectId}
-          draft={draftQuery.data}
           stageType={stage.stageType}
         />
       </Disclosure>
@@ -398,42 +425,91 @@ function ManualCheckPanel({ workflowId, stageId }: { workflowId: string; stageId
   );
 }
 
-function EntriesCard({ projectId, stageType }: { projectId: string; stageType: string }) {
+//: Entries are read from the *draft*, not from the transition view (`draft.document` is
+//: deliberately absent; the whole document is S5IF-UP03). STAGE_SECTIONS lives with the manual
+//: editor, which seeds from the same read.
+
+type DraftEntry = Record<string, unknown> & { _section?: string; businessKey?: string };
+
+/** What one freeze/Gate issue says about a businessKey, for the row highlight. */
+export type ConflictInfo = { ruleId?: string; suggestedAction?: string };
+
+function localized(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (value && typeof value === 'object' && typeof (value as { default?: unknown }).default === 'string') {
+    return String((value as { default: string }).default);
+  }
+  return '';
+}
+
+function entrySummary(entry: DraftEntry): string {
+  if (entry.cardinality || entry.from || entry.to) {
+    return [entry.from, entry.to].filter(Boolean).join(' → ');
+  }
+  const prose =
+    localized(entry.displayName) ||
+    localized(entry.name) ||
+    (typeof entry.statement === 'string' ? entry.statement : '') ||
+    (typeof entry.text === 'string' ? entry.text : '') ||
+    (typeof entry.purpose === 'string' ? entry.purpose : '') ||
+    (typeof entry.description === 'string' ? entry.description : '');
+  const priority = typeof entry.priority === 'string' ? entry.priority : '';
+  return [prose, priority].filter(Boolean).join(' · ') || String(entry.businessKey ?? '—');
+}
+
+function EntriesCard({ projectId, stageType, conflicts }: { projectId: string; stageType: string; conflicts: Map<string, ConflictInfo> }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const draftQuery = useQuery(blueprintDraftOptions(projectId));
+  const sections = STAGE_SECTIONS[stageType] ?? [];
+  const draftQuery = useQuery({
+    ...blueprintEntriesOptions(projectId, sections, 'DRAFT'),
+    enabled: !!projectId && sections.length > 0,
+  });
   const view = useUiStore((s) => s.viewModeByStage[stageType]);
   const setView = useUiStore((s) => s.setViewMode);
   const current: WorkspaceViewMode = view ?? 'table';
-  const entries = ((draftQuery.data?.document as { requirements?: Array<{ businessKey: string; text: string; priority: string }> })?.requirements) ?? [];
+  const allEntries = (draftQuery.data?.entries ?? []) as DraftEntry[];
+  const [onlyConflicts, setOnlyConflicts] = useState(false);
+  const entries = onlyConflicts ? allEntries.filter((e) => e.businessKey && conflicts.has(e.businessKey)) : allEntries;
+  const hasConflicts = conflicts.size > 0;
 
   return (
     <SectionCard
       title={t('workspace.stageEntries')}
-      description={t('workspace.stageEntriesHint')}
+      description={hasConflicts ? t('workspace.stageEntriesConflictHint') : t('workspace.stageEntriesHint')}
       actions={
-        <SegmentedControl
-          selected={current}
-          options={[
-            { label: t('workspace.viewTable'), value: 'table' },
-            { label: t('workspace.viewGraph'), value: 'graph' },
-            { label: t('workspace.viewRegistry'), value: 'registry' },
-            { label: t('workspace.viewDiff'), value: 'diff' },
-          ]}
-          onChange={({ value }: { value: string }) => {
-            if (value === 'registry' || value === 'diff') {
-              navigate(`/projects/${encodeURIComponent(projectId)}/metadata`);
-              return;
-            }
-            setView(stageType, value as WorkspaceViewMode);
-          }}
-        />
+        <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+          {hasConflicts ? (
+            <label className="row" style={{ gap: 4, fontSize: 12, cursor: 'pointer' }}>
+              <input type="checkbox" checked={onlyConflicts} onChange={(event) => setOnlyConflicts(event.target.checked)} />
+              {t('workspace.conflictOnly')}
+            </label>
+          ) : null}
+          <SegmentedControl
+            selected={current}
+            options={[
+              { label: t('workspace.viewTable'), value: 'table' },
+              { label: t('workspace.viewGraph'), value: 'graph' },
+              { label: t('workspace.viewRegistry'), value: 'registry' },
+              { label: t('workspace.viewDiff'), value: 'diff' },
+            ]}
+            onChange={({ value }: { value: string }) => {
+              if (value === 'registry' || value === 'diff') {
+                navigate(`/projects/${encodeURIComponent(projectId)}/metadata`);
+                return;
+              }
+              setView(stageType, value as WorkspaceViewMode);
+            }}
+          />
+        </div>
       }
     >
       {current === 'graph' ? (
         <Suspense fallback={<Loading />}>
           <ObjectGraph />
         </Suspense>
+      ) : draftQuery.isLoading ? (
+        <Loading />
       ) : entries.length === 0 ? (
         <EmptyState icon="file" title={t('review.noArtifacts')}>
           {t('workspace.currentStageHint')}
@@ -443,19 +519,40 @@ function EntriesCard({ projectId, stageType }: { projectId: string; stageType: s
           <table className="record-table">
             <thead>
               <tr>
+                <th>{t('inspector.objectType')}</th>
                 <th>{t('inspector.businessKey')}</th>
                 <th>{t('common.description')}</th>
-                <th>{t('common.type')}</th>
               </tr>
             </thead>
             <tbody>
-              {entries.map((entry, index) => (
-                <tr key={entry.businessKey || index}>
-                  <td className="mono">{entry.businessKey}</td>
-                  <td>{entry.text}</td>
-                  <td>{entry.priority}</td>
-                </tr>
-              ))}
+              {entries.map((entry, index) => {
+                const conflict = entry.businessKey ? conflicts.get(entry.businessKey) : undefined;
+                return (
+                  <tr
+                    key={`${entry._section ?? ''}:${entry.businessKey ?? index}`}
+                    className={conflict ? 'record-table__row record-table__row--conflict' : 'record-table__row'}
+                  >
+                    <td className="mono">{String(entry._section ?? '—')}</td>
+                    <td className="mono">
+                      {String(entry.businessKey ?? '—')}
+                      {conflict ? (
+                        <div className="row" style={{ gap: 6, marginTop: 4, alignItems: 'center' }}>
+                          <Tag negative>{t('workspace.conflictTag')}</Tag>
+                          {conflict.ruleId ? <span className="muted mono" style={{ fontSize: 11 }}>{conflict.ruleId}</span> : null}
+                        </div>
+                      ) : null}
+                    </td>
+                    <td>
+                      {entrySummary(entry)}
+                      {conflict?.suggestedAction ? (
+                        <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
+                          {t('workspace.suggestedAction')}: {conflict.suggestedAction}
+                        </div>
+                      ) : null}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

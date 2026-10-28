@@ -528,6 +528,19 @@ def _run_discovery(
                 payload={"blocking": [i.model_dump() for i in outcome.blocking_issues]},
                 failure_source_stage=StageType.DISCOVERY.value,
             )
+            # The attempt row's result is what the run log shows; without it a finished
+            # DISCOVERY renders as "unknown status" even though the stage did pass or fail.
+            _stage_run(
+                ctx,
+                stage,
+                agent_run_ids=[],
+                idempotency_key=idempotency_key,
+                result={
+                    "status": StageStatus.FAILED.value,
+                    "blocking": len(outcome.blocking_issues),
+                    "blockingIssues": [i.model_dump() for i in outcome.blocking_issues],
+                },
+            )
             return {"status": StageStatus.FAILED.value, "blocking": len(outcome.blocking_issues)}
         passed = transition(
             ctx,
@@ -536,6 +549,18 @@ def _run_discovery(
             event_type="stage.passed",
             payload={"environmentKey": environment_key},
             output_artifact_ids=outputs,
+        )
+        _stage_run(
+            ctx,
+            passed,
+            agent_run_ids=[],
+            idempotency_key=idempotency_key,
+            output_artifact_ids=outputs,
+            result={
+                "status": StageStatus.PASSED.value,
+                "environmentKey": environment_key,
+                "artifacts": outputs,
+            },
         )
         complete_stage_as_passed(ctx, stage=passed, output_artifact_ids=outputs, source="DISCOVERY_OK")
         refresh_derived_state(ctx, workflow)
@@ -802,7 +827,12 @@ def submit_for_approval(runtime: Runtime, stage_id: str, *, operator: str) -> di
     where the user submits a patch and asks for approval directly from READY.
     """
     stage, workflow, project, _ = _load_stage_context(runtime, stage_id, operator=operator)
-    if stage.status not in (StageStatus.READY.value, StageStatus.RUNNING.value, StageStatus.WAITING_INPUT.value):
+    if stage.status not in (
+        StageStatus.READY.value,
+        StageStatus.RUNNING.value,
+        StageStatus.WAITING_INPUT.value,
+        StageStatus.BLOCKED.value,
+    ):
         raise InvalidStateError(
             f"a {stage.status} stage cannot be submitted for approval",
             stage=stage.stage_type,
@@ -824,13 +854,25 @@ def submit_for_approval(runtime: Runtime, stage_id: str, *, operator: str) -> di
     freeze = runtime.blueprint.freeze_draft(draft_id, target_keys)
 
     with runtime.transaction(operator=operator, project_id=project.id, workflow_id=workflow.id, stage_id=stage.id) as ctx:
+        stage = reload_stage(ctx, stage)
+        if stage.status == StageStatus.BLOCKED.value:
+            # Re-entry after a freeze block: the operator fixed the draft (or the environment/
+            # naming policy) and is resubmitting.  Appendix A only leaves BLOCKED via READY,
+            # and the READY path below handles both outcomes again — a rerun would re-run the
+            # agent, whose naming policy reproduces the very conflict that blocked this stage.
+            stage = transition(
+                ctx,
+                stage=stage,
+                target=StageStatus.READY,
+                event_type="stage.rerun",
+                payload={"reason": "RESUBMIT_AFTER_FREEZE", "operator": operator},
+            )
         if not freeze.promotable:
             # Appendix A reaches BLOCKED from RUNNING only. A hand-authored submission arrives from
             # READY, so going straight to BLOCKED raised 409 INVALID_STATE {"from":"READY","to":"BLOCKED"}
             # and the operator saw a state-machine complaint instead of the blocking issues that
             # actually prevented promotion — which is the one thing this branch exists to report.
             # Claim the stage first; BLOCKED -> READY is legal afterwards, so retry is unaffected.
-            stage = reload_stage(ctx, stage)
             if stage.status == StageStatus.READY.value:
                 stage = transition(
                     ctx,
@@ -845,13 +887,15 @@ def submit_for_approval(runtime: Runtime, stage_id: str, *, operator: str) -> di
                 target=StageStatus.BLOCKED,
                 event_type="stage.blocked",
                 payload={"reason": "FREEZE_BLOCKING", "issues": [i.model_dump() for i in freeze.issues]},
+                # ``reason`` stays the human sentence S5 renders verbatim; the code lives in the
+                # event payload.  Passing it as ``extra`` here overwrote the sentence and the
+                # workbench showed only "FREEZE_BLOCKING" — the issues stayed invisible too.
                 feedback=FB.stage_feedback(
                     FB.VALIDATION,
                     f"{len(freeze.issues)} blocking issue(s) prevent the draft from being promoted",
                     source_stage=stage.stage_type,
                     issues=list(freeze.issues),
                     created_at=_clock_now(runtime),
-                    extra={"reason": "FREEZE_BLOCKING"},
                 ),
             )
             return {"status": StageStatus.BLOCKED.value, "blocking": len(freeze.issues)}
@@ -967,7 +1011,12 @@ def submit_manual_patch(
 ) -> dict[str, Any]:
     """CP-WF-029 with the CP-WF-017 guard; a draft change invalidates waiting Gates."""
     stage, workflow, project, _ = _load_stage_context(runtime, stage_id, operator=operator)
-    if stage.status not in (StageStatus.READY.value, StageStatus.RUNNING.value, StageStatus.WAITING_APPROVAL.value):
+    if stage.status not in (
+        StageStatus.READY.value,
+        StageStatus.RUNNING.value,
+        StageStatus.WAITING_APPROVAL.value,
+        StageStatus.BLOCKED.value,
+    ):
         raise InvalidStateError(
             f"a {stage.status} stage does not accept patches",
             stage=stage.stage_type,
@@ -976,6 +1025,7 @@ def submit_manual_patch(
                 StageStatus.READY.value,
                 StageStatus.RUNNING.value,
                 StageStatus.WAITING_APPROVAL.value,
+                StageStatus.BLOCKED.value,
             ],
             target_id=stage.id,
             details={"stageId": stage.id},

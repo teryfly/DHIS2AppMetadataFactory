@@ -7555,6 +7555,31 @@ export interface components {
             /** Text */
             text: string;
         };
+        /**
+         * StageRunLogView
+         * @description One persisted progress/state line of one stage attempt.
+         */
+        StageRunLogView: {
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Eventtype */
+            eventType: string;
+            /** Fraction */
+            fraction?: number | null;
+            /** Message */
+            message?: string | null;
+            /** Patchcount */
+            patchCount?: number | null;
+            /** Questioncount */
+            questionCount?: number | null;
+            /** Seq */
+            seq: number;
+            /** Step */
+            step?: string | null;
+        };
         /** StageRunView */
         StageRunView: {
             /** Agentrunids */
@@ -7566,14 +7591,22 @@ export interface components {
             attempt: number;
             /** Buildids */
             buildIds?: string[];
+            /** Completedat */
+            completedAt?: string | null;
+            /** Createdat */
+            createdAt?: string | null;
             /** Executionids */
             executionIds?: string[];
             /** Id */
             id: string;
+            /** Log */
+            log?: components["schemas"]["StageRunLogView"][];
             /** Result */
             result?: {
                 [key: string]: unknown;
             } | null;
+            /** Updatedat */
+            updatedAt?: string | null;
         };
         /** StageView */
         StageView: {

@@ -14287,6 +14287,86 @@
         "title": "StageQuestionBody",
         "type": "object"
       },
+      "StageRunLogView": {
+        "description": "One persisted progress/state line of one stage attempt.",
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "eventType": {
+            "title": "Eventtype",
+            "type": "string"
+          },
+          "fraction": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fraction"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "patchCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Patchcount"
+          },
+          "questionCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Questioncount"
+          },
+          "seq": {
+            "title": "Seq",
+            "type": "integer"
+          },
+          "step": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Step"
+          }
+        },
+        "required": [
+          "seq",
+          "at",
+          "eventType"
+        ],
+        "title": "StageRunLogView",
+        "type": "object"
+      },
       "StageRunView": {
         "properties": {
           "agentRunIds": {
@@ -14308,6 +14388,30 @@
             "title": "Buildids",
             "type": "array"
           },
+          "completedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completedat"
+          },
+          "createdAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Createdat"
+          },
           "executionIds": {
             "items": {
               "type": "string"
@@ -14318,6 +14422,13 @@
           "id": {
             "title": "Id",
             "type": "string"
+          },
+          "log": {
+            "items": {
+              "$ref": "#/components/schemas/StageRunLogView"
+            },
+            "title": "Log",
+            "type": "array"
           },
           "result": {
             "anyOf": [
@@ -14330,6 +14441,18 @@
               }
             ],
             "title": "Result"
+          },
+          "updatedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updatedat"
           }
         },
         "required": [

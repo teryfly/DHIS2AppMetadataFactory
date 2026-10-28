@@ -2189,13 +2189,28 @@ export const StageQuestionBody = z.object({
       text: z.string(),
     });
 
+export const StageRunLogView = z.object({
+      at: z.string(),
+      eventType: z.string(),
+      fraction: z.number().nullish(),
+      message: z.string().nullish(),
+      patchCount: z.number().int().nullish(),
+      questionCount: z.number().int().nullish(),
+      seq: z.number().int(),
+      step: z.string().nullish(),
+    });
+
 export const StageRunView = z.object({
       agentRunIds: z.array(z.string()).optional(),
       attempt: z.number().int().optional(),
       buildIds: z.array(z.string()).optional(),
+      completedAt: z.string().nullish(),
+      createdAt: z.string().nullish(),
       executionIds: z.array(z.string()).optional(),
       id: z.string(),
+      log: z.array(z.lazy(() => StageRunLogView)).optional(),
       result: z.record(z.string(), z.unknown()).nullish(),
+      updatedAt: z.string().nullish(),
     });
 
 export const StageView = z.object({
@@ -2800,6 +2815,7 @@ export const zodSchemas: Record<string, z.ZodTypeAny> = {
   "StageList": StageList,
   "StagePatchBody": StagePatchBody,
   "StageQuestionBody": StageQuestionBody,
+  "StageRunLogView": StageRunLogView,
   "StageRunView": StageRunView,
   "StageView": StageView,
   "SubmitApprovalView": SubmitApprovalView,

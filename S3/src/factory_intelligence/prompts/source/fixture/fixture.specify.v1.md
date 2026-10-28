@@ -106,7 +106,7 @@ One JSON object and nothing else, with exactly these five keys (AI-RT-010):
                        "affects": [ "businessKey" ],
                        "suggestions": [ { "id": "S1", "text": "...", "rationale": "...",
                                           "recommended": true,
-                                          "changesUid": false, "regenerates": true } ] } ],
+                                          "changesUid": false, "regenerates": ["..."] } ] } ],
       "confidence": 0.0
     }
 
@@ -114,20 +114,32 @@ One JSON object and nothing else, with exactly these five keys (AI-RT-010):
 - `summary` and `confidence` are mandatory; `questions` and `decisions` are arrays, empty when
   you have nothing to say, never absent.
 - Question ids are unique inside this answer, and a HIGH-severity question blocks the stage.
-- `regenerates` on a suggestion is worth setting here: a change of counts or distribution means
-  the whole demo dataset is built again.
+- `regenerates` on a suggestion is worth setting here: it is the list of artifacts picking
+  that option would rebuild, named as `type:businessKey`. A change of counts or distribution
+  means the whole demo dataset is built again, so name the dataset artifacts it regenerates.
+
+## Questions are questionnaires, not open essays
+
+Ask a question only together with its answer candidates: 2–5 `suggestions`, each a complete
+answer sentence a demo reviewer can submit as-is (never a restatement of the question).
+Derive them from the page's fixtures and DHIS2's existing modelling rules, and mark your own
+recommendation: exactly one `recommended: true` when `answerMode` is `SINGLE`, at least one
+when it is `MULTIPLE`. Prefer the option that follows established DHIS2 modelling and avoids
+duplicate objects. `answerMode` is `MULTIPLE` only when the answer is a set of alternatives.
+Never spend a suggestion on "other"/"custom": the review screen adds its own free-text
+alternative.
 
 ## Where you may write
 
 Two containers of one section, and only these:
 
-- `/fixtures/specifications/-` and `/fixtures/specifications/<businessKey>` — one object kind
+- `/fixtures/specifications/-` and `/fixtures/specifications/<index>` — one object kind
   generated. Required: `businessKey`, `targetKey` (the businessKey of the domain object or
   Registry entry this spec fills), `count`, `source`. Optional: `distribution` (how the count is
   spread), `boundaryCases` (each a statement of an extreme that must exist), `attributeValues`
   (per attribute: `attributeKey`, a `strategy`, and where the strategy needs it a `prefix`, a
   two-number `range`, or `optionWeights`), `orgUnitKeys`, `periods`.
-- `/fixtures/demoUsers/-` and `/fixtures/demoUsers/<businessKey>` — the accounts that open the
+- `/fixtures/demoUsers/-` and `/fixtures/demoUsers/<index>` — the accounts that open the
   demo. Required: `businessKey`, `username` (lowercase, three to sixty-four characters of
   letters, digits, dot, dash or underscore), `roleKeys` (at least one, named by businessKey).
   Optional: `displayName`, `userGroupKeys`, `orgUnitScope`. A demo user carries **no**

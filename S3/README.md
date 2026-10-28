@@ -482,9 +482,11 @@ around none of them silently.
 * **`ParsedInput.used_model` is a bool; S1's mirror declares `str | None`.** S1's
   `DelegatingAdapter._coerce` revalidates every result, so a real parse result fails there
   (S3's own Fake never sets the field, which is why S1's suite is green). `AI-INP-004`/`§5`
-  spell the fact as a boolean, so S1's mirror is the side to change. Same class of mismatch:
-  `Suggestion.regenerates` is a bool per AI-RT-010 and
-  `S1 services/questions.py:41` does `list(True)`, which raises.
+  spell the fact as a boolean, so S1's mirror is the side to change. The same class of
+  mismatch on `Suggestion.regenerates` (AI-RT-010 spelled it a bool; S5IF-FLD08 wants a
+  list of artifact references) is now resolved toward the contract: the field is
+  `list[str]`, and both S3's validator and S1's question view coerce the bool that older
+  prompts and existing `cp.questions` rows still carry.
 * **S1 has no `prepare_draft_base` port method**, so its own manual-patch path cannot work
   against a real S2 either. S3 calls it before its own runs.
 * **S2's patch applier addresses array members by index**, while its read model reports entries

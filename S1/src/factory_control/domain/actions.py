@@ -39,6 +39,7 @@ ALREADY_RUNNING_ELSEWHERE = "ALREADY_RUNNING_ELSEWHERE"
 STAGE_NOT_READY = "STAGE_NOT_READY"
 STAGE_NOT_WAITING = "STAGE_NOT_WAITING"
 STAGE_NOT_IN_MANUAL_CHECK = "STAGE_NOT_IN_MANUAL_CHECK"
+NO_OPEN_QUESTION = "NO_OPEN_QUESTION"
 STAGE_NOT_PASSED = "STAGE_NOT_PASSED"
 DESIGN_LINE_INCOMPLETE = "DESIGN_LINE_INCOMPLETE"
 RUN_OPEN_FOR_ENVIRONMENT = "RUN_OPEN_FOR_ENVIRONMENT"
@@ -206,6 +207,9 @@ class Action:
     reason_code: str | None = None
     details: dict[str, Any] = field(default_factory=dict)
     target_id: str | None = None
+    #: the permission the endpoint actually checks when it differs from ``name`` (a Gate's
+    #: precise ``gate.approve.<GATE_TYPE>`` grant never covers the coarse ``gate.approve``)
+    permission: str | None = None
 
     def as_dict(self) -> dict[str, Any]:
         out: dict[str, Any] = {"action": self.name, "available": self.available}
@@ -223,7 +227,7 @@ class StageSnapshot:
     stage_id: str
     stage_type: StageType
     status: StageStatus
-    has_open_high_question: bool = False
+    has_open_question: bool = False
 
 
 @dataclass(frozen=True)
@@ -241,6 +245,7 @@ class GateSnapshot:
     status: GateStatus
     stage_id: str | None = None
     deployment_run_id: str | None = None
+    environment_key: str | None = None
     open_warnings: int = 0
 
 
@@ -298,7 +303,12 @@ class ActionContext:
 
 
 def _blocked(
-    name: str, reason: str, *, target_id: str | None = None, details: dict[str, Any] | None = None
+    name: str,
+    reason: str,
+    *,
+    target_id: str | None = None,
+    details: dict[str, Any] | None = None,
+    permission: str | None = None,
 ) -> Action:
     return Action(
         name=name,
@@ -306,11 +316,24 @@ def _blocked(
         reason_code=reason,
         target_id=target_id,
         details=details or {},
+        permission=permission,
     )
 
 
-def _ok(name: str, *, target_id: str | None = None, details: dict[str, Any] | None = None) -> Action:
-    return Action(name=name, available=True, target_id=target_id, details=details or {})
+def _ok(
+    name: str,
+    *,
+    target_id: str | None = None,
+    details: dict[str, Any] | None = None,
+    permission: str | None = None,
+) -> Action:
+    return Action(
+        name=name,
+        available=True,
+        target_id=target_id,
+        details=details or {},
+        permission=permission,
+    )
 
 
 def workflow_actions(ctx: ActionContext) -> list[Action]:
@@ -328,6 +351,19 @@ def workflow_actions(ctx: ActionContext) -> list[Action]:
         else:
             out.append(_ok(name))
     return out
+
+
+#: Design stages whose BLOCKED state came from a content verdict (freeze, Gate rejection) and
+#: can therefore be fixed by editing the draft and resubmitting.  A Deployment Run step is
+#: blocked by conditions outside the draft, so it gets no resubmit button here.
+_RESUBMITTABLE_BLOCKED_STAGES = frozenset(
+    {
+        StageType.REQUIREMENTS,
+        StageType.DOMAIN,
+        StageType.MAPPING,
+        StageType.PAGE_DESIGN,
+    }
+)
 
 
 def stage_actions(ctx: ActionContext) -> list[Action]:
@@ -392,7 +428,9 @@ def stage_actions(ctx: ActionContext) -> list[Action]:
         else:
             out.append(_blocked("stage.rerun", STAGE_NOT_READY, target_id=sid, details={"status": stage.status.value}))
 
-        if stage.status in (StageStatus.READY, StageStatus.RUNNING):
+        if stage.status in (StageStatus.READY, StageStatus.RUNNING) or (
+            stage.status is StageStatus.BLOCKED and stage.stage_type in _RESUBMITTABLE_BLOCKED_STAGES
+        ):
             out.append(_ok("stage.submit_for_approval", target_id=sid))
         else:
             out.append(_blocked("stage.submit_for_approval", STAGE_NOT_READY, target_id=sid))
@@ -402,15 +440,20 @@ def stage_actions(ctx: ActionContext) -> list[Action]:
         else:
             out.append(_blocked("stage.resolve_manual_check", STAGE_NOT_IN_MANUAL_CHECK, target_id=sid))
 
-        if stage.status in (StageStatus.READY, StageStatus.RUNNING, StageStatus.WAITING_APPROVAL):
+        if (
+            stage.status in (StageStatus.READY, StageStatus.RUNNING, StageStatus.WAITING_APPROVAL)
+            or (stage.status is StageStatus.BLOCKED and stage.stage_type in _RESUBMITTABLE_BLOCKED_STAGES)
+        ):
             patch_reason = _patch_blocked_reason(ctx, stage)
             if patch_reason:
                 out.append(_blocked("patch.submit", patch_reason, target_id=sid))
             else:
                 out.append(_ok("patch.submit", target_id=sid))
 
-        if stage.has_open_high_question:
+        if stage.has_open_question:
             out.append(_ok("question.answer", target_id=sid))
+        else:
+            out.append(_blocked("question.answer", NO_OPEN_QUESTION, target_id=sid))
 
     return out
 
@@ -424,13 +467,24 @@ def _patch_blocked_reason(ctx: ActionContext, stage: StageSnapshot) -> str | Non
 
 def gate_actions(ctx: ActionContext) -> list[Action]:
     out: list[Action] = []
+    environment_class = {env.environment_key: env.environment_class for env in ctx.environments}
     for gate in ctx.gates:
+        # The endpoints authorize `gate.approve.<GATE_TYPE>` (and the environment class for a
+        # DEPLOY_GATE); asking the role table for the coarse `gate.approve` denied every user
+        # whose grant is precise, which is how every role is actually granted.
+        permission = iam.gate_approve_action(
+            gate.gate_type, environment_class.get(gate.environment_key or "")
+        )
         if ctx.archived:
-            out.append(_blocked("gate.approve", PROJECT_ARCHIVED, target_id=gate.gate_id))
+            out.append(
+                _blocked("gate.approve", PROJECT_ARCHIVED, target_id=gate.gate_id, permission=permission)
+            )
             continue
         if gate.status is not GateStatus.WAITING:
             for name in ("gate.approve", "gate.reject"):
-                out.append(_blocked(name, GATE_NOT_WAITING, target_id=gate.gate_id))
+                out.append(
+                    _blocked(name, GATE_NOT_WAITING, target_id=gate.gate_id, permission=permission)
+                )
             continue
         if gate.open_warnings > 0:
             out.append(
@@ -439,11 +493,12 @@ def gate_actions(ctx: ActionContext) -> list[Action]:
                     WARNING_UNRESOLVED,
                     target_id=gate.gate_id,
                     details={"openWarnings": gate.open_warnings},
+                    permission=permission,
                 )
             )
         else:
-            out.append(_ok("gate.approve", target_id=gate.gate_id))
-        out.append(_ok("gate.reject", target_id=gate.gate_id))
+            out.append(_ok("gate.approve", target_id=gate.gate_id, permission=permission))
+        out.append(_ok("gate.reject", target_id=gate.gate_id, permission=permission))
     return out
 
 
@@ -567,13 +622,15 @@ def _apply_permissions(ctx: ActionContext, actions: list[Action]) -> list[Action
     # "stage.rerun" answered PERMISSION_DENIED for every role and greyed out a control the
     # endpoint would have accepted. Evaluate the permission the endpoint actually checks.
     permission_for = {"stage.rerun": iam.STAGE_RUN}
-    asked = tuple(
-        sorted({permission_for.get(action.name, action.name) for action in actions if action.available})
-    )
+
+    def permission(action: Action) -> str:
+        return action.permission or permission_for.get(action.name, action.name)
+
+    asked = tuple(sorted({permission(action) for action in actions if action.available}))
     decisions = dict(ctx.evaluate(asked) or {})
     out: list[Action] = []
     for action in actions:
-        decision = decisions.get(permission_for.get(action.name, action.name))
+        decision = decisions.get(permission(action))
         if decision is None or action.available is False or getattr(decision, "allowed", True):
             out.append(action)
             continue
@@ -583,6 +640,7 @@ def _apply_permissions(ctx: ActionContext, actions: list[Action]) -> list[Action
                 getattr(decision, "reason_code", "") or PERMISSION_DENIED,
                 target_id=action.target_id,
                 details=dict(getattr(decision, "details", {}) or {}),
+                permission=action.permission,
             )
         )
     return out

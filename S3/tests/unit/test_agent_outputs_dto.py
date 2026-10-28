@@ -25,7 +25,7 @@ import pytest
 from pydantic import ValidationError
 
 from factory_intelligence.dto.agent import AgentOutput, ModelQuestion, PatchEnvelope
-from factory_intelligence.dto.common import Question
+from factory_intelligence.dto.common import Question, Suggestion
 
 
 def _answer(**changes: Any) -> dict[str, Any]:
@@ -285,12 +285,28 @@ def test_to_canonical_carries_severity_affects_and_suggestions() -> None:
 
 def test_to_canonical_writes_suggestions_in_s3s_snake_case() -> None:
     """AI-RT-010: the model spells ``changesUid``; S1's mirror reads ``changes_uid``, and a
-    name it cannot read is dropped in silence."""
+    name it cannot read is dropped in silence.  ``regenerates`` reaches S1 as the artifact
+    list S5IF-FLD08 wants — here coerced from the bool AI-RT-010 spells."""
     suggestion = ModelQuestion.model_validate(_question()).to_canonical("Q3").suggestions[0]
     assert suggestion["changes_uid"] is False
-    assert suggestion["regenerates"] is True
+    assert suggestion["regenerates"] == ["*"]
     assert suggestion["id"] == "S1"
     assert "changesUid" not in suggestion
+
+
+def test_suggestion_regenerates_is_an_artifact_list() -> None:
+    """S5IF-FLD08: ``regenerates`` is a list of artifact references, not a boolean.
+
+    A named list passes through; the bool an older prompt or a stored row still produces is
+    coerced rather than refused, because S1's view does ``len(regenerates)`` to count them.
+    """
+    named = Suggestion.model_validate(
+        {"id": "S1", "regenerates": ["dataElement:age", "optionSet:sex"]}
+    )
+    assert named.regenerates == ["dataElement:age", "optionSet:sex"]
+    assert Suggestion.model_validate({"id": "S1", "regenerates": True}).regenerates == ["*"]
+    assert Suggestion.model_validate({"id": "S1", "regenerates": False}).regenerates == []
+    assert Suggestion.model_validate({"id": "S1"}).regenerates == []
 
 
 def test_answer_mode_and_recommended_survive_into_the_canonical_question() -> None:

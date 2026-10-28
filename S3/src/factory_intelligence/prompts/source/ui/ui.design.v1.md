@@ -107,7 +107,7 @@ One JSON object and nothing else, with exactly these five keys (AI-RT-010):
                        "affects": [ "intentKey or businessKey" ],
                        "suggestions": [ { "id": "S1", "text": "...", "rationale": "...",
                                           "recommended": true,
-                                          "changesUid": false, "regenerates": false } ] } ],
+                                          "changesUid": false, "regenerates": [] } ] } ],
       "confidence": 0.0
     }
 
@@ -118,19 +118,21 @@ One JSON object and nothing else, with exactly these five keys (AI-RT-010):
 
 ## Questions are questionnaires, not open essays
 
-Every question must carry 2–5 `suggestions`: concrete candidate answers a frontend reviewer
-can accept with one click. Derive them from the page's intents, the approved blueprint and
-DHIS2's modelling rules — say which intent/component/data source the answer would use and
-whether the API intent it needs exists. Put the consequence in `rationale` and mark the one
-you recommend with `recommended: true`. `answerMode` is `SINGLE` when the candidates are
-alternatives and `MULTIPLE` only when the answer is a set. Never spend a suggestion on
-"other"/"custom": the review screen adds its own free-text alternative.
+Ask a question only together with its answer candidates: 2–5 `suggestions`, each a complete
+answer sentence a frontend reviewer can submit as-is (never a restatement of the question).
+Derive them from the page's intents, the approved blueprint and DHIS2's existing modelling
+rules — say which intent/component/data source the answer would use and whether the API intent
+it needs exists. Put the consequence in `rationale` and mark your own recommendation: exactly
+one `recommended: true` when `answerMode` is `SINGLE`, at least one when it is `MULTIPLE`.
+Prefer the option that follows established DHIS2 modelling and avoids duplicate objects.
+`answerMode` is `MULTIPLE` only when the answer is a set of alternatives. Never spend a
+suggestion on "other"/"custom": the review screen adds its own free-text alternative.
 
 ## Where you may write
 
 One container, and only this one:
 
-- `/uiIntents/items/-` to append, or `/uiIntents/items/<intentKey>` to replace one intent this
+- `/uiIntents/items/-` to append, or `/uiIntents/items/<index>` to replace one intent this
   page already has.
 
 Every UI Intent entry requires `intentKey`, `pageKey`, `route`, `purpose`, `components`,

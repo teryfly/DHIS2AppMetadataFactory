@@ -6,7 +6,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card, Checkbox, Radio, Tag } from '@dhis2/ui';
+import { Button, Card, Checkbox, Radio, Tag } from '@dhis2/ui';
 import { TextAreaInput } from '@/components/form';
 import { NoticeBar } from '@/components/NoticeBar';
 import { AllowedActionButton } from '@/components/AllowedActionButton';
@@ -15,38 +15,8 @@ import { useAnswerQuestions } from '@/api/mutations';
 import { actionIntent, payloadDigest } from '@/api/idempotency';
 import { severityLabel } from '@/lib/labels';
 import type { AnswerQuestionsBody, QuestionView } from '@/api/types';
+import { OTHER, answerFor, emptyDraft, modeOf, recommendedDraft, type Draft } from './answerDraft';
 
-const OTHER = '__fui_other__';
-
-interface Draft {
-  choice: string;
-  choices: string[];
-  custom: string;
-}
-
-function emptyDraft(): Draft {
-  return { choice: '', choices: [], custom: '' };
-}
-
-function modeOf(question: QuestionView): 'SINGLE' | 'MULTIPLE' {
-  return question.answerMode === 'MULTIPLE' ? 'MULTIPLE' : 'SINGLE';
-}
-
-function answerFor(question: QuestionView, draft: Draft | undefined) {
-  if (!draft) return null;
-  if (modeOf(question) === 'MULTIPLE') {
-    const suggestionIds = draft.choices.filter((value) => value !== OTHER);
-    const customText = draft.choices.includes(OTHER) ? draft.custom.trim() : '';
-    if (!suggestionIds.length && !customText) return null;
-    return { suggestionIds, customText: customText || undefined };
-  }
-  if (!draft.choice) return null;
-  if (draft.choice === OTHER) {
-    const customText = draft.custom.trim();
-    return customText ? { suggestionIds: [], customText } : null;
-  }
-  return { suggestionIds: [draft.choice] };
-}
 
 export function QuestionCard({ questions, workflowId }: { questions: QuestionView[]; workflowId?: string }) {
   const { t } = useTranslation();
@@ -74,6 +44,9 @@ export function QuestionCard({ questions, workflowId }: { questions: QuestionVie
     }));
   };
 
+  const adoptAllRecommended = () =>
+    setDrafts(Object.fromEntries(questions.map((question) => [question.id, recommendedDraft(question)])));
+
   const answered = useMemo(
     () => questions.filter((question) => answerFor(question, drafts[question.id]) !== null),
     [questions, drafts],
@@ -81,6 +54,7 @@ export function QuestionCard({ questions, workflowId }: { questions: QuestionVie
   const unansweredBlocking = questions.filter(
     (question) => question.blocking && answerFor(question, drafts[question.id]) === null,
   );
+  const hasSuggestions = questions.some((question) => (question.suggestions ?? []).length > 0);
   const payload = {
     answers: answered.map((question) => ({
       questionId: question.id,
@@ -201,6 +175,9 @@ export function QuestionCard({ questions, workflowId }: { questions: QuestionVie
                 )}
               </div>
 
+              {(question.suggestions ?? []).length === 0 ? (
+                <span className="muted" style={{ fontSize: 12 }}>{t('questions.noOptions')}</span>
+              ) : null}
               {other ? (
                 <TextAreaInput
                   label={t('questions.otherLabel')}
@@ -217,23 +194,30 @@ export function QuestionCard({ questions, workflowId }: { questions: QuestionVie
           );
         })}
 
-        <div className="row" style={{ justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
-          <span className="muted" style={{ fontSize: 12 }}>
-            {t('questions.submitAllHint')}
+        <div className="questionnaire-footer">
+          <Button secondary small onClick={adoptAllRecommended} disabled={!hasSuggestions}>
+            {t('questions.acceptAllRecommended')}
+          </Button>
+          <span className="muted" style={{ fontSize: 12, flex: '1 1 auto' }}>
+            {unansweredBlocking.length
+              ? t('questions.missingBlockingHint', { count: unansweredBlocking.length })
+              : t('questions.submitAllHint')}
           </span>
           <AllowedActionButton
             workflowId={workflowId}
             action="question.answer"
             targetId={questions[0]?.stageId ?? undefined}
             loading={answer.isPending}
-            disabled={!payload.answers.length || unansweredBlocking.length > 0}
+            disabled={!payload.answers.length}
             onExecute={() =>
               submit().then((result) => {
                 const next = result.questions ?? [];
                 pushToast({
                   tone: 'success',
                   title: next.length
-                    ? t('questions.nextRound', { count: next.length })
+                    ? result.resumed
+                      ? t('questions.nextRound', { count: next.length })
+                      : t('questions.partialSaved', { count: next.length })
                     : t('questions.allAnswered'),
                 });
               })

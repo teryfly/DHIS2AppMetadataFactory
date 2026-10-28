@@ -181,21 +181,21 @@
             "text": "A delivery entity linked from the pregnancy",
             "rationale": "It carries its own outcome and can be reported on alone.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           },
           {
             "id": "S2",
             "text": "The pregnancy's delivered state plus three attributes on the pregnancy",
             "rationale": "Fewer objects, but one pregnancy could not hold two deliveries.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           },
           {
             "id": "S3",
             "text": "Fields on the final antenatal visit",
             "rationale": "Cheapest, and wrong if a delivery is ever recorded without a visit.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           }
         ]
       }

@@ -8,12 +8,15 @@ import { useResolveManualCheck, useRunStage, useSubmitForApproval, useWorkflowFl
 import { useWorkflowEvents } from '@/sse/useWorkflowEvents';
 import { useProgressStore } from '@/stores/progress';
 import { ACTION, indexActions, resolveAvailability } from '@/api/actions';
-import { stageTypeLabel, stageStatusLabel, toneForStageStatus, runStatusLabel, severityLabel, toneForSeverity } from '@/lib/labels';
+import { stageTypeLabel, stageStatusLabel, toneForStageStatus, runStatusLabel } from '@/lib/labels';
 import { fmtRelTime } from '@/lib/time';
+import { pushInfo } from '@/lib/toast';
 import { usePrefsStore } from '@/stores/prefs';
+import type * as T from '@/api/types';
 import ManualAuthoring from './ManualAuthoring.vue';
 import StageChat from './StageChat.vue';
 import RunLogSheet from './RunLogSheet.vue';
+import QuestionnaireForm from '@/features/questions/QuestionnaireForm.vue';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -127,6 +130,19 @@ function onPrimary(): void {
   else submitApproval.mutate({ stageId: stageId.value });
 }
 
+function onQuestionsSubmitted(body: T.QuestionnaireAnswerView | undefined): void {
+  const open = body?.questions ?? [];
+  if (!open.length) {
+    pushInfo(t('questions.allAnswered'));
+    return;
+  }
+  pushInfo(
+    body?.resumed
+      ? t('questions.nextRound', { n: open.length })
+      : t('questions.partialSaved', { n: open.length }),
+  );
+}
+
 const checkSheet = ref(false);
 const checkNote = ref('');
 const resolve = useResolveManualCheck(() => workflowId.value);
@@ -190,6 +206,14 @@ const busy = computed(() => runStage.isPending.value || submitApproval.isPending
           </template>
           <template v-if="stage.feedback && (stage.status === 'FAILED' || stage.status === 'BLOCKED')" #details>
             <FuiNotice :text="stage.feedback.reason ?? ''" tone="danger" />
+            <ul v-if="stage.feedback.issues?.length" class="stg__issues">
+              <li v-for="(iss, i) in stage.feedback.issues" :key="iss.issueId || i">
+                <b class="mono">{{ iss.businessKey || iss.objectKey || '' }}</b>
+                <span v-if="iss.ruleId" class="stg__issue-rule mono">{{ iss.ruleId }}</span>
+                <div>{{ iss.description }}</div>
+                <div v-if="iss.suggestedAction" class="stg__issue-fix">{{ t('stage.issueSuggested') }}: {{ iss.suggestedAction }}</div>
+              </li>
+            </ul>
             <ul v-if="stage.feedback.denialReasons?.length" class="stg__denials">
               <li v-for="(d, i) in stage.feedback.denialReasons" :key="i">{{ d }}</li>
             </ul>
@@ -237,21 +261,13 @@ const busy = computed(() => runStage.isPending.value || submitApproval.isPending
 
         <FuiCard v-if="stageQuestions.length" :title="`${t('questions.title')} · ${stageQuestions.length}`">
           <p class="stg__hint">{{ t('questions.answerHint') }}</p>
-          <div class="stg__questions">
-            <div v-for="q in stageQuestions" :key="q.id" class="stg__question">
-              <div class="stg__question-head">
-                <FuiStatusTag :tone="toneForSeverity(String(q.severity))" :label="severityLabel(String(q.severity))" />
-                <FuiStatusTag v-if="q.blocking" tone="danger" :label="t('questions.blockingTag')" />
-              </div>
-              <p class="stg__question-text">{{ q.text }}</p>
-              <FuiButton
-                size="small"
-                variant="primary"
-                :label="t('questions.answer')"
-                @click="router.push('/questions/' + q.id)"
-              />
-            </div>
-          </div>
+          <QuestionnaireForm
+            :questions="stageQuestions"
+            :workflow-id="workflowId"
+            :stage-id="stageId"
+            flat
+            @submitted="onQuestionsSubmitted"
+          />
         </FuiCard>
 
         <StageChat v-if="chatable" :stage-id="stageId" :workflow-id="workflowId" />
@@ -351,16 +367,16 @@ const busy = computed(() => runStage.isPending.value || submitApproval.isPending
 .stg__ring { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: var(--fui-fs-xs); color: var(--fui-text-secondary); }
 .stg__counts { display: flex; flex-direction: column; gap: 4px; font-size: var(--fui-fs-sm); }
 .stg__denials { margin: 8px 0; padding-left: 20px; font-size: var(--fui-fs-sm); }
+.stg__issues { margin: 8px 0; padding-left: 20px; font-size: var(--fui-fs-sm); list-style: none; }
+.stg__issues li { margin-bottom: 8px; border-left: 3px solid var(--fui-danger, #b71c1c); padding-left: 8px; }
+.stg__issue-rule { color: var(--fui-text-tertiary); font-size: var(--fui-fs-xs); margin-left: 6px; }
+.stg__issue-fix { color: var(--fui-text-secondary); font-style: italic; margin-top: 2px; }
 .stg__step { margin: 8px 0 0; font-size: var(--fui-fs-sm); }
 .stg__hint { color: var(--fui-text-tertiary); font-size: var(--fui-fs-xs); margin: 6px 0 0; }
 .stg__status-btn { display: inline-flex; align-items: center; gap: 8px; padding: 0; border: 0; background: none; cursor: pointer; }
 .stg__status-link { color: var(--fui-primary); font-size: var(--fui-fs-xs); }
 .stg__run-head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
 .stg__run-actions { display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap; margin-top: var(--fui-sp-3); }
-.stg__question { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: var(--fui-sp-3); border: 1px solid var(--fui-border); border-radius: var(--fui-radius-md); }
-.stg__question-head { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.stg__question-text { margin: 0; font-size: var(--fui-fs-sm); line-height: 1.6; white-space: normal; overflow-wrap: anywhere; }
-.stg__questions { display: flex; flex-direction: column; gap: var(--fui-sp-3); margin-top: var(--fui-sp-2); }
 .stg__entries { display: flex; flex-wrap: wrap; gap: 8px; }
 .stg__wf { margin-top: var(--fui-sp-3); padding-top: var(--fui-sp-3); border-top: 1px solid var(--fui-border); }
 .stg__check-actions { display: flex; gap: 8px; }

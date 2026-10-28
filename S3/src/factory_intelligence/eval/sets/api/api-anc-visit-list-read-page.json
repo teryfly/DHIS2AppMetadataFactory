@@ -222,21 +222,21 @@
             "text": "Open on the current month",
             "rationale": "Matches how the midwife described her day, and an empty current month is itself information.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           },
           {
             "id": "S2",
             "text": "Open on the most recent month that has visits",
             "rationale": "Never shows an empty list, but hides the gap when nothing was recorded.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           },
           {
             "id": "S3",
             "text": "Start with no period filter and let the paging bound the result",
             "rationale": "One fewer decision to get wrong, at the cost of a wider first query.",
             "changesUid": false,
-            "regenerates": false
+            "regenerates": []
           }
         ]
       }
