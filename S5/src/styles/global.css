@@ -1741,6 +1741,12 @@ textarea::placeholder {
 /* ==========================================================================
    Dialogs
    ========================================================================== */
+/* @dhis2/ui's Modal portal mounts on <body> with z-index: auto, so any sticky in-page layer
+   paints through it — the workspace's .project-tabs (z-index: 8) sliced straight across the
+   delete confirmation. The app's own overlays live at 1200-1300; the portal joins that band. */
+body > .layer.fixed {
+  z-index: 1300;
+}
 .dialog-overlay {
   position: fixed;
   inset: 0;

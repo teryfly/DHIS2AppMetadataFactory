@@ -5,7 +5,7 @@ import { translateErrorCode } from '@/i18n';
 import type { ToastItem } from '@/lib/toast';
 
 function title(t: ToastItem): string {
-  if (t.errorCode) return translateErrorCode(t.errorCode, t.text);
+  if (t.errorCode) return translateErrorCode(t.errorCode, t.text, t.details);
   return t.text ?? '';
 }
 

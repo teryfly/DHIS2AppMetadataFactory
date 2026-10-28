@@ -6,13 +6,13 @@
     "lazyChunkBytes": 307200,
     "firstScreenCssBytes": 120000
   },
-  "firstScreenJsBytes": 170800,
-  "firstScreenCssBytes": 6451,
-  "lazyChunkCount": 61,
+  "firstScreenJsBytes": 178788,
+  "firstScreenCssBytes": 6787,
+  "lazyChunkCount": 63,
   "exempted": [
     {
-      "file": "ObjectGraph-7eDLhUlA.js",
-      "gzip": 61297,
+      "file": "ObjectGraph-CvmKcaS7.js",
+      "gzip": 61296,
       "reason": "UI-NFR-06：对象依赖图（React Flow）"
     },
     {
@@ -23,10 +23,10 @@
   ],
   "rows": [
     {
-      "file": "index-DdSkf5dN.js",
+      "file": "index-B-nv3ruk.js",
       "kind": "first-screen",
-      "raw": 393364,
-      "gzip": 124720,
+      "raw": 417286,
+      "gzip": 132708,
       "cap": null
     },
     {
@@ -37,157 +37,157 @@
       "cap": null
     },
     {
-      "file": "index-C6TuOSpo.css",
+      "file": "index-9vNRCoeQ.css",
       "kind": "first-screen-css",
-      "raw": 35120,
-      "gzip": 6451,
+      "raw": 37884,
+      "gzip": 6787,
       "cap": 120000
     },
     {
-      "file": "AllowedActionButton-Ey0m6W36.js",
+      "file": "AllowedActionButton-B8_PVBkm.js",
       "kind": "lazy",
       "raw": 3981,
       "gzip": 1658,
       "cap": 307200
     },
     {
-      "file": "ApiReview-DxvjME_x.js",
+      "file": "ApiReview-SyP671hK.js",
       "kind": "lazy",
       "raw": 66594,
-      "gzip": 22379,
+      "gzip": 22380,
       "cap": 307200
     },
     {
-      "file": "ApprovalsInbox-Mj2OK6a_.js",
+      "file": "ApprovalsInbox-BklDT7Yf.js",
       "kind": "lazy",
       "raw": 2804,
       "gzip": 1248,
       "cap": 307200
     },
     {
-      "file": "ArtifactGrants-DWhSWfPL.js",
+      "file": "ArtifactGrants-DQyETahB.js",
       "kind": "lazy",
       "raw": 3206,
-      "gzip": 1299,
+      "gzip": 1297,
       "cap": 307200
     },
     {
-      "file": "ArtifactReview-BwUoCdZe.js",
+      "file": "ArtifactReview-DK7szjqq.js",
       "kind": "lazy",
-      "raw": 9122,
-      "gzip": 3328,
+      "raw": 9121,
+      "gzip": 3330,
       "cap": 307200
     },
     {
-      "file": "AsyncShell-BZBFU_2L.js",
+      "file": "AsyncShell-YssS5N4b.js",
       "kind": "lazy",
       "raw": 998,
-      "gzip": 550,
+      "gzip": 548,
       "cap": 307200
     },
     {
-      "file": "AuditView-2sv9jdzD.js",
+      "file": "AuditView-DMC-2_Xq.js",
       "kind": "lazy",
       "raw": 4841,
-      "gzip": 1699,
+      "gzip": 1702,
       "cap": 307200
     },
     {
-      "file": "ChangeRequestsView-BukBZgXk.js",
+      "file": "ChangeRequestsView-BLAuuEXN.js",
       "kind": "lazy",
       "raw": 4662,
-      "gzip": 1643,
+      "gzip": 1642,
       "cap": 307200
     },
     {
-      "file": "ColumnMappingView-BAG-MYa2.js",
+      "file": "ColumnMappingView-C1cmGZzw.js",
       "kind": "lazy",
-      "raw": 2483,
-      "gzip": 1154,
+      "raw": 2806,
+      "gzip": 1240,
       "cap": 307200
     },
     {
-      "file": "Dashboard-m9ZRZsyx.js",
+      "file": "Dashboard-Z_QutRNT.js",
       "kind": "lazy",
       "raw": 6639,
-      "gzip": 2207,
+      "gzip": 2208,
       "cap": 307200
     },
     {
-      "file": "DecisionCard-DcR4lzUm.js",
+      "file": "DecisionCard-Db8dH2NZ.js",
       "kind": "lazy",
       "raw": 2839,
-      "gzip": 914,
+      "gzip": 913,
       "cap": 307200
     },
     {
-      "file": "DecisionsView-BSlkrGVh.js",
+      "file": "DecisionsView-eBXi1QDO.js",
       "kind": "lazy",
-      "raw": 1366,
-      "gzip": 705,
+      "raw": 1365,
+      "gzip": 704,
       "cap": 307200
     },
     {
-      "file": "DeploymentsView-DpznE53z.js",
+      "file": "DeploymentsView-Crp1l0Sz.js",
       "kind": "lazy",
-      "raw": 2481,
-      "gzip": 1105,
+      "raw": 2486,
+      "gzip": 1104,
       "cap": 307200
     },
     {
-      "file": "EmptyState-DMvLhHSG.js",
+      "file": "EmptyState-DuPQ8jzn.js",
       "kind": "lazy",
       "raw": 591,
-      "gzip": 303,
+      "gzip": 302,
       "cap": 307200
     },
     {
-      "file": "EnvironmentDetailView-CCUph4_1.js",
+      "file": "EnvironmentDetailView-GTzIh-QW.js",
       "kind": "lazy",
       "raw": 5428,
-      "gzip": 1588,
+      "gzip": 1587,
       "cap": 307200
     },
     {
-      "file": "EnvironmentsView-C-IffTr0.js",
+      "file": "EnvironmentsView-DoHhmbyf.js",
       "kind": "lazy",
-      "raw": 16009,
-      "gzip": 5002,
+      "raw": 16014,
+      "gzip": 5008,
       "cap": 307200
     },
     {
-      "file": "GatePage-DNegU9Fw.js",
+      "file": "GatePage-Dd7B8bWK.js",
       "kind": "lazy",
       "raw": 7139,
-      "gzip": 2473,
+      "gzip": 2474,
       "cap": 307200
     },
     {
-      "file": "GovernanceView-CIq15U9G.js",
+      "file": "GovernanceView-DFk8drlz.js",
       "kind": "lazy",
       "raw": 25665,
-      "gzip": 7274,
+      "gzip": 7275,
       "cap": 307200
     },
     {
-      "file": "HandoffView-Bvx6kNo9.js",
+      "file": "HandoffView-BM0IUaOP.js",
       "kind": "lazy",
       "raw": 4717,
-      "gzip": 1753,
+      "gzip": 1754,
       "cap": 307200
     },
     {
-      "file": "HelpDrawer-DsvlaV5J.js",
+      "file": "HelpDrawer-CXZR7f6b.js",
       "kind": "lazy",
-      "raw": 2493,
-      "gzip": 944,
+      "raw": 2777,
+      "gzip": 977,
       "cap": 307200
     },
     {
-      "file": "InputsView-Cc5AQ5Gj.js",
+      "file": "InputsView-BzSMJzKf.js",
       "kind": "lazy",
-      "raw": 5965,
-      "gzip": 2167,
+      "raw": 6658,
+      "gzip": 2401,
       "cap": 307200
     },
     {
@@ -198,220 +198,234 @@
       "cap": 307200
     },
     {
-      "file": "LlmLogView-BfdKFbDg.js",
+      "file": "LlmLogView-D6YH-i_G.js",
       "kind": "lazy",
       "raw": 4988,
       "gzip": 1736,
       "cap": 307200
     },
     {
-      "file": "LoginScreen-Ch6sfJvQ.js",
+      "file": "LoginScreen-AktuhVh2.js",
       "kind": "lazy",
       "raw": 2766,
-      "gzip": 1252,
+      "gzip": 1254,
       "cap": 307200
     },
     {
-      "file": "MetadataReview-5d6wUZ1C.js",
+      "file": "MetadataReview-D-MMPpCU.js",
       "kind": "lazy",
-      "raw": 5734,
-      "gzip": 1903,
+      "raw": 5733,
+      "gzip": 1898,
       "cap": 307200
     },
     {
-      "file": "NewProjectWizard-RrjVq7s6.js",
+      "file": "NewProjectWizard-DEpDgGHp.js",
       "kind": "lazy",
       "raw": 42298,
       "gzip": 14993,
       "cap": 307200
     },
     {
-      "file": "NotFound-Lm0MTGag.js",
+      "file": "NotFound-BZqm1GZS.js",
       "kind": "lazy",
       "raw": 489,
-      "gzip": 302,
+      "gzip": 300,
       "cap": 307200
     },
     {
-      "file": "NoticeBar-Ct5In5dh.js",
+      "file": "NoticeBar-C8vPPvFx.js",
       "kind": "lazy",
       "raw": 285,
-      "gzip": 211,
+      "gzip": 213,
       "cap": 307200
     },
     {
-      "file": "NotificationsView-Cmx9AV7z.js",
+      "file": "NotificationsView-hqfu2h-e.js",
       "kind": "lazy",
       "raw": 2431,
-      "gzip": 1048,
+      "gzip": 1047,
       "cap": 307200
     },
     {
-      "file": "ObjectGraph-7eDLhUlA.js",
+      "file": "NrrCard-CJa28hcy.js",
+      "kind": "lazy",
+      "raw": 2856,
+      "gzip": 1186,
+      "cap": 307200
+    },
+    {
+      "file": "ObjectGraph-CvmKcaS7.js",
       "kind": "exempt",
       "raw": 187259,
-      "gzip": 61297,
+      "gzip": 61296,
       "cap": null
     },
     {
-      "file": "OidcCallback-DG8ldjEl.js",
+      "file": "OidcCallback-1nZbGf2a.js",
       "kind": "lazy",
       "raw": 1238,
-      "gzip": 642,
+      "gzip": 643,
       "cap": 307200
     },
     {
-      "file": "Overview-CurnEu74.js",
+      "file": "Overview-BXz2QeRm.js",
       "kind": "lazy",
       "raw": 4978,
-      "gzip": 1818,
+      "gzip": 1816,
       "cap": 307200
     },
     {
-      "file": "ProductionExemptions-CUq2hA1K.js",
+      "file": "ProductionExemptions-Dxw1ptnE.js",
       "kind": "lazy",
       "raw": 3162,
-      "gzip": 1239,
+      "gzip": 1237,
       "cap": 307200
     },
     {
-      "file": "ProjectMembers-SuUzLi9B.js",
+      "file": "ProjectMembers-DkRTwwO3.js",
       "kind": "lazy",
       "raw": 2799,
-      "gzip": 1219,
+      "gzip": 1218,
       "cap": 307200
     },
     {
-      "file": "ProjectSettingsView-DNB1tSYm.js",
+      "file": "ProjectSettingsView-DMr7GJ3W.js",
       "kind": "lazy",
-      "raw": 8481,
-      "gzip": 2523,
+      "raw": 12454,
+      "gzip": 3422,
       "cap": 307200
     },
     {
-      "file": "ProjectWorkspace-CzBmb71w.js",
+      "file": "ProjectWorkspace-DMnVZqg5.js",
       "kind": "lazy",
       "raw": 8522,
-      "gzip": 3029,
+      "gzip": 3027,
       "cap": 307200
     },
     {
-      "file": "ProjectsList-BvxBtt47.js",
+      "file": "ProjectsList-D1hPUxTI.js",
       "kind": "lazy",
-      "raw": 2846,
-      "gzip": 1260,
+      "raw": 3167,
+      "gzip": 1306,
       "cap": 307200
     },
     {
-      "file": "RolesView-De8WxDQQ.js",
+      "file": "RolesView-DbHy_HlO.js",
       "kind": "lazy",
-      "raw": 1553,
-      "gzip": 730,
+      "raw": 1558,
+      "gzip": 732,
       "cap": 307200
     },
     {
-      "file": "RouteTabs-CUjUlGhm.js",
+      "file": "RouteTabs-Dlwq2D-L.js",
       "kind": "lazy",
       "raw": 596,
-      "gzip": 367,
+      "gzip": 369,
       "cap": 307200
     },
     {
-      "file": "RunConsole-DzE2WkVY.js",
+      "file": "RunConsole-sCanc-da.js",
       "kind": "lazy",
       "raw": 11222,
-      "gzip": 3377,
+      "gzip": 3378,
       "cap": 307200
     },
     {
-      "file": "SectionCard-Cj4aN-7j.js",
+      "file": "SectionCard-B1XW3XrX.js",
       "kind": "lazy",
       "raw": 1110,
       "gzip": 455,
       "cap": 307200
     },
     {
-      "file": "SetupSteps-x900fxii.js",
+      "file": "SetupSteps-C6hbdc7B.js",
       "kind": "lazy",
       "raw": 4490,
-      "gzip": 1646,
+      "gzip": 1648,
       "cap": 307200
     },
     {
-      "file": "SetupView-Dlniapl5.js",
+      "file": "SetupView-BvvrHnYH.js",
       "kind": "lazy",
       "raw": 1939,
       "gzip": 750,
       "cap": 307200
     },
     {
-      "file": "StageView-DWrgZUzk.js",
+      "file": "StageView-xGbap_RP.js",
       "kind": "lazy",
-      "raw": 17593,
-      "gzip": 5763,
+      "raw": 23021,
+      "gzip": 7424,
       "cap": 307200
     },
     {
-      "file": "StatusBadge-CLHQljSZ.js",
+      "file": "StatusBadge-B2xx0HIu.js",
       "kind": "lazy",
       "raw": 818,
-      "gzip": 437,
+      "gzip": 436,
       "cap": 307200
     },
     {
-      "file": "SystemSettingsView-Bzea6ehf.js",
+      "file": "SystemSettingsView-BL9uW-pg.js",
       "kind": "lazy",
-      "raw": 4344,
-      "gzip": 1605,
+      "raw": 5148,
+      "gzip": 1877,
       "cap": 307200
     },
     {
-      "file": "UsersView-GalG7E3z.js",
+      "file": "TutorialView-BdBtAEQR.js",
+      "kind": "lazy",
+      "raw": 2398,
+      "gzip": 798,
+      "cap": 307200
+    },
+    {
+      "file": "UsersView-C-_qD6uT.js",
       "kind": "lazy",
       "raw": 7895,
-      "gzip": 2344,
+      "gzip": 2345,
       "cap": 307200
     },
     {
-      "file": "ValidationIssues-BCPw6QR3.js",
+      "file": "ValidationIssues-Dd-Exy_k.js",
       "kind": "lazy",
       "raw": 3496,
-      "gzip": 1389,
+      "gzip": 1393,
       "cap": 307200
     },
     {
-      "file": "VirtualTable-BcMrdZGT.js",
+      "file": "VirtualTable-CPg4xFuI.js",
       "kind": "lazy",
       "raw": 1398,
-      "gzip": 718,
+      "gzip": 720,
       "cap": 307200
     },
     {
-      "file": "browser-DpqTwqfc.js",
+      "file": "browser-BSiOvwGQ.js",
       "kind": "lazy",
-      "raw": 360486,
-      "gzip": 115168,
+      "raw": 361658,
+      "gzip": 115453,
       "cap": 307200
     },
     {
-      "file": "dhis2-DwUnErr9.js",
+      "file": "dhis2-BIrSozc-.js",
       "kind": "lazy",
-      "raw": 157363,
-      "gzip": 42508,
+      "raw": 164148,
+      "gzip": 44165,
       "cap": 307200
     },
     {
-      "file": "enums-Aw8T091H.js",
+      "file": "enums-CeIjL2xc.js",
       "kind": "lazy",
       "raw": 3726,
-      "gzip": 1696,
+      "gzip": 1698,
       "cap": 307200
     },
     {
-      "file": "form-Cie_e56K.js",
+      "file": "form-B3qJcZr8.js",
       "kind": "lazy",
       "raw": 2559,
-      "gzip": 787,
+      "gzip": 786,
       "cap": 307200
     },
     {
@@ -436,10 +450,10 @@
       "cap": 307200
     },
     {
-      "file": "progress-DWSKyx20.js",
+      "file": "progress-rkoe8to7.js",
       "kind": "lazy",
-      "raw": 327,
-      "gzip": 240,
+      "raw": 551,
+      "gzip": 346,
       "cap": 307200
     },
     {
@@ -457,17 +471,17 @@
       "cap": 307200
     },
     {
-      "file": "useInfiniteQuery-DiindyUD.js",
+      "file": "useInfiniteQuery-C7PRINi4.js",
       "kind": "lazy",
       "raw": 1120,
       "gzip": 472,
       "cap": 307200
     },
     {
-      "file": "useProjectWorkflow-B-1-4vNS.js",
+      "file": "useProjectWorkflow-Ba2oEnSC.js",
       "kind": "lazy",
-      "raw": 4001,
-      "gzip": 1588,
+      "raw": 4089,
+      "gzip": 1617,
       "cap": 307200
     },
     {

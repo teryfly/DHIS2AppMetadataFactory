@@ -10,7 +10,7 @@ import { defineComponent, h } from 'vue';
 import { mount, flushPromises } from '@vue/test-utils';
 import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query';
 import { writeJSON, LS } from '@/lib/storage';
-import { useCreateChangeRequest, useWorkflowFlag, useCancelRun, useCancelAgentRun, useRegisterModel, useUpdateModel, useTestProvider } from './mutations';
+import { useCreateChangeRequest, useWorkflowFlag, useCancelRun, useCancelAgentRun, useRegisterModel, useUpdateModel, useTestProvider, useUpdateProject } from './mutations';
 
 type Sent = { method: string; path: string; key: string | null };
 let sent: Sent[];
@@ -244,5 +244,30 @@ describe('change request creation (UM-OPS-001)', () => {
     await flushPromises();
     expect(sent.at(-1)?.path).toBe('/api/v1/projects/PRJ-1/change-requests');
     expect(bodies.at(-1)).toMatchObject({ reason: 'retire', deletionCandidates: ['dataElement:old'] });
+  });
+});
+
+describe('project management attributes (UI-PRJ-004)', () => {
+  it('PATCHes the project named in the path and sends only the edited fields', async () => {
+    const bodies: unknown[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const headers = new Headers(init?.headers as HeadersInit | undefined);
+        sent.push({
+          method: (init?.method ?? 'GET').toUpperCase(),
+          path: String(input),
+          key: headers.get('Idempotency-Key'),
+        });
+        bodies.push(init?.body ? JSON.parse(String(init.body)) : null);
+        return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } });
+      }),
+    );
+    const update = mounted(() => useUpdateProject());
+    update.mutate({ projectId: 'PRJ-1', body: { name: 'Renamed', ownerName: 'Ana' } });
+    await flushPromises();
+    expect(sent.at(-1)).toMatchObject({ method: 'PATCH', path: '/api/v1/projects/PRJ-1' });
+    expect(bodies.at(-1)).toEqual({ name: 'Renamed', ownerName: 'Ana' });
+    expect(sent.at(-1)?.key).toMatch(/[0-9a-f-]{36}/i);
   });
 });

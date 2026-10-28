@@ -60,7 +60,7 @@ describe('the approval queue at its own address (S5IF-FLD03)', () => {
     );
     renderAt('/approvals');
     await waitFor(() => expect(asked.length).toBeGreaterThan(0));
-    expect(asked[0]).toContain('status=WAITING_APPROVAL');
+    expect(asked[0]).toContain('status=WAITING');
     expect(asked[0]).not.toContain('mine=');
 
     await userEvent.click(screen.getByRole('checkbox', { name: /Awaiting my decision/i }));

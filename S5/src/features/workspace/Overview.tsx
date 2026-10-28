@@ -41,7 +41,7 @@ export function Overview() {
     ['READY', 'RUNNING', 'WAITING_INPUT', 'MANUAL_CHECK'].includes(String(stage.status ?? '')),
   );
   const gates = useQuery(workflowGatesOptions(ctx.workflowId));
-  const waiting = (gates.data?.items ?? []).filter((gate) => gate.status === 'WAITING_APPROVAL');
+  const waiting = (gates.data?.items ?? []).filter((gate) => gate.status === 'WAITING');
 
   return (
     <div className="content-grid content-grid--aside">

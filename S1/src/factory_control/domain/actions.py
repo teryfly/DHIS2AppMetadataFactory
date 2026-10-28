@@ -60,6 +60,9 @@ STATE_NOT_ALLOWED = "STATE_NOT_ALLOWED"
 FEATURE_NOT_ENABLED = "FEATURE_NOT_ENABLED"
 #: CP-UI-021: the dev-package download exists as soon as HANDOFF has delivered one.
 PACKAGE_NOT_GENERATED = "PACKAGE_NOT_GENERATED"
+#: CP-PRJ-007: an archived project is deletable only once an export of it exists, so the
+#: delete button has to say "export first" rather than light up and then meet a 409.
+EXPORT_NOT_TAKEN = "EXPORT_NOT_TAKEN"
 
 #: Actions that exist on a workflow / project.
 PROJECT_ACTIONS: tuple[str, ...] = (
@@ -288,6 +291,9 @@ class ActionContext:
     open_run_exists: bool = False
     #: CP-UI-021: S1's own artifact index says a FRONTEND_PACKAGE exists for the project.
     frontend_package_available: bool = False
+    #: CP-PRJ-007: the same index says a PROJECT_EXPORT exists, which is what makes an
+    #: archived project deletable at all.
+    project_export_available: bool = False
     #: CP-UI-023: M4's writes are delivered (explicit switch or enforced identity).
     m4_enabled: bool = False
     #: M4's permission filter: given the action names this payload is about to offer, return the
@@ -660,10 +666,12 @@ def project_actions(ctx: ActionContext) -> list[Action]:
     # CP-PRJ-007 requires a PROJECT_EXPORT to exist before an archived one can be deleted.
     out.append(_ok("project.export"))
     out.append(_ok("project.archive") if not ctx.archived else _blocked("project.archive", PROJECT_ARCHIVED))
-    if ctx.archived:
+    if not ctx.archived:
+        out.append(_blocked("project.delete", STAGE_NOT_PASSED, details={"requires": "ARCHIVED"}))
+    elif ctx.project_export_available:
         out.append(_ok("project.delete"))
     else:
-        out.append(_blocked("project.delete", STAGE_NOT_PASSED, details={"requires": "ARCHIVED"}))
+        out.append(_blocked("project.delete", EXPORT_NOT_TAKEN, details={"requires": "PROJECT_EXPORT"}))
     return out
 
 
@@ -864,6 +872,7 @@ __all__ = [
     "M4_GATED_ACTIONS",
     "FEATURE_NOT_ENABLED",
     "PACKAGE_NOT_GENERATED",
+    "EXPORT_NOT_TAKEN",
     "Action",
     "ActionContext",
     "DESIGN_LINE_INCOMPLETE",

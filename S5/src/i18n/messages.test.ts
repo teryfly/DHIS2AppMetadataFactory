@@ -74,7 +74,7 @@ describe('i18n resources', () => {
     }
     const reasons = Object.keys(en.actionReason).filter((k) => k !== 'unknown');
     // WARNING_UNRESOLVED is an allowed-actions reason (not an HTTP error code) — assert it there.
-    for (const r of ['GATE_NOT_APPROVED', 'HIGH_QUESTION_OPEN', 'WORKFLOW_PAUSED', 'ENVIRONMENT_LOCKED', 'DESIGN_LINE_INCOMPLETE', 'WARNING_UNRESOLVED']) {
+    for (const r of ['GATE_NOT_APPROVED', 'HIGH_QUESTION_OPEN', 'WORKFLOW_PAUSED', 'ENVIRONMENT_LOCKED', 'DESIGN_LINE_INCOMPLETE', 'WARNING_UNRESOLVED', 'EXPORT_NOT_TAKEN']) {
       expect(reasons, r).toContain(r);
     }
   });

@@ -51,8 +51,19 @@ i18n.on('languageChanged', (lng) => {
 });
 
 /** Resolve a localised message for an S1 errorCode; falls back to the server message, then the code. */
-export function translateErrorCode(code: string | undefined, serverMessage?: string): string {
+export function translateErrorCode(
+  code: string | undefined,
+  serverMessage?: string,
+  details?: Record<string, unknown>,
+): string {
   if (!code) return serverMessage ?? '';
+  // A state refusal that names the missing precondition says more than the bare code does, so
+  // `details.requires` is part of the lookup before the generic sentence is allowed through.
+  const requires = details?.requires;
+  if (typeof requires === 'string') {
+    const specific = `errors.${code}_REQUIRES_${requires}`;
+    if (i18n.exists(specific)) return i18n.t(specific);
+  }
   const key = `errors.${code}`;
   if (i18n.exists(key)) return i18n.t(key);
   return serverMessage ?? code;

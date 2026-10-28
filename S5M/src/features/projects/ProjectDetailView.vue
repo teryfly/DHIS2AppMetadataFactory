@@ -51,7 +51,7 @@ const items = computed<TimelineItem[]>(() =>
 
 function waitingGate(stageId: string) {
   return (gates.data.value?.items ?? []).find(
-    (gate) => gate.stageId === stageId && gate.status === 'WAITING_APPROVAL',
+    (gate) => gate.stageId === stageId && gate.status === 'WAITING',
   );
 }
 
@@ -129,6 +129,21 @@ const navGroups = computed(() => {
           <span v-else class="pd__ver">{{ t('review.versions') }} {{ meta?.currentBlueprintVersion ?? '' }}</span>
         </template>
         <div class="pd__mode">{{ deliveryModeLabel(meta?.deliveryMode) }} · {{ projectTypeLabel(meta?.projectType) }}</div>
+        <div class="pd__actions">
+          <FuiButton size="mini" @click="router.push(`/projects/${projectId}/settings`)">
+            {{ t('project.editProject') }}
+          </FuiButton>
+          <!-- CP-PRJ-007 orders the two steps, so a live project is offered the archive and only an
+               archived one is offered deletion. Both lead to the settings actions, where
+               allowed-actions and the typed name decide whether the press can go through. -->
+          <FuiButton
+            size="mini"
+            :variant="meta?.archived ? 'danger' : 'default'"
+            @click="router.push(`/projects/${projectId}/settings`)"
+          >
+            {{ meta?.archived ? t('project.deleteProject') : t('project.archive') }}
+          </FuiButton>
+        </div>
       </FuiCard>
 
       <div v-for="group in navGroups" :key="group.label" class="pd__group">
@@ -200,6 +215,7 @@ const navGroups = computed(() => {
 .pd { padding: var(--fui-sp-4); }
 .pd__ver { font-size: var(--fui-fs-xs); color: var(--fui-text-secondary); }
 .pd__mode { font-size: var(--fui-fs-sm); color: var(--fui-text-secondary); }
+.pd__actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: var(--fui-sp-2); }
 .pd__nav { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--fui-sp-2); margin-bottom: var(--fui-sp-2); }
 .pd__navbtn { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; min-height: var(--fui-tap-min); background: var(--fui-surface); border: 1px solid var(--fui-border); border-radius: var(--fui-radius-btn); color: var(--fui-text-secondary); font-size: var(--fui-fs-xs); }
 .pd__navbtn:disabled { opacity: 0.4; }

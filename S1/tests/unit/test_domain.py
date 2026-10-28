@@ -360,7 +360,11 @@ class TestAllowedActions:
         ctx = self.context(archived=True)
         names = {a.name for a in A.project_actions(ctx) if not a.available}
         assert "project.edit" in names
-        assert "project.delete" not in names
+        # Archiving is what opens the door to deletion; the export is what walks through it
+        # (CP-PRJ-007), so an exported archived project is the one that is available.
+        assert "project.delete" in names
+        exported = self.context(archived=True, project_export_available=True)
+        assert "project.delete" not in {a.name for a in A.project_actions(exported) if not a.available}
 
     def test_a_disabled_environment_keeps_the_controls_that_can_re_enable_it(self) -> None:
         """S4 refuses an operation *about the instance*, not every operation *about the row*.

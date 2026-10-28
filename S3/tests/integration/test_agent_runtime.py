@@ -14,6 +14,7 @@ evidence survives, and that a waiting run continues in its own persisted context
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
 from typing import Any
 
@@ -58,6 +59,7 @@ from tests.integration.agent_runtime import (
     script,
     seed_project,
     stage_input,
+    suggested_question,
     unique_project_id,
 )
 
@@ -158,8 +160,9 @@ def test_the_run_writes_one_usage_row_per_call_even_for_a_run_that_fails(
 
     assert result.status == "FAILED"
     rows = _model_calls(project)
-    assert len(rows) == 2
-    assert [row.outcome for row in rows] == ["OK", "OK"]
+    assert provider.call_count == 6, "one initial answer plus five repair turns"
+    assert len(rows) == provider.call_count
+    assert all(row.outcome == "OK" for row in rows)
     assert all(row.run_id == result.run_id for row in rows)
 
 
@@ -515,6 +518,135 @@ def test_resuming_confirms_the_gated_decision_in_s2_itself(
     assert "ai.agent.resumed" in audit_types(project)
 
 
+def test_a_waiting_run_keeps_its_own_answer_for_the_resume(
+    harness: IntelligenceHarness,
+) -> None:
+    """AI-RT-015: the resumed turn must see what the model answered last turn.
+
+    Without the answer in the stored transcript the model has only the question ids, not the
+    decisions it wrote, so it re-emits them without their rejected alternatives and the
+    resumed turn is refused with AIC-004.
+    """
+    _ = harness
+    project = unique_project_id()
+    seed_project(project)
+    draft_id = open_draft(project, "MAPPING")
+    provider = install_mock_model(AgentType.MAPPING)
+    script(
+        provider,
+        AgentType.MAPPING,
+        answer(
+            operations=[],
+            decisions=[
+                {
+                    "id": "D7",
+                    "subject": "weight-data-element",
+                    "selected": {"option": "one shared data element"},
+                    "alternatives": [
+                        {"option": "one per programme", "reasonRejected": "duplicate object"}
+                    ],
+                    "confidence": 0.4,
+                    "impactLevel": "HIGH",
+                }
+            ],
+            questions=[
+                question(
+                    "q-1",
+                    "Is weight one shared data element or one per programme?",
+                    "HIGH",
+                    affects=["D7"],
+                )
+            ],
+        ),
+    )
+    waiting = api.start_agent_run(
+        request_for(
+            project,
+            AgentType.MAPPING,
+            stage="MAPPING",
+            draft_id=draft_id,
+            idempotency_key="transcript:1",
+        )
+    )
+    assert waiting.status == "WAITING_INPUT"
+
+    messages = _context_messages(str(waiting.run_id))
+    assert messages[-1]["role"] == "assistant"
+    stored = json.loads(messages[-1]["content"])
+    assert stored["decisions"][0]["alternatives"][0]["option"] == "one per programme"
+
+
+def test_an_answered_decision_is_not_asked_again_on_resume(
+    harness: IntelligenceHarness,
+) -> None:
+    """AI-AG-012: the answer *is* the confirmation; re-listing the decision must not fail
+    with AIC-005 merely because the resumed answer asks no new question about it."""
+    _ = harness
+    project = unique_project_id()
+    seed_project(project)
+    draft_id = open_draft(project, "MAPPING")
+    provider = install_mock_model(AgentType.MAPPING)
+    decision = {
+        "id": "D7",
+        "subject": "weight-data-element",
+        "selected": {"option": "one shared data element"},
+        "alternatives": [{"option": "one per programme", "reasonRejected": "duplicate object"}],
+        "confidence": 0.4,
+        "impactLevel": "HIGH",
+    }
+    script(
+        provider,
+        AgentType.MAPPING,
+        answer(
+            operations=[],
+            decisions=[decision],
+            questions=[
+                question(
+                    "q-1",
+                    "Is weight one shared data element or one per programme?",
+                    "HIGH",
+                    affects=["D7"],
+                )
+            ],
+        ),
+        answer(operations=[], decisions=[decision], questions=[]),
+    )
+    waiting = api.start_agent_run(
+        request_for(
+            project,
+            AgentType.MAPPING,
+            stage="MAPPING",
+            draft_id=draft_id,
+            idempotency_key="answered:1",
+        )
+    )
+    assert waiting.status == "WAITING_INPUT"
+
+    resumed = api.resume_agent_run(
+        str(waiting.run_id),
+        [
+            {
+                "question_local_id": "Q1",
+                "suggestion_id": "one shared data element",
+                "suggestion_texts": ["one shared data element"],
+                "answered_by": "ops",
+            }
+        ],
+        f"resume:{waiting.run_id}",
+    )
+
+    assert resumed.denial_reasons == [], resumed.denial_reasons
+    assert resumed.status == "COMPLETED"
+
+    # The resumed turn rebuilds the context; it must not append the stored copy of it again.
+    body = _context_body(str(resumed.run_id))
+    messages = list(body["messageSequence"])
+    assert body["conversationStart"] == next(
+        index for index, item in enumerate(messages) if item["role"] == "assistant"
+    )
+    assert sum("Stage: MAPPING." in item["content"] for item in messages) == 1
+
+
 def draft_section(project_id: str, section: Any, draft_id: str) -> list[dict[str, Any]]:
     """The draft's own entries for one section, read the way any caller would."""
     _ = draft_id
@@ -527,6 +659,17 @@ def draft_section(project_id: str, section: Any, draft_id: str) -> list[dict[str
 def _context_row(run_id: str) -> AgentRunContextRow | None:
     with unit_of_work() as session:
         return session.get(AgentRunContextRow, run_id)
+
+
+def _context_body(run_id: str) -> dict[str, Any]:
+    row = _context_row(run_id)
+    assert row is not None and row.context_artifact_id is not None
+    body, _classification = ai_artifacts.read_json(str(row.context_artifact_id))
+    return dict(body)
+
+
+def _context_messages(run_id: str) -> list[dict[str, Any]]:
+    return list(_context_body(run_id)["messageSequence"])
 
 
 def _confirmations(run_id: str) -> list[ConfirmationRecordRow]:
@@ -573,6 +716,215 @@ def test_a_resumed_run_replays_when_the_same_attempt_answers_again(
     assert first.status == "COMPLETED"
     assert again.patch_ids == first.patch_ids
     assert provider.call_count == 2
+
+
+def test_a_malformed_array_index_is_repaired_not_fatal(
+    harness: IntelligenceHarness,
+) -> None:
+    """A replace against an absent entry is a mechanical mistake: S2's error is fed back
+    with the array-path rules, and the next complete answer is submitted."""
+    _ = harness
+    project = unique_project_id()
+    seed_project(project)
+    draft_id = open_draft(project, "REQUIREMENTS")
+    provider = install_mock_model(AgentType.REQUIREMENTS)
+    script(
+        provider,
+        AgentType.REQUIREMENTS,
+        answer(
+            operations=[
+                {
+                    "op": "replace",
+                    "path": "/requirements/items/3/statement",
+                    "value": "a statement",
+                }
+            ]
+        ),
+        answer(operations=[add_operation("/requirements/items/-", requirement_item("art-0000000000"))]),
+    )
+
+    result = api.start_agent_run(
+        request_for(
+            project,
+            AgentType.REQUIREMENTS,
+            draft_id=draft_id,
+            idempotency_key="malformed-repair:1",
+        )
+    )
+
+    assert result.status == "COMPLETED", result.model_dump()
+    assert provider.call_count == 2
+    repair = " ".join(item["content"] for item in _context_messages(str(result.run_id)))
+    assert "array index 3 out of range" in repair
+    assert "add /<container>/-" in repair
+
+
+def test_a_cited_decision_is_registered_before_s2_sees_it(
+    harness: IntelligenceHarness,
+) -> None:
+    """FR-MAP-001, BP-VAL-010: S2 resolves a decisionId only against /architecture/decisions.
+
+    The mapping entries were cited correctly and the answer defined every decision, so
+    nothing in S3 used to object — and the run died at AI-RT-013 after spending its whole
+    repair budget on a mistake it never explained.  Now the ladder refuses it on the first
+    answer and the repair turn says which container the decision belongs in.
+    """
+    _ = harness
+    project = unique_project_id()
+    seed_project(project)
+    draft_id = open_draft(project, "MAPPING")
+    provider = install_mock_model(AgentType.MAPPING)
+    decision = {
+        "id": DECISION_ID,
+        "confidence": 1.0,
+        "subject": MAPPING_KEY,
+        "statement": "weight is one data element, reused by every programme",
+    }
+    mapping_entry = add_operation(
+        "/mapping/entries/-",
+        {
+            "businessKey": MAPPING_KEY,
+            "dhis2Type": "dataElement",
+            "decisionId": DECISION_ID,
+            "confidence": 1.0,
+            "source": {"note": "the approved domain model"},
+        },
+    )
+    script(
+        provider,
+        AgentType.MAPPING,
+        answer(operations=[mapping_entry], decisions=[decision]),
+        answer(
+            operations=[
+                add_operation(
+                    "/architecture/decisions/-",
+                    {
+                        "decisionId": DECISION_ID,
+                        "title": "Weight is one data element",
+                        "context": "growth monitoring across programmes",
+                        "decision": "model weight as one DataElement reused by every programme",
+                        "status": "PROPOSED",
+                    },
+                ),
+                mapping_entry,
+            ],
+            decisions=[decision],
+        ),
+    )
+
+    result = _mapping_run_no_discovery(project, draft_id, "decision-registered:1")
+
+    assert result.status == "COMPLETED", result.denial_reasons
+    assert provider.call_count == 2, "the ladder caught it, so S2 was never asked"
+    assert result.patch_ids
+    repair = " ".join(item["content"] for item in _context_messages(str(result.run_id)))
+    assert "no entry in /architecture/decisions registers" in repair
+    assert "references unknown decisionId" in repair
+
+
+def test_a_decision_the_draft_registers_needs_no_second_record(
+    harness: IntelligenceHarness,
+) -> None:
+    """The narrow case: an accepted decision an earlier run recorded is citable as-is, and a
+    check that read only the answer would refuse it and force a duplicate record."""
+    _ = harness
+    project = unique_project_id()
+    seed_project(project)
+    draft_id = open_draft(project, "MAPPING")
+    _seed_registry_entry(project, draft_id, "weight_kg")
+    provider = install_mock_model(AgentType.MAPPING)
+    script(
+        provider,
+        AgentType.MAPPING,
+        answer(
+            operations=[
+                add_operation(
+                    "/mapping/entries/-",
+                    {
+                        "businessKey": "map-children-under-five",
+                        "dhis2Type": "dataElement",
+                        "decisionId": DECISION_ID,
+                        "confidence": 1.0,
+                        "source": {"note": "the approved domain model"},
+                    },
+                )
+            ],
+            decisions=[
+                {
+                    "id": DECISION_ID,
+                    "confidence": 1.0,
+                    "subject": "map-children-under-five",
+                    "statement": "weight is one data element, reused by every programme",
+                }
+            ],
+        ),
+    )
+
+    result = _mapping_run_no_discovery(project, draft_id, "decision-registered-draft:1")
+
+    assert result.status == "COMPLETED", result.denial_reasons
+    assert provider.call_count == 1, "an accepted decision is not re-registered"
+
+
+def test_a_rejected_patch_asks_for_missing_business_facts_and_resumes(
+    harness: IntelligenceHarness,
+) -> None:
+    """A repair that lacks a business fact becomes the same questionnaire the first
+    requirements turn uses; the answers are then fed back into the resumed run."""
+    _ = harness
+    project = unique_project_id()
+    seed_project(project)
+    draft_id = open_draft(project, "REQUIREMENTS")
+    provider = install_mock_model(AgentType.REQUIREMENTS)
+    script(
+        provider,
+        AgentType.REQUIREMENTS,
+        answer(
+            operations=[
+                {
+                    "op": "replace",
+                    "path": "/requirements/items/3/statement",
+                    "value": "a statement",
+                }
+            ]
+        ),
+        answer(operations=[], questions=[suggested_question()]),
+        answer(operations=[add_operation("/requirements/items/-", requirement_item("art-0000000000"))]),
+    )
+
+    waiting = api.start_agent_run(
+        request_for(
+            project,
+            AgentType.REQUIREMENTS,
+            draft_id=draft_id,
+            idempotency_key="ask-after-reject:1",
+        )
+    )
+
+    assert waiting.status == "WAITING_INPUT", waiting.denial_reasons
+    assert waiting.patch_ids == [], "a blocking question submits no patch"
+    assert len(waiting.questions) == 1
+    asked = waiting.questions[0]
+    assert len(asked.suggestions) == 2
+    assert any(item.get("recommended") for item in asked.suggestions)
+    assert provider.call_count == 2, "the malformed patch, then the questionnaire"
+
+    resumed = api.resume_agent_run(
+        str(waiting.run_id),
+        [
+            {
+                "question_local_id": asked.local_id,
+                "suggestion_id": asked.suggestions[0]["id"],
+                "suggestion_texts": [asked.suggestions[0]["text"]],
+                "answered_by": "ops",
+            }
+        ],
+        f"resume:{waiting.run_id}",
+    )
+
+    assert resumed.status == "COMPLETED", resumed.denial_reasons
+    assert resumed.patch_ids
+    assert provider.call_count == 3, "the answer turn re-runs the model with the new facts"
 
 
 @pytest.mark.parametrize("state", ["COMPLETED", "FAILED"])
@@ -800,6 +1152,20 @@ def _mapping_run(project: str, draft_id: str, discovery: str, key: str) -> Agent
     )
 
 
+def _mapping_run_no_discovery(project: str, draft_id: str, key: str) -> AgentRunResult:
+    """A brownfield-free MAPPING run: no similar objects to decide about, so the only thing
+    the answer can be refused for is what it writes."""
+    return api.start_agent_run(
+        request_for(
+            project,
+            AgentType.MAPPING,
+            stage="MAPPING",
+            draft_id=draft_id,
+            idempotency_key=key,
+        )
+    )
+
+
 def test_an_answer_that_ignores_a_similar_object_fails_naming_it(
     harness: IntelligenceHarness,
 ) -> None:
@@ -820,7 +1186,7 @@ def test_an_answer_that_ignores_a_similar_object_fails_naming_it(
     result = _mapping_run(project, draft_id, discovery, "ag011-ignored")
 
     assert result.status == "FAILED", result.model_dump()
-    assert provider.call_count == 2, "AI-RT-011's one corrective retry, then the refusal"
+    assert provider.call_count == 6, "one initial answer plus five repair turns, then the refusal"
     assert "weight_kg" in " ".join(result.denial_reasons)
     assert result.patch_ids == []
     assert draft_of(draft_id).open_patch_count == 1, "only the seeded patch is in the draft"

@@ -141,6 +141,16 @@ export const handlers = [
     const found = db.state.projects.find((p) => p.id === params.id);
     return found ? json(found) : envelope('NOT_FOUND', 404);
   }),
+  http.patch(`${P}/projects/:id`, async ({ request, params }) => {
+    const guard = requireOperator(request);
+    if (guard) return guard;
+    const found = db.state.projects.find((p) => p.id === params.id);
+    if (!found) return envelope('NOT_FOUND', 404);
+    const body = (await request.json()) as Record<string, unknown>;
+    // UpdateProjectBody: an omitted field means "leave it alone".
+    Object.assign(found, body);
+    return json(found);
+  }),
 
   // ---- workflow / stages ----
   http.get(`${P}/workflows/:id`, ({ params }) =>
@@ -197,11 +207,15 @@ export const handlers = [
     const url = new URL(request.url);
     const mine = url.searchParams.get('mine') === 'true';
     const project = url.searchParams.get('projectId');
+    const status = url.searchParams.get('status');
     const rows = [
-      { id: 'GT-1', type: 'REQUIREMENT_GATE', status: 'WAITING_APPROVAL', projectId: db.DESIGN_PROJECT_ID, projectName: db.project1.name, workflowId: db.WORKFLOW_ID, environmentKey: 'env-dev', createdAt: '2026-10-03T08:00:00Z', stageId: 'ST-req', warningCount: db.gate1.warnings?.length ?? 0, unresolvedWarningCount: db.gate1.warnings?.length ?? 0, requiredApprovals: 1, approvalCount: 0, highOpenQuestionCount: 1 },
-      { id: 'GT-2', type: 'DEPLOY_GATE', status: 'WAITING_APPROVAL', projectId: db.HANDOFF_PROJECT_ID, projectName: db.project2.name, workflowId: db.WORKFLOW_ID, environmentKey: 'env-test', createdAt: '2026-10-04T09:30:00Z', warningCount: 0, unresolvedWarningCount: 2, requiredApprovals: 2, approvalCount: 1, highOpenQuestionCount: 0 },
+      { id: 'GT-1', type: 'REQUIREMENT_GATE', status: 'WAITING', projectId: db.DESIGN_PROJECT_ID, projectName: db.project1.name, workflowId: db.WORKFLOW_ID, environmentKey: 'env-dev', createdAt: '2026-10-03T08:00:00Z', stageId: 'ST-req', warningCount: db.gate1.warnings?.length ?? 0, unresolvedWarningCount: db.gate1.warnings?.length ?? 0, requiredApprovals: 1, approvalCount: 0, highOpenQuestionCount: 1 },
+      { id: 'GT-2', type: 'DEPLOY_GATE', status: 'WAITING', projectId: db.HANDOFF_PROJECT_ID, projectName: db.project2.name, workflowId: db.WORKFLOW_ID, environmentKey: 'env-test', createdAt: '2026-10-04T09:30:00Z', warningCount: 0, unresolvedWarningCount: 2, requiredApprovals: 2, approvalCount: 1, highOpenQuestionCount: 0 },
     ];
-    const mineRows = mine ? rows.filter((r) => r.id === 'GT-1') : rows;
+    // Honour the status filter like S1 does: a mock that ignores it hides the gate-vs-stage
+    // enum mismatch that made the real inbox empty.
+    const statusRows = status ? rows.filter((r) => r.status === status) : rows;
+    const mineRows = mine ? statusRows.filter((r) => r.id === 'GT-1') : statusRows;
     const filtered = project ? mineRows.filter((r) => r.projectId === project) : mineRows;
     const limit = Number(url.searchParams.get('limit') ?? '50');
     const offset = Number(url.searchParams.get('offset') ?? '0');
@@ -284,12 +298,13 @@ export const handlers = [
       };
     });
     db.state.questions = db.state.questions.map((q) => views.find((v) => v.id === q.id) ?? q);
+    const open = db.state.questions.filter((q) => q.status === 'OPEN');
     return json({
       answers: views.map((v) => ({ questionId: v.id, status: v.status })),
-      resumed: true,
+      resumed: !open.some((q) => q.blocking),
       runId: 'AR-1',
       status: 'WAITING_INPUT',
-      questions: db.state.questions.filter((q) => q.status === 'OPEN'),
+      questions: open,
     });
   }),
 

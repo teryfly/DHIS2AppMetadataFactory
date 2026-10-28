@@ -15,7 +15,7 @@ import { Button, Modal, ModalTitle, ModalContent, ModalActions } from '@dhis2/ui
 import { PageContainer, Loading } from '@/lib/PageContainer';
 import { NoticeBar } from '@/components/NoticeBar';
 import { Heading } from '@/components/typography';
-import { SelectInput, TextInput } from '@/components/form';
+import { SelectInput, TextInput, CheckboxInput } from '@/components/form';
 import { pushToast } from '@/components/toast';
 import {
   projectOptions,
@@ -24,8 +24,8 @@ import {
   uidPoolOptions,
   environmentsOptions,
 } from '@/api/queries';
-import { ACTION } from '@/api/actions';
-import { AllowedActionButton } from '@/components/AllowedActionButton';
+import { ACTION, useAllowedActions } from '@/api/actions';
+import { AllowedActionButton, actionReasonText } from '@/components/AllowedActionButton';
 import {
   useArchiveProject,
   useDeleteProject,
@@ -34,11 +34,20 @@ import {
   useReplaceTargetEnvironments,
   useSaveProjectSettings,
   useUpgradeDeliveryMode,
+  useUpdateProject,
 } from '@/api/mutations';
 import type * as T from '@/api/types';
 import { deliveryModeLabel } from '@/lib/labels';
 
 type Target = NonNullable<T.TargetEnvironmentListView['items']>[number];
+
+function normalizedProjectType(value?: string | null): 'GREENFIELD' | 'BROWNFIELD' {
+  return String(value ?? '').toUpperCase() === 'BROWNFIELD' ? 'BROWNFIELD' : 'GREENFIELD';
+}
+
+function normalizedLanguage(value?: string | null): 'zh-CN' | 'en' {
+  return String(value ?? '').startsWith('zh') ? 'zh-CN' : 'en';
+}
 
 export function ProjectSettingsView() {
   const { t } = useTranslation();
@@ -50,6 +59,7 @@ export function ProjectSettingsView() {
   const targets = useQuery(targetEnvironmentsOptions(projectId));
   const uidPool = useQuery(uidPoolOptions(projectId));
   const allEnvs = useQuery(environmentsOptions());
+  const { check } = useAllowedActions(project.data?.workflowId ?? undefined);
 
   const replaceTargets = useReplaceTargetEnvironments(projectId);
   const saveSettings = useSaveProjectSettings(projectId);
@@ -58,15 +68,28 @@ export function ProjectSettingsView() {
   const exportProject = useExportProject(projectId);
   const deleteProject = useDeleteProject(projectId);
   const importProject = useImportProject();
+  const updateProject = useUpdateProject(projectId);
 
   const [rows, setRows] = useState<Target[]>([]);
   const [reminder, setReminder] = useState('');
   const [emails, setEmails] = useState('');
   const [webhookRef, setWebhookRef] = useState('');
+  // The confirmation opens from the button below and from nothing else: it used to be seeded from
+  // a `?delete=1` query, which re-popped an irreversible dialog on every reload of a bookmarked URL.
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteWord, setDeleteWord] = useState('');
   const [confirmUpgrade, setConfirmUpgrade] = useState(false);
   const [importArtifact, setImportArtifact] = useState('');
+  const [details, setDetails] = useState({
+    name: '',
+    ownerName: '',
+    description: '',
+    projectType: 'GREENFIELD',
+    versionConstraints: '',
+    defaultLanguage: 'zh-CN',
+    translationLanguages: [] as string[],
+  });
+  const [detailsLoaded, setDetailsLoaded] = useState(false);
 
   useEffect(() => {
     if (targets.data) setRows((targets.data.items ?? []) as Target[]);
@@ -80,10 +103,66 @@ export function ProjectSettingsView() {
     setWebhookRef(String(s.notificationWebhookRef ?? ''));
   }, [settings.data]);
 
+  useEffect(() => {
+    const row = project.data;
+    if (!row || detailsLoaded) return;
+    const defaultLanguage = normalizedLanguage(row.defaultLanguage);
+    setDetails({
+      name: row.name ?? '',
+      ownerName: row.ownerName ?? '',
+      description: row.description ?? '',
+      projectType: normalizedProjectType(row.projectType),
+      versionConstraints: row.versionConstraints ?? '',
+      defaultLanguage,
+      translationLanguages: (row.translationLanguages ?? []).filter((code) => code !== defaultLanguage),
+    });
+    setDetailsLoaded(true);
+  }, [project.data, detailsLoaded]);
+
   if (project.isLoading) return <Loading />;
   const p = project.data;
   if (!p) return <NoticeBar tone="error">{t('errors.NOT_FOUND')}</NoticeBar>;
   const workflowId = p.workflowId ?? undefined;
+  // CP-PRJ-007 gives deletion two preconditions — archived, and an export on file — and S1 is the
+  // one that says which is still missing. The screen reads it rather than re-deriving it.
+  const deleteAvailability = check(ACTION.projectDelete);
+
+  const detailsDirty =
+    details.name !== (p.name ?? '') ||
+    details.ownerName !== (p.ownerName ?? '') ||
+    details.description !== (p.description ?? '') ||
+    details.projectType !== normalizedProjectType(p.projectType) ||
+    details.versionConstraints !== (p.versionConstraints ?? '') ||
+    details.defaultLanguage !== normalizedLanguage(p.defaultLanguage) ||
+    JSON.stringify(details.translationLanguages) !==
+      JSON.stringify((p.translationLanguages ?? []).filter((code) => code !== normalizedLanguage(p.defaultLanguage)));
+  const detailsValid = !!details.name.trim() && !!details.ownerName.trim();
+
+  const saveDetails = () => {
+    if (!detailsValid || p.archived) return;
+    updateProject.mutate(
+      {
+        name: details.name.trim(),
+        ownerName: details.ownerName.trim(),
+        description: details.description,
+        projectType: details.projectType,
+        versionConstraints: details.versionConstraints,
+        defaultLanguage: details.defaultLanguage,
+        translationLanguages: details.translationLanguages.filter((code) => code !== details.defaultLanguage),
+      },
+      {
+        onSuccess: () => pushToast({ tone: 'success', title: t('projectSettings.basicsSaved') }),
+      },
+    );
+  };
+  const toggleTranslation = (code: string) => {
+    setDetails((current) => ({
+      ...current,
+      translationLanguages: current.translationLanguages.includes(code)
+        ? current.translationLanguages.filter((item) => item !== code)
+        : [...current.translationLanguages, code],
+    }));
+  };
 
   const move = (index: number, delta: number) => {
     const to = index + delta;
@@ -127,6 +206,69 @@ export function ProjectSettingsView() {
   return (
     <PageContainer title={t('projectSettings.title')} description={t('page.projectSettings')} helpKey="manage">
       <div className="stack">
+        {/* ---------------------------------------------------------------- project details */}
+        <div className="panel" id="basics">
+          <Heading level={5} size="small">{t('projectSettings.basics')}</Heading>
+          <p className="muted">{t('projectSettings.basicsHelp')}</p>
+          {p.archived ? (
+            <NoticeBar tone="warning" title={t('projectSettings.archivedReadonly')}>
+              {t('projectSettings.archivedReadonlyBody')}
+            </NoticeBar>
+          ) : null}
+          <div className="stack" style={{ maxWidth: 520 }}>
+            <TextInput label={t('projectSettings.name')} value={details.name} onChange={(v) => setDetails((d) => ({ ...d, name: v }))} required disabled={p.archived} />
+            <TextInput label={t('projectSettings.ownerName')} value={details.ownerName} onChange={(v) => setDetails((d) => ({ ...d, ownerName: v }))} required disabled={p.archived} />
+            <TextInput label={t('projectSettings.description')} value={details.description} onChange={(v) => setDetails((d) => ({ ...d, description: v }))} disabled={p.archived} />
+            <SelectInput
+              label={t('projectSettings.projectType')}
+              value={details.projectType}
+              onChange={(v) => setDetails((d) => ({ ...d, projectType: v }))}
+              disabled={p.archived}
+              options={[
+                { value: 'GREENFIELD', label: t('wizard.typeGreenfield') },
+                { value: 'BROWNFIELD', label: t('wizard.typeBrownfield') },
+              ]}
+            />
+            <TextInput label={t('projectSettings.versionConstraints')} value={details.versionConstraints} onChange={(v) => setDetails((d) => ({ ...d, versionConstraints: v }))} disabled={p.archived} />
+            <SelectInput
+              label={t('projectSettings.defaultLanguage')}
+              value={details.defaultLanguage}
+              onChange={(v) => setDetails((d) => ({ ...d, defaultLanguage: v }))}
+              disabled={p.archived}
+              options={[
+                { value: 'zh-CN', label: '简体中文' },
+                { value: 'en', label: 'English' },
+              ]}
+            />
+            <div>
+              <label className="muted" style={{ fontSize: 12 }}>{t('projectSettings.translationLanguages')}</label>
+              <div className="row">
+                {(['zh-CN', 'en'] as const).map((code) => (
+                  <CheckboxInput
+                    key={code}
+                    label={code === 'zh-CN' ? '简体中文' : 'English'}
+                    checked={code === details.defaultLanguage || details.translationLanguages.includes(code)}
+                    disabled={p.archived || code === details.defaultLanguage}
+                    onChange={() => toggleTranslation(code)}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="row">
+              <AllowedActionButton
+                workflowId={workflowId}
+                action={ACTION.projectEdit}
+                tone="primary"
+                loading={updateProject.isPending}
+                disabled={!detailsDirty || !detailsValid || !!p.archived}
+                onExecute={saveDetails}
+              >
+                {t('projectSettings.saveBasics')}
+              </AllowedActionButton>
+            </div>
+          </div>
+        </div>
+
         {/* ---------------------------------------------------------------- environments */}
         <div className="panel">
           <Heading level={5} size="small">{t('wizard.targetsLabel')}</Heading>
@@ -204,7 +346,7 @@ export function ProjectSettingsView() {
         </div>
 
         {/* ---------------------------------------------------------------- export / archive / delete */}
-        <div className="panel">
+        <div className="panel" id="danger">
           <Heading level={5} size="small">{t('projectSettings.dangerZone')}</Heading>
           <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
             <AllowedActionButton
@@ -216,24 +358,38 @@ export function ProjectSettingsView() {
                 exportProject.mutate(undefined, {
                   // The export is accepted as a job; the file itself becomes a PROJECT_EXPORT
                   // artifact. Saying "accepted" and sending the operator to where it lands is the
-                  // honest version of a button that used to discard the answer.
+                  // honest version of a button that used to discard the answer. A failure is not
+                  // toasted here — the mutation cache raises the one localised toast (UI-REQ-002).
                   onSuccess: () => pushToast({ tone: 'success', title: t('projectSettings.exportAccepted'), body: t('projectSettings.exportWhere') }),
                 })
               }
             >
               {t('projectSettings.export')}
             </AllowedActionButton>
-            <AllowedActionButton workflowId={workflowId} action={ACTION.projectArchive} tone="secondary" loading={archiveProject.isPending} onExecute={() => archiveProject.mutate(undefined, { onSuccess: () => pushToast({ tone: 'success', title: t('projectSettings.archived') }) })}>
-              {t('projectSettings.archive')}
-            </AllowedActionButton>
-            <AllowedActionButton workflowId={workflowId} action={ACTION.projectDelete} tone="destructive" onExecute={() => setConfirmDelete(true)}>
-              {t('common.delete')}
-            </AllowedActionButton>
+            {/* The two steps are ordered: a live project is archived here, and only an archived one
+                is ever offered the irreversible button. */}
+            {!p.archived ? (
+              <AllowedActionButton workflowId={workflowId} action={ACTION.projectArchive} tone="secondary" loading={archiveProject.isPending} onExecute={() => archiveProject.mutate(undefined, { onSuccess: () => pushToast({ tone: 'success', title: t('projectSettings.archived') }) })}>
+                {t('projectSettings.archive')}
+              </AllowedActionButton>
+            ) : null}
+            {p.archived ? (
+              <AllowedActionButton workflowId={workflowId} action={ACTION.projectDelete} tone="destructive" onExecute={() => setConfirmDelete(true)}>
+                {t('common.delete')}
+              </AllowedActionButton>
+            ) : null}
             <Button secondary onClick={() => navigate(`/projects/${projectId}/overview`)}>
               {t('common.back')}
             </Button>
           </div>
-          <p className="muted">{t('projectSettings.archiveBeforeDelete')}</p>
+          <p className="muted">
+            {p.archived && !deleteAvailability.available
+              ? actionReasonText(t, deleteAvailability)
+              : t('projectSettings.archiveBeforeDelete')}
+          </p>
+          <NoticeBar tone="warning" title={t('projectSettings.deleteCascadeTitle')}>
+            {t('projectSettings.deleteCascadeBody')}
+          </NoticeBar>
         </div>
 
         {/* ---------------------------------------------------------------- import */}
@@ -271,16 +427,19 @@ export function ProjectSettingsView() {
         <ModalContent>
           <div className="stack">
             <p>{t('projectSettings.deleteBody', { name: String(p.name ?? projectId) })}</p>
+            <p className="muted">{t('projectSettings.deleteCascadeBody')}</p>
             <TextInput label={t('projectSettings.deleteConfirmField')} value={deleteWord} onChange={setDeleteWord} />
           </div>
         </ModalContent>
         <ModalActions>
           <Button secondary onClick={() => setConfirmDelete(false)}>{t('common.cancel')}</Button>
-          <Button
-            destructive
-            disabled={deleteWord.trim() !== String(p.name ?? '')}
+          <AllowedActionButton
+            workflowId={workflowId}
+            action={ACTION.projectDelete}
+            tone="destructive"
             loading={deleteProject.isPending}
-            onClick={() => {
+            disabled={deleteWord.trim() !== String(p.name ?? '')}
+            onExecute={() => {
               deleteProject.mutate(undefined, {
                 onSuccess: () => {
                   setConfirmDelete(false);
@@ -291,7 +450,7 @@ export function ProjectSettingsView() {
             }}
           >
             {t('common.delete')}
-          </Button>
+          </AllowedActionButton>
         </ModalActions>
       </Modal>
       ) : null}

@@ -200,6 +200,39 @@ def test_a_shipped_source_carries_the_prose_and_the_declaration(relative: str) -
     assert declaration.source_hash.startswith("sha256:")
 
 
+@pytest.mark.parametrize(
+    "relative",
+    [
+        "requirements/requirements.consolidate.v1.md",
+        "domain/domain.model.v1.md",
+        "mapping/mapping.decide.v1.md",
+        "metadata_design/metadata_design.expression.v1.md",
+        "api/api.design.v1.md",
+        "ui/ui.design.v1.md",
+        "fixture/fixture.specify.v1.md",
+    ],
+    ids=[
+        "requirements.consolidate.v1",
+        "domain.model.v1",
+        "mapping.decide.v1",
+        "metadata_design.expression.v1",
+        "api.design.v1",
+        "ui.design.v1",
+        "fixture.specify.v1",
+    ],
+)
+def test_a_question_prompt_asks_for_a_recommended_answer(relative: str) -> None:
+    """UI-Q-001: the review screen adopts the model's recommendation in one click, so every
+    question must arrive with complete candidate answers and an explicit recommendation."""
+    text = (PROMPT_SOURCE_ROOT / relative).read_text(encoding="utf-8")
+    body = parse_source(text, path=relative).body
+    assert "2–5 `suggestions`" in body
+    assert "recommended: true" in body
+    assert "exactly one" in body, "a SINGLE question needs one recommendation"
+    assert "at least one" in body, "a MULTIPLE question needs at least one recommendation"
+    assert "DHIS2" in body, "the options must be grounded in DHIS2 modelling, not generic prose"
+
+
 def test_review_explain_v2_is_explain_only_and_carries_the_answer_envelope() -> None:
     """AI-AG-008 read against AI-RT-013: the Review Assistant is ``EXPLAIN_ONLY`` — its spec
     reports ``accepts_patch()`` False — so its v2 prompt must stop guiding the model to author a

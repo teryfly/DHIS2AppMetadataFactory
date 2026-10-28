@@ -140,6 +140,7 @@ export type TargetEnvironmentView = Schemas['TargetEnvironmentView'];
 
 // Request bodies (typed inputs the wizard / forms submit).
 export type CreateProjectBody = Schemas['CreateProjectBody'];
+export type UpdateProjectBody = Schemas['UpdateProjectBody'];
 export type CreateChangeRequestBody = Schemas['CreateChangeRequestBody'];
 export type TargetEnvironmentBody = Schemas['TargetEnvironmentBody'];
 export type CreateEnvironmentRequest = Schemas['CreateEnvironmentRequest'];

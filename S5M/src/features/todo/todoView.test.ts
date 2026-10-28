@@ -23,7 +23,7 @@ vi.mock('@/api/queries', async () => {
   const { ref } = await import('vue');
   const gates = ref<Record<string, unknown>>({
     items: [
-      { id: 'GT-1', type: 'REQUIREMENT_GATE', status: 'WAITING_APPROVAL', projectName: 'ANC Tally', environmentKey: 'env-dev', createdAt: '2026-10-03T08:00:00Z' },
+      { id: 'GT-1', type: 'REQUIREMENT_GATE', status: 'WAITING', projectName: 'ANC Tally', environmentKey: 'env-dev', createdAt: '2026-10-03T08:00:00Z' },
     ],
   });
   const projects = ref<Record<string, unknown>>({

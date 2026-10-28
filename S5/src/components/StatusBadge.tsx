@@ -10,6 +10,8 @@ const STATUS_SKIN: Record<string, Skin> = {
   RUNNING: 'neutral',
   WAITING_INPUT: 'neutral',
   WAITING_APPROVAL: 'neutral',
+  // Gates use WAITING; stages use WAITING_APPROVAL.  Both read as "waiting for approval".
+  WAITING: 'neutral',
   MANUAL_CHECK: 'neutral',
   VALIDATED: 'positive',
   PASSED: 'positive',

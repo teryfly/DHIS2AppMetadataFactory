@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Any
 
 from fastapi import APIRouter, Body, Request
+from sqlalchemy import select
 
 from factory_control import iam
 from factory_control import store as S
 from factory_control.errors import IDEMPOTENCY_HEADER, NotFoundControlError
+from factory_control.models import EventStreamRecord
 from factory_control.rest.deps import (
     authorize,
     authorize_stage,
@@ -100,21 +103,128 @@ def get_stage(request: Request, stage_id: str) -> dict[str, Any]:
                 current_stage_id=workflow.current_stage_id,
             ).get(stage.id),
         )
-        view["stageRuns"] = [
-            {
-                "id": r.id,
-                "attempt": r.attempt,
-                "agentRunIds": r.agent_run_ids,
-                "executionIds": r.execution_ids,
-                "buildIds": r.build_ids,
-                "result": r.result,
-            }
-            for r in S.stage_runs(ctx.session, stage_id)
-        ]
+        view["stageRuns"] = _stage_run_history(
+            ctx.session, workflow.id, stage_id, S.stage_runs(ctx.session, stage_id)
+        )
         view["questions"] = [
             Q.question_view(q) for q in S.questions_of(ctx.session, workflow.id, stage_id=stage_id)
         ]
         return view
+
+
+#: State/progress events that explain one attempt.  Progress is the step timeline; the
+#: agent/stage entries give the attempt a start and an outcome line.
+_STAGE_RUN_EVENT_TYPES = (
+    "agent.progress",
+    "execution.progress",
+    "agent.started",
+    "agent.completed",
+    "stage.started",
+    "stage.waiting_input",
+    "stage.failed",
+    "stage.blocked",
+    "stage.passed",
+)
+
+
+def _stage_run_history(session: Any, workflow_id: str, stage_id: str, runs: list[Any]) -> list[dict[str, Any]]:
+    """Every attempt with the log lines that belong to it.
+
+    Progress rows written before this change carry ``agentRunId: null``.  The attempt's own
+    creation time is therefore the primary boundary; the run ids only *add* rows, so an old
+    log is still attributed to the attempt it happened in rather than to the stage's latest.
+    """
+    events = list(
+        session.execute(
+            select(EventStreamRecord)
+            .where(
+                EventStreamRecord.workflow_id == workflow_id,
+                EventStreamRecord.event_type.in_(_STAGE_RUN_EVENT_TYPES),
+            )
+            .order_by(EventStreamRecord.sequence)
+        ).scalars()
+    )
+    out: list[dict[str, Any]] = []
+    # Each attempt's real start is the stage.started event that opened it.  That event is
+    # written just before the StageRun row, so the row's created_at alone would push the next
+    # attempt's start line into the previous log.  Resume transitions carry the runId; a
+    # plain run/rerun does not, so the nearest event within five seconds is the fallback.
+    starts: dict[str, Any] = {}
+    staged_starts = [
+        event
+        for event in events
+        if event.event_type == "stage.started"
+        and (event.payload or {}).get("stageId") == stage_id
+    ]
+    for event in staged_starts:
+        run_id = (event.payload or {}).get("runId")
+        if not run_id:
+            continue
+        for run in runs:
+            if run_id in (run.agent_run_ids or []):
+                starts[run.id] = min(starts.get(run.id, event.occurred_at), event.occurred_at)
+    for run in runs:
+        if run.id in starts or run.created_at is None:
+            continue
+        nearby = [
+            event.occurred_at
+            for event in staged_starts
+            if event.occurred_at <= run.created_at
+            and run.created_at - event.occurred_at <= timedelta(seconds=5)
+        ]
+        if nearby:
+            starts[run.id] = max(nearby)
+    for index, run in enumerate(runs):
+        start = starts.get(run.id) or run.created_at
+        next_run = runs[index + 1] if index + 1 < len(runs) else None
+        end = (starts.get(next_run.id) or next_run.created_at) if next_run is not None else None
+        run_ids = {str(item) for item in (run.agent_run_ids or [])}
+        log: list[dict[str, Any]] = []
+        for event in events:
+            payload = dict(event.payload or {})
+            belongs_to_run = (
+                payload.get("runId") in run_ids or payload.get("agentRunId") in run_ids
+            )
+            if not belongs_to_run:
+                if start is not None and event.occurred_at < start:
+                    continue
+                if end is not None and event.occurred_at >= end:
+                    continue
+                if payload.get("stageId") != stage_id:
+                    continue
+            step = payload.get("step")
+            message = payload.get("message")
+            if event.event_type != "agent.progress" and event.event_type != "execution.progress":
+                step = step or event.event_type
+                message = message or str(payload.get("status") or payload.get("to") or event.event_type)
+            data = dict(payload.get("data") or {})
+            log.append(
+                {
+                    "seq": event.sequence,
+                    "at": event.occurred_at,
+                    "eventType": event.event_type,
+                    "step": step,
+                    "message": message,
+                    "fraction": payload.get("completedFraction"),
+                    "patchCount": data.get("patchCount", payload.get("patchCount")),
+                    "questionCount": data.get("questionCount", payload.get("questionCount")),
+                }
+            )
+        out.append(
+            {
+                "id": run.id,
+                "attempt": run.attempt,
+                "agentRunIds": list(run.agent_run_ids or []),
+                "executionIds": list(run.execution_ids or []),
+                "buildIds": list(run.build_ids or []),
+                "result": run.result,
+                "createdAt": run.created_at,
+                "updatedAt": run.updated_at,
+                "completedAt": run.completed_at,
+                "log": log,
+            }
+        )
+    return out
 
 
 @router.post(

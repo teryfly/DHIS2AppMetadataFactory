@@ -98,7 +98,7 @@ def test_similar_is_empty_and_unwarned_without_a_discovery_artifact() -> None:
 # --- _append_feedback: a truncated answer is called out as truncated ----------------
 
 
-def _turn(*, truncated: bool) -> Turn:
+def _turn(*, truncated: bool, patch_agent: bool = False) -> Turn:
     report = ValidationReport()
     report.stopped_at = LADDER_ENVELOPE
     report.add(Finding(rule_id="AIX-999", ladder=LADDER_ENVELOPE, message="the answer was not JSON"))
@@ -112,6 +112,7 @@ def _turn(*, truncated: bool) -> Turn:
     )
     turn.report = report
     turn.truncated = truncated
+    turn.patch_agent = patch_agent
     return turn
 
 
@@ -139,3 +140,25 @@ def test_the_corrective_feedback_stays_plain_when_the_answer_was_not_truncated()
     assert "truncat" not in text.lower()
     assert "max_output_tokens" not in text
     assert "previous answer was refused" in text.lower()
+    # AI-AG-003: a re-stated decision is judged again; without saying so the model drops the
+    # alternatives it had already given and the retry dies on AIC-004 instead of the finding.
+    assert "repeat its selected option" in text
+
+
+def test_a_patch_repair_states_the_array_path_rules_and_the_unapplied_draft() -> None:
+    """A rejected `replace /useCases/items/3/steps` must come back with the rule that
+    `-` appends and a numeric index addresses only an entry the draft already has."""
+    text = _feedback_text(_turn(truncated=False, patch_agent=True))
+    assert "array index N out of range" in text
+    assert "add /<container>/-" in text
+    assert "never an array index" in text
+    assert "WAITING_INPUT" in text
+    # A repair that really lacks a business fact must turn into a questionnaire, not a guess.
+    assert "business fact is missing" in text
+    assert "2–5 complete suggested answers" in text
+    assert "operations: []" in text
+
+
+def test_an_explain_only_repair_does_not_restate_patch_paths() -> None:
+    text = _feedback_text(_turn(truncated=False, patch_agent=False))
+    assert "add /<container>/-" not in text

@@ -82,7 +82,66 @@ const P = 'proj-1';
 const W = 'wf-1';
 const STAGE_COMPILE = 'stage-baseline-compile';
 
+// The project row is live because PATCH /projects/{id} edits it from the settings screen.
+const projectRow = {
+  id: P,
+  name: '免疫规划试点',
+  key: 'epi',
+  ownerName: 'Ana',
+  description: 'mock',
+  projectType: 'GREENFIELD',
+  versionConstraints: '2.41.x',
+  defaultLanguage: 'zh-CN',
+  translationLanguages: ['en'],
+  status: 'ACTIVE',
+  deliveryMode: 'B',
+  workflowId: W,
+  workflowStatus: 'IN_PROGRESS',
+  currentStageId: STAGE_COMPILE,
+  archived: false,
+  currentBlueprintVersion: '1.0.0',
+  targetEnvironments: [{ environmentKey: 'dev', name: 'DEV', environmentClass: 'TEST', promotionOrder: 1, isDesignReference: false }],
+};
+
 const envelope = (items, extra = {}) => ({ items, limit: items.length, total: items.length, offset: 0, ...extra });
+
+// One questionnaire for the review page: a recommended single-choice question and a
+// multi-choice one, so "accept all recommendations" has both paths to exercise.
+const mockQuestions = [
+  {
+    id: 'q-1',
+    workflowId: W,
+    projectId: P,
+    stageId: STAGE_COMPILE,
+    text: '年龄字段是否包含边界？',
+    severity: 'HIGH',
+    answerMode: 'SINGLE',
+    blocking: true,
+    status: 'OPEN',
+    affects: ['dataElement:age'],
+    suggestions: [
+      { id: 's1', text: '包含边界（沿用现有数据元）', rationale: '与现有 DHIS2 数据元口径一致，不新增对象。', recommended: true, changesUid: false, regenerates: [] },
+      { id: 's2', text: '不包含边界（新建数据元）', rationale: '会新增数据元并改变校验规则。', recommended: false, changesUid: true, regenerates: ['dataElement:age'] },
+    ],
+  },
+  {
+    id: 'q-2',
+    workflowId: W,
+    projectId: P,
+    stageId: STAGE_COMPILE,
+    text: '哪些机构共用这套数据？',
+    severity: 'MEDIUM',
+    answerMode: 'MULTIPLE',
+    blocking: false,
+    status: 'OPEN',
+    affects: ['orgUnit:facility'],
+    suggestions: [
+      { id: 'f1', text: 'Kenyatta 医院', rationale: '现有机构，直接复用。', recommended: true },
+      { id: 'f2', text: 'Mbagathi 医院', rationale: '现有机构，直接复用。', recommended: true },
+      { id: 'f3', text: '新建试点机构', rationale: '会新增机构并改变数据范围。', recommended: false, changesUid: true },
+    ],
+  },
+];
 
 /** name → the row S1 would return. Values are accepted and dropped (S5IF-G09). */
 const secretStore = new Map();
@@ -161,13 +220,12 @@ let patchClosed = false;
 
 const routes = {
   'GET /projects': () => envelope(bare ? [] : [
-    { id: P, name: '免疫规划试点', key: 'epi', description: 'mock', status: 'ACTIVE', deliveryMode: 'B', archived: false },
+    projectRow,
     // What this run imported shows up here, so an "import accepted; the new project is X" toast is
     // followed by a list that actually contains X.
     ...importedProjects,
   ]),
-  [`GET /projects/${P}`]: () => ({ id: P, name: '免疫规划试点', key: 'epi', status: 'ACTIVE', deliveryMode: 'B', currentBlueprintVersion: '1.0.0',
-      targetEnvironments: [{ environmentKey: 'dev', name: 'DEV', environmentClass: 'TEST', promotionOrder: 1, isDesignReference: false }] }),
+  [`GET /projects/${P}`]: () => projectRow,
   [`GET /projects/${P}/workflow`]: () => ({ id: W, projectId: P, status: 'IN_PROGRESS', currentStageId: STAGE_COMPILE, currentStageType: 'BASELINE_COMPILE' }),
   [`GET /workflows/${W}`]: () => ({ id: W, projectId: P, status: 'IN_PROGRESS' }),
   [`GET /workflows/${W}/stages`]: () => envelope([
@@ -212,6 +270,11 @@ const routes = {
       { action: 'member.manage', available: true },
       { action: 'restricted_grant.manage', available: true },
       { action: 'production_exemption.manage', available: true },
+      // project_actions() answers these for a non-archived project; the settings screen gates its
+      // detail save and its danger zone on them, so the harness has to answer them too.
+      { action: 'project.edit', available: true },
+      { action: 'project.archive', available: true },
+      { action: 'project.export', available: true },
       // CP-UI-021: S1 answers the development package action from its own artifact index
       // (`domain/actions.py:695`), and the Handoff page gates on it. `uncompiled` is the lever that
       // withholds the package below, so it withholds the action here too — the two answers have to
@@ -316,7 +379,9 @@ const routes = {
   // `canChange`) rendered as nothing here and no test on the phone could see them at all.
   'GET /gates/gate-1/explanation': () => explanation('gate-1', 'REQUIREMENT_GATE', []),
   'GET /gates/gate-warn/explanation': () => explanation('gate-warn', 'PACKAGE_GATE', [{ issueId: 'w1', level: 'WARNING', message: '选项集顺序与需求不一致' }]),
-  'GET /questions/q-1': () => ({ id: 'q-1', workflowId: W, projectId: P, stageId: STAGE_COMPILE, text: '年龄字段是否包含边界？', severity: 'HIGH', status: 'OPEN', suggestions: [{ id: 's1', text: '包含边界' }, { id: 's2', text: '不包含边界' }] }),
+  'GET /questions/q-1': () => mockQuestions[0],
+  'GET /questions/q-2': () => mockQuestions[1],
+  [`GET /workflows/${W}/questions`]: () => envelope(mockQuestions),
   'GET /deployments': () => envelope([]),
   'GET /deployment-runs': () => envelope([run()]),
   [`GET /workflows/${W}/deployment-runs`]: () => envelope([run()]),
@@ -475,7 +540,7 @@ function gate(id, type, warnings) {
     workflowId: W,
     projectId: P,
     stageId: STAGE_COMPILE,
-    status: 'WAITING_APPROVAL',
+    status: 'WAITING',
     // S1's own tokens: the console names a gate by the work it closes, and a harness that invents
     // its own type words leaves that mapping — and any test of it — pointing at nothing
     type,
@@ -1092,6 +1157,15 @@ const server = createServer((req, res) => {
       // ---- M4 writes (CP-UI-023). Each mutates the live rows above and answers with the projection
       // S1 answers with, so the screen's re-read shows the write rather than the fixture.
       //
+      // UI-PRJ-004: management attributes. An omitted field means "leave it alone", exactly as
+      // UpdateProjectBody declares, so the live row is merged rather than replaced.
+      if (path === `/projects/${P}` && req.method === 'PATCH') {
+        if (echo && typeof echo === 'object') Object.assign(projectRow, echo);
+        res.writeHead(200, { ...cors, 'Content-Type': 'application/json', 'X-Correlation-Id': 'mock' });
+        res.end(JSON.stringify(projectRow));
+        return;
+      }
+      //
       // Membership is a *set*: `PUT /projects/{id}/members` carries the whole list, rows not in it
       // are removed. Answering an echo here would let a page that dropped an untouched row pass.
       if (path === `/projects/${P}/members` && req.method === 'PUT') {
@@ -1397,6 +1471,41 @@ const server = createServer((req, res) => {
         importedProjects.push(restored);
         res.writeHead(202, { ...cors, 'Content-Type': 'application/json', 'X-Correlation-Id': 'mock' });
         res.end(JSON.stringify({ stepRunId: restored.id, accepted: true }));
+        return;
+      }
+      // CP-Q-005: one questionnaire submit. The harness records the answer on the question it
+      // names and hands back the still-open rows, so the review page can render a partial answer
+      // and the next round the way S1 does.
+      if (path === '/questions/answers' && req.method === 'POST') {
+        const submitted = Array.isArray(echo?.answers) ? echo.answers : [];
+        const answered = submitted.map((answer) => {
+          const question = mockQuestions.find((row) => row.id === answer.questionId);
+          if (!question) return { questionId: answer.questionId, status: 'ANSWERED' };
+          const ids = Array.isArray(answer.suggestionIds) ? answer.suggestionIds : [];
+          const chosen = (question.suggestions ?? []).filter((suggestion) => ids.includes(suggestion.id));
+          const text = [...chosen.map((suggestion) => String(suggestion.text ?? '')), String(answer.customText ?? '')]
+            .filter(Boolean)
+            .join('; ');
+          question.status = 'ANSWERED';
+          question.answer = {
+            suggestionId: chosen[0]?.id ?? null,
+            suggestionIds: chosen.map((suggestion) => suggestion.id),
+            suggestionTexts: chosen.map((suggestion) => String(suggestion.text ?? '')),
+            customText: answer.customText ?? null,
+            text,
+            answeredAt: new Date().toISOString(),
+          };
+          return { questionId: question.id, status: 'ANSWERED' };
+        });
+        const open = mockQuestions.filter((question) => question.status === 'OPEN');
+        res.writeHead(200, { ...cors, 'Content-Type': 'application/json', 'X-Correlation-Id': 'mock' });
+        res.end(JSON.stringify({
+          answers: answered,
+          resumed: false,
+          runId: 'AR-1',
+          status: 'WAITING_INPUT',
+          questions: open,
+        }));
         return;
       }
       res.writeHead(200, { ...cors, 'Content-Type': 'application/json', 'X-Correlation-Id': 'mock' });

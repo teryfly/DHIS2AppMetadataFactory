@@ -178,7 +178,7 @@ export default {
     remindHours: '提醒时长（小时）', export: '导出', importProjects: '导入', archive: '归档',
     importArtifact: '导出产物的 ID', importHelp: '导入会新建一个项目：没有目标环境，设计线回到草稿。',
     imported: '导入已受理，新项目 id：{id}',
-    unarchive: '取消归档', deleteProject: '删除项目', deleteNeedsArchive: '删除前需先归档并导出',
+    deleteProject: '删除项目', deleteNeedsArchive: '删除前需先归档并导出',
     deleteCascade: '删除会清除该项目的全部关联数据：工作流与阶段、输入与产物内容、部署记录、成员与授权、通知。审计记录与导出产物按保留策略保留，操作不可撤销。',
     deleteConfirmType: '请输入项目名称以确认删除', upgradeMode: '升级交付方式', upgradeDone: '交付方式已升级', upgradeSoon: '交付方式升级为后续版本提供',
     changeDesignRef: '更换设计基准', designRefImpact: '更换后编译与校验将以新基准为准', envOrderHint: '先测试、后生产',
@@ -590,7 +590,7 @@ export default {
   a11y: { skip: '跳到主内容', closeDialog: '关闭', main: '主内容' },
   errors: {
     OPERATOR_REQUIRED: '该操作需要填写操作人姓名（附在 X-Operator）', IDEMPOTENCY_KEY_REQUIRED: '该请求需要幂等键；正式提交不会自动重试',
-    INVALID_STATE: '当前状态不允许此操作', PROJECT_ARCHIVED: '项目已归档，为只读',
+    INVALID_STATE: '当前状态不允许此操作', INVALID_STATE_REQUIRES_ARCHIVED: '请先归档项目：只有已归档的项目才能删除', INVALID_STATE_REQUIRES_PROJECT_EXPORT: '请先导出项目：删除要求已经有一份导出记录', PROJECT_ARCHIVED: '项目已归档，为只读',
     UPLOAD_REJECTED: '上传被拒：文件类型或大小超出限制', REQUEST_IN_PROGRESS: '相同幂等键的请求仍在处理中',
     IDEMPOTENCY_CONFLICT: '幂等键已被不同内容使用', NOT_FOUND: '要查看的对象不存在',
     GATE_NOT_APPROVED: '所需审批尚未通过', APPROVAL_INVALIDATED: '内容已变化，请重新查看',
@@ -651,7 +651,7 @@ export default {
     STAGE_NOT_WAITING: '阶段未处于等待态', STAGE_NOT_IN_MANUAL_CHECK: '阶段不在待人工核实', STAGE_NOT_PASSED: '阶段尚未通过',
     DESIGN_LINE_INCOMPLETE: '设计主线未完成', RUN_OPEN_FOR_ENVIRONMENT: '该环境已有进行中的任务', NO_OPEN_RUN: '没有进行中的任务',
     GATE_NOT_WAITING: '审批未处于等待态', HIGH_QUESTION_OPEN: '存在未回答的高优先级问题', WARNING_UNRESOLVED: '存在未处置的警告',
-    MAPPING_FROZEN_BY_GATE: '映射已被审批冻结', unknown: '当前不可用',
+    MAPPING_FROZEN_BY_GATE: '映射已被审批冻结', EXPORT_NOT_TAKEN: '该项目还没有导出记录', unknown: '当前不可用',
   },
   auth: {
     login: '登录', logout: '退出登录', signIn: '登录', username: '账号', password: '密码',

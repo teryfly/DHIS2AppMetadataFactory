@@ -78,6 +78,13 @@ def test_every_gate_type_has_an_approver() -> None:
         )
 
 
+def test_domain_gate_is_granted_to_the_solution_architect_only() -> None:
+    """SRS 16.1: domain design is approved by the architect, not by any other built-in role."""
+    action = "gate.approve.DOMAIN_GATE"
+    holders = {role for role, granted in R.ROLE_ACTIONS.items() if action in granted}
+    assert holders == {R.SOLUTION_ARCHITECT}, holders
+
+
 def test_every_authorized_action_is_grantable() -> None:
     actions = _authorized_actions()
     assert actions, "the scan found no authorize() calls; the guard would be vacuous"

@@ -74,7 +74,7 @@ function confirmAcceptAll(): void {
   // §6.1 budget for a gate *with* warnings is 4: 待办卡片 → 全部接受 → 确认全部接受 → 确认批准.
   // Stopping here would cost a fifth click on 批准, so the confirmation panel opens on its own
   // once the reader is entitled to approve.
-  if (canApprove.value && gate.value?.status === 'WAITING_APPROVAL') approveSheet.value = true;
+  if (canApprove.value && gate.value?.status === 'WAITING') approveSheet.value = true;
 }
 
 // §6.1 budget for a gate without warnings is 2: 待办卡片「去审批」→ 底部面板「确认批准」. The todo
@@ -84,7 +84,7 @@ function confirmAcceptAll(): void {
 watch(
   () => [route.query.approve, gate.value?.status, warnings.value.length, confirmations.value.length] as const,
   ([flag, status, warningCount, confirmationCount]) => {
-    if (flag !== '1' || status !== 'WAITING_APPROVAL') return;
+    if (flag !== '1' || status !== 'WAITING') return;
     if (warningCount === 0 && confirmationCount === 0) {
       approveSheet.value = true;
       const { approve: _consumed, ...rest } = route.query;
@@ -207,10 +207,10 @@ void severityLabel;
 
         <FuiActionBar>
           <template #more>
-            <FuiActionButton :workflow-id="workflowId" :action="ACTION.gateReject" :target-id="gateId" size="small" :label="t('gate.reject')" :disabled="gate.status !== 'WAITING_APPROVAL'" @click="rejectSheet = true" />
+            <FuiActionButton :workflow-id="workflowId" :action="ACTION.gateReject" :target-id="gateId" size="small" :label="t('gate.reject')" :disabled="gate.status !== 'WAITING'" @click="rejectSheet = true" />
           </template>
           <template #primary>
-            <FuiActionButton :workflow-id="workflowId" :action="ACTION.gateApprove" :target-id="gateId" variant="primary" size="large" block round :label="anyFix ? t('gate.reject') : t('gate.approve')" :disabled="gate.status !== 'WAITING_APPROVAL' || !canApprove" @click="anyFix ? (rejectSheet = true) : (approveSheet = true)" />
+            <FuiActionButton :workflow-id="workflowId" :action="ACTION.gateApprove" :target-id="gateId" variant="primary" size="large" block round :label="anyFix ? t('gate.reject') : t('gate.approve')" :disabled="gate.status !== 'WAITING' || !canApprove" @click="anyFix ? (rejectSheet = true) : (approveSheet = true)" />
           </template>
         </FuiActionBar>
       </template>

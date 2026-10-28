@@ -288,7 +288,7 @@ def test_a_failed_call_is_a_call_and_a_failure(harness: IntelligenceHarness) -> 
 def test_the_ledger_survives_a_run_that_ends_failed(
     harness: IntelligenceHarness,
 ) -> None:
-    """AI-NFR-03: two refused answers and a ``FAILED`` run still leave both rows behind,
+    """AI-NFR-03: every refused answer and the ``FAILED`` run still leave their rows behind,
     because each is committed in its own short transaction before the output is judged
     (``cost/usage.py``).  A ledger that rode on the run's final commit would be empty
     precisely when the attempts cost money."""
@@ -307,7 +307,7 @@ def test_the_ledger_survives_a_run_that_ends_failed(
     assert result.status == "FAILED"
     items = _rollup(project, ["agent"])
     assert [(item.agent_type, item.calls, item.failed_calls) for item in items] == [
-        ("REQUIREMENTS", 2, 0)
+        ("REQUIREMENTS", 6, 0)
     ]
 
 

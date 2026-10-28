@@ -81,6 +81,25 @@ export function useCreateProject() {
   });
 }
 
+/** UI-PRJ-004: the management attributes S1's PATCH accepts. Delivery mode and target
+ *  environments have their own endpoints; this covers name/owner/description/type/languages. */
+export function useUpdateProject(projectId: string) {
+  const intentOf = (body: T.UpdateProjectBody) =>
+    actionIntent('PATCH', '/projects/{project_id}', projectId, payloadDigest(JSON.stringify(body)));
+  return useInvalidatingMutation<T.UpdateProjectBody, T.ProjectView>({
+    mutationKey: ['updateProject', projectId],
+    intent: intentOf,
+    mutationFn: (body) =>
+      unwrap<T.ProjectView>(() =>
+        client.PATCH(`${P}/projects/{project_id}`, {
+          params: { path: { project_id: projectId }, header: mutatingHeader(intentOf(body)) },
+          body: body as never,
+        }),
+      ),
+    invalidate: () => [qk.project(projectId), qk.projects],
+  });
+}
+
 export function useAnswerQuestion(workflowId: string) {
   return useInvalidatingMutation(
     {

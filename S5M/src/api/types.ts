@@ -30,6 +30,7 @@ export type ProjectSettingsView = S['ProjectSettingsView'];
 export type WorkflowView = S['WorkflowView'];
 export type StageView = S['StageView'];
 export type StageDetailView = S['StageDetailView'];
+export type StageRunView = S['StageRunView'];
 export type AgentRunView = S['AgentRunView'];
 export type StageFeedbackView = S['StageFeedbackView'];
 export type StageList = S['StageList'];
@@ -132,6 +133,7 @@ export type TargetEnvironmentView = S['TargetEnvironmentView'];
 export type TargetEnvironmentListView = S['TargetEnvironmentListView'];
 
 export type CreateProjectBody = S['CreateProjectBody'];
+export type UpdateProjectBody = S['UpdateProjectBody'];
 export type AnswerQuestionBody = S['AnswerQuestionBody'];
 export type ApproveGateBody = S['ApproveGateBody'];
 export type RejectGateBody = S['RejectGateBody'];

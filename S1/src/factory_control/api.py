@@ -110,6 +110,13 @@ def attach_event_listener(app: Any, runtime: Runtime) -> Any:
         from factory_control.services.parse_runs import reconcile_interrupted
 
         await asyncio.to_thread(reconcile_interrupted, runtime)
+        # The in-process engine owns a stage in this process.  A restart or a dead request
+        # leaves its RUNNING row with no thread that can finish it; fail it once at startup
+        # so the console does not poll a run that no longer exists.
+        if getattr(runtime.settings, "workflow_engine", "inprocess") != "temporal":
+            from factory_control.services.questions import reconcile_interrupted_stages
+
+            await asyncio.to_thread(reconcile_interrupted_stages, runtime)
         await _attach_listener(app, runtime)
 
     @app.on_event("shutdown")  # type: ignore[untyped-decorator]

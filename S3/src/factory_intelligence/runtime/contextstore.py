@@ -49,12 +49,42 @@ class StoredContext:
     raised_questions: list[Question] = field(default_factory=list)
     base_version: str | None = None
     messages: list[ChatMessage] = field(default_factory=list)
+    #: index in ``messages`` where the conversation starts; everything before it is the
+    #: context rebuilt for the current turn and must not be appended a second time
+    conversation_start: int | None = None
     #: the classification the context artifact was written at
     classification: DataClassification = DataClassification.INTERNAL
 
     @property
     def still_waiting(self) -> bool:
         return bool(self.pending_question_local_ids)
+
+    @property
+    def tail_start(self) -> int:
+        """Where the stored conversation starts.
+
+        Artifacts written before ``conversationStart`` existed carry the whole sent context
+        followed by the dialogue.  The rebuilt context is not conversation, so appending it
+        again would duplicate the prompt, rules and entries.  The first assistant answer or
+        feedback message is the first thing the current build did not already send.
+        """
+        if self.conversation_start is not None:
+            return max(0, min(self.conversation_start, len(self.messages)))
+        for index, message in enumerate(self.messages):
+            if index == 0 and message.role == "system":
+                continue
+            if message.role == "assistant":
+                return index
+            text = message.content.lstrip()
+            if text.startswith(
+                (
+                    "Your previous answer was",
+                    "The previous answer was truncated",
+                    "Answers to the questions",
+                )
+            ):
+                return index
+        return len(self.messages)
 
     def unanswered(self, answers: list[Answer]) -> list[str]:
         answered = {answer.question_local_id for answer in answers}
@@ -70,6 +100,7 @@ def document(
     raised_questions: list[Question],
     question_id_map: dict[str, str],
     base_version: str | None,
+    conversation_start: int,
 ) -> dict[str, Any]:
     """The artifact body: the message sequence, and nothing the model only thought.
 
@@ -93,6 +124,7 @@ def document(
         "raisedQuestions": [question.model_dump(mode="json") for question in raised_questions],
         "questionIdMap": dict(question_id_map),
         "baseVersion": base_version,
+        "conversationStart": conversation_start,
         "contextDigest": context.digest(),
         "recordedAt": get_clock().now().isoformat(),
     }
@@ -158,6 +190,8 @@ def load(run_id: str, project_id: str, *, session: Session | None = None) -> Sto
     document_body, classification = artifacts.read_json(row.context_artifact_id)
     stored.classification = classification
     stored.messages = [_message(item) for item in document_body.get("messageSequence") or []]
+    start = document_body.get("conversationStart")
+    stored.conversation_start = int(start) if isinstance(start, int) else None
     stored.raised_questions = [
         question
         for item in document_body.get("raisedQuestions") or []

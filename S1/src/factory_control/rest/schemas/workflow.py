@@ -18,6 +18,19 @@ from factory_control.rest.schemas.projects import ProjectStageView
 from factory_control.rest.schemas.runs import RunView
 
 
+class StageRunLogView(CamelModel):
+    """One persisted progress/state line of one stage attempt."""
+
+    seq: int
+    at: datetime
+    event_type: str
+    step: str | None = None
+    message: str | None = None
+    fraction: float | None = None
+    patch_count: int | None = None
+    question_count: int | None = None
+
+
 class StageRunView(CamelModel):
     id: str
     attempt: int = 1
@@ -25,6 +38,10 @@ class StageRunView(CamelModel):
     execution_ids: list[str] = Field(default_factory=list)
     build_ids: list[str] = Field(default_factory=list)
     result: dict[str, Any] | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    completed_at: datetime | None = None
+    log: list[StageRunLogView] = Field(default_factory=list)
 
 
 class MissingCheckView(CamelModel):
@@ -209,6 +226,7 @@ __all__ = [
     "StageDetailView",
     "StageFeedbackView",
     "StageList",
+    "StageRunLogView",
     "StageRunView",
     "StageView",
     "SubmitApprovalView",

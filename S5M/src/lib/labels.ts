@@ -32,6 +32,7 @@ export function runStatusLabel(status?: string | null): string {
 /** Gate badge words — the server token is not an operator word (UM-AC-16). */
 export function gateStatusLabel(status: string): string {
   switch (status) {
+    case 'WAITING':
     case 'WAITING_APPROVAL':
       return t('gate.statusWaiting');
     case 'APPROVED':

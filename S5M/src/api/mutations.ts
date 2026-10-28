@@ -83,6 +83,22 @@ export function useArchiveProject() {
   return write<string>(qc, 'POST', (id) => `/projects/${encodeURIComponent(id)}/archive`, undefined, (id) => actionIntent('POST', '/projects/archive', id), (id) => [qk.project(id), qk.projectsList]);
 }
 
+/**
+ * UI-PRJ-004: management attributes (name, owner, description, type, version, languages).
+ * An omitted field means "leave it alone", so the body is exactly what the form changed.
+ */
+export function useUpdateProject() {
+  const qc = useQueryClient();
+  return write<{ projectId: string; body: T.UpdateProjectBody }>(
+    qc,
+    'PATCH',
+    (v) => `/projects/${encodeURIComponent(v.projectId)}`,
+    (v) => v.body,
+    (v) => actionIntent('PATCH', '/projects/{project_id}', v.projectId, payloadDigest(JSON.stringify(v.body))),
+    (v) => [qk.project(v.projectId), qk.projectsList],
+  );
+}
+
 export function useDeleteProject() {
   const qc = useQueryClient();
   return write<string>(qc, 'DELETE', (id) => `/projects/${encodeURIComponent(id)}`, undefined, (id) => actionIntent('DELETE', '/projects/delete', id), () => [qk.projectsList]);

@@ -51,7 +51,12 @@ from factory_intelligence import artifacts
 from factory_intelligence.agents.checks.base import CheckContext
 from factory_intelligence.agents.spec import AgentSpec, spec_for
 from factory_intelligence.config import settings
-from factory_intelligence.context.builder import BuiltContext, build, continue_transcript
+from factory_intelligence.context.builder import (
+    BuiltContext,
+    build,
+    continue_transcript,
+    registered_decision_ids,
+)
 from factory_intelligence.context.fence import plain
 from factory_intelligence.context.thresholds import from_entries, retrieve
 from factory_intelligence.cost.usage import CallContext, record_call
@@ -118,6 +123,9 @@ class _Turn:
     base_version: str
     mapping_frozen: bool
     draft_id: str | None
+    #: the decision ids the draft registers, so ``decision_registered`` accepts a citation
+    #: of a decision that already exists (AI-RT-012's checks read their context, not the I/O)
+    existing_decision_ids: tuple[str, ...] = ()
     answer: AgentOutput | None = None
     messages_sent: int = 0
     #: the model proposed a change on a turn that was not allowed to write one
@@ -354,6 +362,7 @@ def _prepare(
         base_version=base_version,
         mapping_frozen=frozen,
         draft_id=draft_id if patchable else None,
+        existing_decision_ids=registered_decision_ids(entries),
     )
 
 
@@ -614,6 +623,7 @@ def _check_context(request: AgentRunRequest, turn: _Turn) -> CheckContext:
         mapping_frozen=turn.mapping_frozen,
         similar_object_keys=(),
         api_operation_keys=(),
+        existing_decision_ids=turn.existing_decision_ids,
         phi_refs=list(turn.context.excluded_phi),
         base_version=turn.base_version,
     )

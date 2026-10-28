@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { FuiBottomSheet, FuiProgressBar, FuiStatusTag } from '@/fui';
 import { useAgentRun } from '@/api/queries';
@@ -15,7 +15,7 @@ const props = withDefaults(
     stageId: string;
     stage?: T.StageDetailView;
     requested?: boolean;
-    /** Run rows that existed before this click; the newest other row is this attempt. */
+    /** Kept for callers; the attempt list is now read from stage.stageRuns itself. */
     baselineRunIds?: string[];
   }>(),
   { requested: false, baselineRunIds: () => [] },
@@ -28,44 +28,74 @@ const progress = useProgressStore();
 
 const prog = computed(() => progress.get(props.workflowId, 'agent', props.stageId));
 const runs = computed(() => props.stage?.stageRuns ?? []);
-const baseline = computed(() => new Set(props.baselineRunIds));
-const newRuns = computed(() => runs.value.filter((run) => !baseline.value.has(run.id)));
-const latestRun = computed(() =>
-  newRuns.value.length
-    ? newRuns.value[newRuns.value.length - 1]
-    : props.requested
-      ? undefined
-      : runs.value[runs.value.length - 1],
+const latestRun = computed(() => (runs.value.length ? runs.value[runs.value.length - 1] : undefined));
+const selectedRunId = ref<string | null>(null);
+
+watch(
+  runs,
+  (list) => {
+    if (!list.length) {
+      selectedRunId.value = null;
+      return;
+    }
+    if (!selectedRunId.value || !list.some((run) => run.id === selectedRunId.value)) {
+      selectedRunId.value = list[list.length - 1].id;
+    }
+  },
+  { immediate: true },
 );
-const runId = computed(() => prog.value?.runId ?? latestRun.value?.agentRunIds?.[0]);
+
+const selectedRun = computed(() => runs.value.find((run) => run.id === selectedRunId.value) ?? latestRun.value);
+const isLatest = computed(() => selectedRun.value?.id === latestRun.value?.id);
+const runId = computed(
+  () => (isLatest.value ? prog.value?.runId : undefined) ?? selectedRun.value?.agentRunIds?.[0],
+);
 const agentRun = useAgentRun(
   () => props.workflowId,
   () => runId.value ?? '',
-  computed(() => open.value),
+  computed(() => open.value && isLatest.value),
 );
 
 const result = computed<Record<string, unknown>>(
-  () => (latestRun.value?.result as Record<string, unknown> | null | undefined) ?? {},
+  () => (selectedRun.value?.result as Record<string, unknown> | null | undefined) ?? {},
 );
 const status = computed(() =>
-  String(agentRun.data.value?.status ?? result.value.status ?? props.stage?.status ?? ''),
+  String(
+    agentRun.data.value?.status ??
+      result.value.status ??
+      (isLatest.value ? props.stage?.status : '') ??
+      '',
+  ),
 );
 const statusLabel = computed(() =>
-  props.requested && ['', 'READY', 'PENDING'].includes(status.value)
+  props.requested && !runId.value && ['', 'READY', 'PENDING'].includes(status.value)
     ? t('runLog.requested')
-    : runStatusLabel(status.value) || status.value,
+    : runStatusLabel(status.value) || status.value || t('runLog.statusUnknown'),
 );
 const live = computed(
-  () => status.value === 'RUNNING' || status.value === 'WAITING_INPUT' || (props.requested && ['', 'READY', 'PENDING'].includes(status.value)),
+  () =>
+    isLatest.value &&
+    (status.value === 'RUNNING' ||
+      status.value === 'WAITING_INPUT' ||
+      (props.requested && ['', 'READY', 'PENDING'].includes(status.value))),
 );
+const serverLog = computed(() => selectedRun.value?.log ?? []);
+const log = computed(() => (serverLog.value.length ? serverLog.value : isLatest.value && props.requested ? prog.value?.log ?? [] : []));
+const lastFraction = computed(() => [...serverLog.value].reverse().find((entry) => entry.fraction != null)?.fraction);
 const fraction = computed(() =>
-  Number(agentRun.data.value?.progress?.completedFraction ?? prog.value?.fraction ?? 0),
+  Number(
+    lastFraction.value ??
+      agentRun.data.value?.progress?.completedFraction ??
+      (isLatest.value ? prog.value?.fraction : undefined) ??
+      0,
+  ),
 );
-const step = computed(() => prog.value?.currentStep ?? agentRun.data.value?.progress?.step);
-// Only the run this session started has a reliable live timeline: the store is cleared on start,
-// while a past run's frames may still contain the parse that preceded it. The final result below
-// is always read from the server.
-const log = computed(() => (props.requested ? prog.value?.log ?? [] : []));
+const step = computed(
+  () =>
+    [...serverLog.value].reverse().find((entry) => entry.step)?.step ??
+    agentRun.data.value?.progress?.step ??
+    (isLatest.value ? prog.value?.currentStep : undefined),
+);
 const summary = computed(() => agentRun.data.value?.summary ?? (result.value.summary as string | null) ?? null);
 const issues = computed(() => agentRun.data.value?.issues ?? []);
 const denialReasons = computed(() => agentRun.data.value?.denialReasons ?? []);
@@ -80,6 +110,10 @@ function runTone(value: string): 'success' | 'danger' | 'warning' | 'info' | 'mu
   return 'muted';
 }
 
+function resultStatus(run: T.StageRunView): string {
+  return String((run.result as Record<string, unknown> | null | undefined)?.status ?? '');
+}
+
 function refOf(item: Record<string, unknown>): string {
   return typeof item.ref === 'string' ? item.ref : '';
 }
@@ -91,6 +125,28 @@ function reasonOf(item: Record<string, unknown>): string {
 <template>
   <FuiBottomSheet v-model="open" :title="t('runLog.title')">
     <div class="rl">
+      <div v-if="runs.length" class="rl__runs" role="list">
+        <button
+          v-for="run in [...runs].reverse()"
+          :key="run.id"
+          type="button"
+          role="listitem"
+          class="rl__run-item"
+          :class="{ 'rl__run-item--active': run.id === selectedRun?.id }"
+          :aria-pressed="run.id === selectedRun?.id"
+          @click="selectedRunId = run.id"
+        >
+          <span class="rl__run-attempt">{{ t('runLog.attempt', { n: run.attempt }) }}</span>
+          <FuiStatusTag
+            :tone="runTone(resultStatus(run))"
+            :label="runStatusLabel(resultStatus(run)) || resultStatus(run) || t('runLog.statusUnknown')"
+          />
+          <span class="rl__run-time">{{ fmtRelTime(run.completedAt ?? run.createdAt, lang) }}</span>
+        </button>
+      </div>
+      <h3 v-if="runs.length" class="rl__h">{{ t('runLog.runs') }} · {{ runs.length }}</h3>
+      <p v-else class="rl__hint">{{ t('runLog.empty') }}</p>
+
       <div class="rl__top">
         <FuiStatusTag :tone="runTone(status)" :label="statusLabel" />
         <span v-if="runId" class="rl__run mono">{{ t('runLog.runId') }}: {{ runId }}</span>
@@ -156,6 +212,11 @@ function reasonOf(item: Record<string, unknown>): string {
 
 <style scoped>
 .rl { display: flex; flex-direction: column; gap: var(--fui-sp-3); }
+.rl__runs { display: flex; flex-direction: column; gap: 6px; max-height: 190px; overflow-y: auto; }
+.rl__run-item { display: flex; align-items: center; gap: 8px; width: 100%; min-height: var(--fui-tap-min); padding: 6px 10px; border: 1px solid var(--fui-border); border-radius: var(--fui-radius-md); background: var(--fui-surface); color: inherit; text-align: left; font: inherit; cursor: pointer; }
+.rl__run-item--active { border-color: var(--fui-primary); background: var(--fui-primary-soft, rgba(22, 119, 255, 0.08)); }
+.rl__run-attempt { font-size: var(--fui-fs-sm); font-weight: 600; white-space: nowrap; }
+.rl__run-time { margin-left: auto; font-size: var(--fui-fs-xs); color: var(--fui-text-tertiary); white-space: nowrap; }
 .rl__top { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .rl__run { font-size: var(--fui-fs-xs); color: var(--fui-text-tertiary); word-break: break-all; }
 .rl__progress { display: flex; flex-direction: column; gap: 4px; padding: var(--fui-sp-3); border: 1px solid var(--fui-border); border-radius: var(--fui-radius-md); }

@@ -42,12 +42,27 @@ class TestProjectAndWorkflowActions:
         blocked = {a.name for a in A.project_actions(context(archived=True)) if not a.available}
         assert {"project.edit", "project.upgrade_mode", "change_request.create", "input.upload"} <= blocked
         assert "project.archive" in blocked
-        assert "project.delete" not in blocked  # deletion is allowed precisely then
+        # CP-PRJ-007: archiving is only the first half of the deletion precondition.
+        assert "project.delete" in blocked
 
     def test_delete_requires_archive(self) -> None:
         blocked = [a for a in A.project_actions(context()) if a.name == "project.delete"]
         assert blocked[0].available is False
         assert blocked[0].details["requires"] == "ARCHIVED"
+
+    def test_archived_project_still_needs_an_export_to_be_deletable(self) -> None:
+        """CP-PRJ-007: the button must not light up for a DELETE that answers 409."""
+        without = [a for a in A.project_actions(context(archived=True)) if a.name == "project.delete"]
+        assert without[0].available is False
+        assert without[0].reason_code == A.EXPORT_NOT_TAKEN
+        assert without[0].details["requires"] == "PROJECT_EXPORT"
+
+        with_export = [
+            a
+            for a in A.project_actions(context(archived=True, project_export_available=True))
+            if a.name == "project.delete"
+        ]
+        assert with_export[0].available is True
 
     def test_pause_resume_cancel_when_cancelled(self) -> None:
         actions = A.workflow_actions(context(cancelled=True))

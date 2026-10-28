@@ -108,7 +108,7 @@ export const useGates = (status: MaybeRefOrGetter<string | undefined>) =>
     queryFn: () => apiGet<T.GateSummaryList>('/gates', { query: { status: toValue(status) } }),
   });
 
-export const useGatesPending = () => useGates('WAITING_APPROVAL');
+export const useGatesPending = () => useGates('WAITING');
 
 export const useGate = (id: MaybeRefOrGetter<string>) =>
   useQuery({

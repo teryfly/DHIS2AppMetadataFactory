@@ -291,6 +291,46 @@ def decision_coverage(output: AgentOutput, context: CheckContext) -> list[Findin
     return findings
 
 
+def decision_registered(output: AgentOutput, context: CheckContext) -> list[Finding]:
+    """FR-MAP-001, BP-VAL-010: a cited decision must exist where S2 looks for it.
+
+    ``decision_coverage`` proves the *answer* defines the decision; this proves the
+    *document* does.  ``/architecture/decisions`` is the only container whose entries index a
+    ``decisionId`` (``factory_blueprint/patch/businesskey.py``'s reference rules), so an entry
+    citing a decision this patch never writes there is refused by S2 as a dangling reference —
+    and BP-DEC-006 would have no decision row to show a Gate either.  Checking it here turns
+    that refusal into a corrective retry that names the entry and the id.
+    """
+    registered = set(context.existing_decision_ids)
+    for entry in entry_values(output, "architecture", "decisions"):
+        decision_id = entry.get("decisionId")
+        if isinstance(decision_id, str) and decision_id:
+            registered.add(decision_id)
+    findings: list[Finding] = []
+    for section in ("mapping", "registry"):
+        for entry in entry_values(output, section, "entries"):
+            if entry.get("notMapped") is True:
+                continue
+            decision_id = entry.get("decisionId")
+            if not isinstance(decision_id, str) or not decision_id:
+                # an absent citation is decision_coverage's finding, not a duplicate of it
+                continue
+            if decision_id in registered:
+                continue
+            key = entry.get("businessKey") or "?"
+            findings.append(
+                finding(
+                    f"{RULE_PREFIX}-016",
+                    f"{section} entry {key!r} cites decision {decision_id!r}, which no entry in "
+                    "/architecture/decisions registers: write it with `add "
+                    "/architecture/decisions/-` in this same patch, or cite a decision the "
+                    "draft already has",
+                    location=str(decision_id),
+                )
+            )
+    return findings
+
+
 def _decision_alternatives(decision: Mapping[str, Any]) -> list[Finding]:
     identifier = decision.get("id") or decision.get("decisionId") or "?"
     alternatives = decision.get("alternatives") or []
@@ -317,6 +357,9 @@ def low_confidence_question(output: AgentOutput, context: CheckContext) -> list[
     referenced: set[str] = {
         str(target) for question in output.questions for target in question.affects
     }
+    # A resumed turn answers the questions the previous turn asked.  Those answers are the
+    # confirmation AI-AG-012 wanted, so the same decision must not be put to the human again.
+    referenced.update(str(target) for target in context.answered_affects)
     findings: list[Finding] = []
     for decision in output.decisions:
         identifier = str(decision.get("id") or decision.get("decisionId") or "")
@@ -625,6 +668,7 @@ RULES: dict[str, Any] = {
     "no_dhis2_reference": no_dhis2_reference,
     "uid_ban": uid_ban,
     "decision_coverage": decision_coverage,
+    "decision_registered": decision_registered,
     "low_confidence_question": low_confidence_question,
     "reuse_decision_per_similar_object": reuse_decision_per_similar_object,
     "business_key_references_only": business_key_references_only,

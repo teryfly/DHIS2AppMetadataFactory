@@ -197,6 +197,8 @@ class ItemSourceKind(str, enum.Enum):
     REGISTRY_ENTRY = "REGISTRY_ENTRY"
     OPEN_QUESTION = "OPEN_QUESTION"
     USER_ANSWER = "USER_ANSWER"
+    #: the model's own accepted answer, replayed to it on a later turn (AI-RT-015)
+    AGENT_ANSWER = "AGENT_ANSWER"
     VALIDATION_ERRORS = "VALIDATION_ERRORS"
     SIMILAR_OBJECTS = "SIMILAR_OBJECTS"
 

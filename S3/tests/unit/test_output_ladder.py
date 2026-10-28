@@ -321,8 +321,14 @@ def test_a_valid_requirements_answer_passes_and_returns_a_typed_output() -> None
 
 
 def test_a_valid_mapping_answer_passes_every_rung() -> None:
-    """AI-RT-012: an in-scope Mapping answer with its decision recorded is accepted."""
+    """AI-RT-012: an in-scope Mapping answer with its decision recorded is accepted.
+
+    "recorded" is the document's word, not the answer's: FR-MAP-001 and BP-VAL-010 make
+    ``/architecture/decisions`` the only place a cited decisionId resolves, so the decision
+    travels there with the entries that cite it.
+    """
     operations = [
+        _add("/architecture/decisions/-", _architecture_decision(decisionId="MAP-001")),
         _add("/registry/entries/-", _registry_entry()),
         _add("/mapping/entries/-", _mapping_entry()),
     ]
@@ -712,7 +718,13 @@ def test_a_constraint_violation_is_reported_as_the_constraint_rung() -> None:
     """AI-RT-012: a constraint failure is not a schema failure — the two consume
     different retry budgets."""
     report = _one(
-        _answer([_add("/registry/entries/-", _registry_entry(uid=UID_SHAPE))]), "MAPPING"
+        _answer(
+            [
+                _add("/architecture/decisions/-", _architecture_decision(decisionId="MAP-001")),
+                _add("/registry/entries/-", _registry_entry(uid=UID_SHAPE)),
+            ]
+        ),
+        "MAPPING",
     )
     assert report.stopped_at == LADDER_CONSTRAINT
     assert _rules(report) == ["AIC-003"]

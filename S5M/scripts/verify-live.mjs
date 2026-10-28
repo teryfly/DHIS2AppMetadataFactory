@@ -81,8 +81,8 @@ async function main() {
   ok('GET /allowed-actions (platform)', platActions.status === 200 && platActions.body.scope === 'platform');
 
   // core reads
-  const gates = await get('/gates?status=WAITING_APPROVAL');
-  ok('GET /gates?status=WAITING_APPROVAL', gates.status === 200 && Array.isArray(gates.body.items));
+  const gates = await get('/gates?status=WAITING');
+  ok('GET /gates?status=WAITING', gates.status === 200 && Array.isArray(gates.body.items));
   const notif = await get('/notifications');
   ok('GET /notifications paged', notif.status === 200 && Array.isArray(notif.body.items));
   const runs = await get('/deployment-runs');

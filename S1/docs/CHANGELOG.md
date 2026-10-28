@@ -4,6 +4,24 @@
 `0.2.0` 是命名与形状统一的一轮；`1.0.0` 是 C 类条目全部裁决后的一次成契约交付；
 `1.1.0` 是对照修订后的 SRS V1.1.0 逐条复核的一轮。
 
+## 1.19.0 之上 —— `project.delete` 的可用性不再撒谎（本轮不动契约：路径与模型零变化，只多一个 `reasonCode` 取值）
+
+CP-PRJ-007 给删除写了两道前置：项目要**已归档**，而且要**已经导出**（`services/transfers.py:delete_project` 在缺少
+`PROJECT_EXPORT` 产物时回 409 `INVALID_STATE`，`details.requires = "PROJECT_EXPORT"`）。可 `domain/actions.py` 里
+只看了前一道 —— 只要 `archived` 就把 `project.delete` 报成 available。于是两端都坏：界面照着动作清单点亮删除按钮，
+点下去必然 409；而 409 的通用文案（「当前状态不允许此操作」）又不说缺哪一道，操作员只能反复试。线上确实有项目卡死
+在这个组合上：归档成功、删除三次都是 409。
+
+- **动作清单补上第二道**（`domain/actions.py:project_actions`、`ActionContext.project_export_available`）：已归档但
+  还没有导出记录时，`project.delete` 回 `available: false` + `reasonCode: EXPORT_NOT_TAKEN` +
+  `details.requires = "PROJECT_EXPORT"`；导出落库后自动转成 available。这与 CP-UI-021 对开发包下载按钮的做法同构 ——
+  产物存在不存在，由 S1 自己的产物索引回答（`services/workflow.py:allowed_actions_for_workflow` 多读一次
+  `query_artifacts(type="PROJECT_EXPORT", limit=1)`，与 `FRONTEND_PACKAGE` 探针并列）。
+- **删除里的一次产物查询回到当前事务**（`services/transfers.py`）：`query_artifacts(...)` 原先没带 `session=ctx.session`，
+  在 `runtime.transaction` 之内另开了一条连接去读，读不到本事务已写入的东西，也和同函数下面 `_all_project_artifact_ids(ctx, …)`
+  的写法自相矛盾。
+- 未归档那一支保持原样（`details.requires = "ARCHIVED"`），界面现在两支都能各说一句人话。
+
 ## 1.19.0 —— 问题改成整页问卷、一次作答（契约新增 1 条路径：146 → 147）
 
 设计阶段的问题原先只能一题一答，答案只能是一个建议或一段自定义文字。模型其实已经能给出多个候选，

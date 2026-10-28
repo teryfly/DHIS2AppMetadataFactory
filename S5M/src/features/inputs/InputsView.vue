@@ -11,9 +11,11 @@ import { qk } from '@/api/keys';
 import { AppError } from '@/api/errors';
 import { useUiStore } from '@/stores/ui';
 import { ACTION, indexActions, resolveAvailability } from '@/api/actions';
-import { pushSuccess, pushWarn, pushError } from '@/lib/toast';
+import { pushSuccess, pushWarn, pushError, pushInfo } from '@/lib/toast';
 import { classificationLabel, parseStatusLabel } from '@/lib/labels';
 import { itemsFromEntries } from '@/features/requirements/requirementOps';
+import QuestionnaireForm from '@/features/questions/QuestionnaireForm.vue';
+import type * as T from '@/api/types';
 
 const { t, te } = useI18n();
 const uploader = ref<{ pickFile: () => void } | null>(null);
@@ -45,14 +47,6 @@ const reviewQuestions = computed(() =>
     (question) => question.stageId === requirementsStage.value?.id && question.status === 'OPEN',
   ),
 );
-/** The question a normalised entry points at, matched by the affects key S1 writes. */
-function questionIdFor(item: Record<string, unknown>): string | undefined {
-  const key = String(item.businessKey ?? '');
-  if (!key) return undefined;
-  return reviewQuestions.value.find((question) =>
-    (question.affects ?? []).some((affected) => affected === `requirements.items.${key}` || affected.endsWith(key)),
-  )?.id;
-}
 const draftEntriesQ = useBlueprintEntries(projectId, { sections: ['requirements'], source: 'DRAFT' });
 const nrrItems = computed(() => nrr.data.value?.items ?? []);
 const nrrByCategory = computed<Record<string, typeof nrrItems.value>>(() => {
@@ -231,6 +225,18 @@ function reviewParsed(): void {
   if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   else router.push(`/projects/${projectId.value}/inputs`);
 }
+function onReviewAnswered(body: T.QuestionnaireAnswerView | undefined): void {
+  const open = body?.questions ?? [];
+  if (!open.length) {
+    pushInfo(t('questions.allAnswered'));
+    return;
+  }
+  pushInfo(
+    body?.resumed
+      ? t('questions.nextRound', { n: open.length })
+      : t('questions.partialSaved', { n: open.length }),
+  );
+}
 function parseTone(s?: string): 'success' | 'danger' | 'warning' | 'muted' | 'info' {
   switch (s) {
     case 'PARSING':
@@ -333,15 +339,13 @@ function parseTone(s?: string): 'success' | 'danger' | 'warning' | 'muted' | 'in
     <FuiCard v-if="nrrItems.length || reviewQuestions.length || requirementsStage" :title="t('inputs.reviewActions')">
       <p class="inp__hint">{{ t('inputs.reviewActionsHint') }}</p>
       <div v-if="reviewQuestions.length" class="inp__review-questions">
-        <div v-for="q in reviewQuestions" :key="q.id" class="inp__review-q">
-          <p class="inp__review-qtext">{{ q.text }}</p>
-          <FuiButton
-            size="small"
-            variant="primary"
-            :label="t('questions.answer')"
-            @click="router.push('/questions/' + q.id)"
-          />
-        </div>
+        <QuestionnaireForm
+          :questions="reviewQuestions"
+          :workflow-id="wfId"
+          :stage-id="requirementsStage?.id ?? ''"
+          flat
+          @submitted="onReviewAnswered"
+        />
       </div>
       <FuiNotice v-else-if="!stageQuestions.isLoading.value" tone="info" :text="t('inputs.noReviewQuestions')" />
       <FuiButton
@@ -359,12 +363,6 @@ function parseTone(s?: string): 'success' | 'danger' | 'warning' | 'muted' | 'in
           <div class="inp__nrr-meta">
             <span>{{ t('nrr.confidence') }}: {{ Math.round(((it.confidence as number) ?? 0) * 100) }}%</span>
             <FuiStatusTag v-if="(it.openQuestions ?? []).length" tone="warning" :label="`${t('nrr.openQuestion')} ${it.openQuestions?.length ?? 0}`" />
-            <FuiButton
-              v-if="questionIdFor(it as Record<string, unknown>)"
-              size="small"
-              :label="t('questions.answer')"
-              @click="router.push('/questions/' + questionIdFor(it as Record<string, unknown>))"
-            />
             <button v-if="it.artifactId" class="inp__nrr-src" @click="router.push('/artifacts/' + it.artifactId)">{{ t('nrr.viewSource') }}</button>
           </div>
         </div>
@@ -410,6 +408,4 @@ function parseTone(s?: string): 'success' | 'danger' | 'warning' | 'muted' | 'in
 .inp__nrr-meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: var(--fui-fs-xs); color: var(--fui-text-tertiary); margin-top: 4px; }
 .inp__nrr-src { border: 0; background: none; color: var(--fui-primary); font-size: var(--fui-fs-xs); }
 .inp__review-questions { display: flex; flex-direction: column; gap: 8px; margin: var(--fui-sp-2) 0; }
-.inp__review-q { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px; border: 1px solid var(--fui-border); border-radius: var(--fui-radius-md); }
-.inp__review-qtext { margin: 0; font-size: var(--fui-fs-sm); }
 </style>

@@ -81,8 +81,8 @@ export const qk = {
   blueprintVersions: (projectId: string) => ['projects', projectId, 'blueprint', 'versions'] as const,
   blueprintDiff: (projectId: string, from: string, to: string) =>
     ['projects', projectId, 'blueprint', 'diff', from, to] as const,
-  blueprintEntries: (projectId: string, sections?: string[]) =>
-    ['projects', projectId, 'blueprint', 'entries', (sections ?? []).join(',')] as const,
+  blueprintEntries: (projectId: string, sections?: string[], source = 'APPROVED') =>
+    ['projects', projectId, 'blueprint', 'entries', source, (sections ?? []).join(',')] as const,
   sectionSchemas: (projectId: string) => ['projects', projectId, 'blueprint', 'section-schemas'] as const,
   // the ids asked for are part of the key: the Registry row that opened this list is a different
   // question from the whole project's decisions, and one cache must not answer the other

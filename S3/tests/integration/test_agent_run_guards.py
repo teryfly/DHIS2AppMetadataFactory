@@ -121,12 +121,12 @@ def _run(project: str, agent: AgentType = AgentType.REQUIREMENTS, **kwargs: Any)
 # --- AI-AC-01: an answer that never validates ------------------------------------
 
 
-def test_two_invalid_answers_fail_the_run_after_exactly_two_calls(
+def test_invalid_answers_stop_after_the_five_repair_turns(
     harness: IntelligenceHarness, recorded: RecordingProvider
 ) -> None:
-    """AI-AC-01 with AI-RT-011: one corrective retry, then the run is refused.
+    """AI-AC-01 with the AI-RT-011 budget: five repairs, then the run is refused.
 
-    The count is the requirement — *"两次"* — so the transport, S2-rejection and UID budgets
+    The count is the configured repair budget, so the transport, S2-rejection and UID budgets
     are accounted apart; a collapsed budget would make this number depend on the network.
     """
     _ = harness
@@ -137,12 +137,12 @@ def test_two_invalid_answers_fail_the_run_after_exactly_two_calls(
     result = _run(project, draft_id=draft_id, idempotency_key="ac01")
 
     assert result.status == "FAILED"
-    assert recorded.call_count == 2
+    assert recorded.call_count == 6, "one initial answer plus five repairs"
     assert "refused" in recorded.tail(1).lower(), "the retry carries the findings, not a clean slate"
     assert result.patch_ids == []
     row = _run_row(str(result.run_id))
     assert row["status"] == RunState.FAILED.value
-    assert row["modelCalls"] == 2
+    assert row["modelCalls"] == 6
     assert row["errorCode"] == "AI_OUTPUT_INVALID", "a schema refusal is not reported as S2 saying no"
 
 
@@ -391,8 +391,8 @@ def test_a_retry_after_a_retry_after_answer_stays_honest_about_its_calls(
 
     assert result.status == "FAILED"
     rows = _calls(project)
-    assert len(rows) == 3, "two refusals and the retry, all recorded"
-    assert [row.outcome for row in rows] == ["ERROR", "OK", "OK"]
+    assert len(rows) == 6, "the transport error and five model calls, all recorded"
+    assert [row.outcome for row in rows] == ["ERROR", "OK", "OK", "OK", "OK", "OK"]
     assert all(row.request_id for row in rows), (
         "AI-LLM-004: every call cites the provider's request id, the refused ones too — "
         "otherwise the vendor's log cannot be found for the attempts that failed"

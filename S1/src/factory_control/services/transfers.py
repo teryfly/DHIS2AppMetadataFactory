@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from sqlalchemy import delete as sql_delete
+
 from factory_control import store as S
 from factory_control.domain.enums import RunStatus, StageStatus, StageType
 from factory_control.errors import InvalidStateError
@@ -28,7 +30,17 @@ from factory_control.foundation import (
     unpack,
     utcnow,
 )
-from factory_control.models import Project
+from factory_control.models import (
+    Notification,
+    ProductionExemption,
+    Project,
+    ProjectMember,
+    ProjectSetting,
+    ProjectTargetEnvironment,
+    RestrictedGrant,
+    UserRole,
+    Workflow,
+)
 from factory_control.runtime import Runtime
 from factory_control.services.project import ensure_writable
 from factory_control.services.recording import record_change
@@ -299,6 +311,26 @@ def _create_imported_stages(ctx: Any, *, workflow_id: str, delivery_mode: str) -
     ctx.session.flush()
 
 
+def _purge_project_rows(session: Any, project_id: str) -> None:
+    """Remove every S1 row that belongs to the project, leaving its tombstone.
+
+    ``workflows`` and everything reachable from it is handled by the database's
+    ``ON DELETE CASCADE``; the tables below point at ``projects`` directly, and that row
+    is intentionally kept so a repeated DELETE can answer ``already = true``.
+    """
+    session.execute(sql_delete(Workflow).where(Workflow.project_id == project_id))
+    for model in (
+        ProjectTargetEnvironment,
+        ProjectSetting,
+        ProjectMember,
+        UserRole,
+        RestrictedGrant,
+        ProductionExemption,
+        Notification,
+    ):
+        session.execute(sql_delete(model).where(model.project_id == project_id))
+
+
 def delete_project(runtime: Runtime, project_id: str, *, operator: str) -> dict[str, Any]:
     """CP-PRJ-007 / CP-AC-09: archived only, export first, then cascade."""
     with runtime.transaction(operator=operator, project_id=project_id) as ctx:
@@ -313,7 +345,10 @@ def delete_project(runtime: Runtime, project_id: str, *, operator: str) -> dict[
             )
         if project.deleted_at is not None:
             return {"projectId": project.id, "deleted": True, "already": True}
-        exports = query_artifacts(ArtifactQuery(project_id=project.id, type="PROJECT_EXPORT", limit=1))
+        exports = query_artifacts(
+            ArtifactQuery(project_id=project.id, type="PROJECT_EXPORT", limit=1),
+            session=ctx.session,
+        )
         if not exports.items:
             raise InvalidStateError(
                 "delete the project only after a PROJECT_EXPORT exists",
@@ -332,6 +367,10 @@ def delete_project(runtime: Runtime, project_id: str, *, operator: str) -> dict[
             object_id=project.id,
             payload={"exportArtifactId": exports.items[0].id},
         )
+        # The project row stays as the tombstone that makes a repeated DELETE answer
+        # ``already: true`` (CP-PRJ-007).  Its workflow and other project-scoped rows are
+        # removed after the provider cleanups below; artifact metadata and audit survive
+        # by design (FR-DATA-005/006).
         artifact_ids = _all_project_artifact_ids(ctx, project.id)
 
     # Provider cleanup runs in its own transaction (CP-ASM-07).
@@ -340,6 +379,12 @@ def delete_project(runtime: Runtime, project_id: str, *, operator: str) -> dict[
             cleanup(project.id, session=ctx.session)
     with runtime.transaction(operator=operator, project_id=project_id) as ctx:
         ctx.execution.delete_project_data(project.id, session=ctx.session)
+
+    # S1's own rows go last (CP-PRJ-007): deleting the workflow cascades stages, runs,
+    # gates, approvals, questions, change requests, deployment runs and the event stream;
+    # the tables that point at the project row directly are removed here.
+    with runtime.transaction(operator=operator, project_id=project_id) as ctx:
+        _purge_project_rows(ctx.session, project_id)
 
     # Content removal is external I/O: after everything else, outside a unit of work.
     for artifact_id in artifact_ids:

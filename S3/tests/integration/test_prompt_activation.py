@@ -514,6 +514,7 @@ def test_two_gates_and_a_written_activation_are_one_fact(
         "no_dhis2_payload",
         "uid_ban",
         "decision_coverage",
+        "decision_registered",
         "low_confidence_question",
         "reuse_decision_per_similar_object",
     }

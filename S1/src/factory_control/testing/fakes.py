@@ -939,6 +939,9 @@ class FakeIntelligence:
     parse_results: dict[str, ParsedInput] = field(default_factory=dict)
     run_results: list[AgentRunResult] = field(default_factory=list)
     runs: dict[str, AgentRunResult] = field(default_factory=dict)
+    #: when set, ``resume_agent_run`` raises it after the answers were committed, which is
+    #: how a provider refusal (S2's BP_PATCH_MALFORMED) reaches S1's stage guard.
+    resume_error: Exception | None = None
     activations: list[dict[str, Any]] = field(default_factory=list)
     providers: dict[str, dict[str, Any]] = field(default_factory=dict)
     #: provider name → the failure sentence a health probe should report (S5IF-GOV20)
@@ -1087,6 +1090,8 @@ class FakeIntelligence:
         cancel: Any = None,
     ) -> AgentRunResult:
         self.calls.append(f"resume_agent_run:{run_id}")
+        if self.resume_error is not None:
+            raise self.resume_error
         result = self.next_run_result("COMPLETED")
         result = result.model_copy(update={"run_id": run_id})
         self.runs[run_id] = result

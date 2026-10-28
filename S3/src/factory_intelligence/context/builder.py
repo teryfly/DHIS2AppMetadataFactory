@@ -37,6 +37,8 @@ from factory_intelligence.prompts.render import system_message, task_message
 #: ``registry`` is S2's own section name; a Registry entry is what an agent cites by name,
 #: so it is a segment of its own in AI-RT-003's order rather than part of "blueprint entries".
 REGISTRY_SECTION = "registry"
+#: the section whose entries are the Blueprint's decision records (FR-MAP-001, BP-DEC-006)
+ARCHITECTURE_SECTION = "architecture"
 
 
 @dataclass
@@ -252,19 +254,47 @@ def entry_body(entry: Mapping[str, Any]) -> dict[str, Any]:
     return {name: value for name, value in entry.items() if not name.startswith("_")}
 
 
+def registered_decision_ids(entries: SelectedEntries | None) -> tuple[str, ...]:
+    """The decision ids the Blueprint this run read already registers as ADRs.
+
+    ``/architecture/decisions`` is where S2 indexes a ``decisionId``, so a mapping or Registry
+    entry may cite one of these without the patch repeating the record (BP-VAL-010).  Read
+    here rather than inside the check, because a constraint check is a pure function of its
+    context and must not perform I/O.
+    """
+    if entries is None:
+        return ()
+    out: set[str] = set()
+    for entry in entries.entries:
+        if entry_section(entry) != ARCHITECTURE_SECTION:
+            continue
+        decision_id = entry_body(entry).get("decisionId")
+        if isinstance(decision_id, str) and decision_id:
+            out.add(decision_id)
+    return tuple(sorted(out))
+
+
 def continue_transcript(
-    context: BuiltContext, prior: Sequence[ChatMessage], *, classification: DataClassification
+    context: BuiltContext,
+    prior: Sequence[ChatMessage],
+    *,
+    classification: DataClassification,
+    conversation_start: int | None = None,
 ) -> None:
     """Add the conversation this run already had, before this turn's answers (AI-RT-015).
 
     "S3 continues in the same run context" is not a claim about re-reading the same files:
-    the model has to see what it said last turn and what it was refused for.  The stored
-    transcript begins with its own system message, which is skipped — the active prompt of
-    *this* turn is the one that governs, and a second copy would only invite the model to
-    weigh two versions of the same rules against each other.
+    the model has to see what it said last turn and what it was refused for.  ``prior`` is
+    the *stored* transcript, which for a run starts with the context that was built last
+    turn.  That prefix is rebuilt from the current sources, so appending it again would send
+    two prompts, two sets of stage rules and two copies of every entry — and would let an
+    outdated rule outvote the current one.  ``conversation_start`` is the index where the
+    stored transcript's conversation begins; only that tail is appended.  Chat callers pass
+    no boundary because their ``prior`` is already just the dialogue.
     """
-    for index, message in enumerate(prior):
-        if index == 0 and message.role == "system":
+    start = 0 if conversation_start is None else max(0, conversation_start)
+    for index, message in enumerate(prior[start:], start=start):
+        if conversation_start is None and index == 0 and message.role == "system":
             continue
         _push(
             context,

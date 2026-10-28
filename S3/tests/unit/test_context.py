@@ -19,7 +19,7 @@ import pytest
 from factory_blueprint.api import SelectedEntries
 from factory_foundation.api import DataClassification
 
-from factory_intelligence.context.builder import InputArtifact, build
+from factory_intelligence.context.builder import InputArtifact, build, continue_transcript
 from factory_intelligence.context.fence import fence, is_untrusted, neutralise, plain
 from factory_intelligence.context.similar import (
     DiscoveryShapeUnreadable,
@@ -40,7 +40,9 @@ from factory_intelligence.context.thresholds import (
 from factory_intelligence.dto.request import AgentRunRequest
 from factory_intelligence.enums import ItemSourceKind
 from factory_intelligence.errors import ContextTooLarge
+from factory_intelligence.llm.types import ChatMessage
 from factory_intelligence.prompts.activation import ActivePrompt
+from factory_intelligence.runtime.contextstore import StoredContext
 
 MARKER = "systolic-reading-512"
 
@@ -512,3 +514,51 @@ def test_search_limits_are_respected() -> None:
     ]
     hits = find_similar(proposed, observed, SearchThresholds(name=0.9, max_results=3))
     assert len(hits["w1"]) == 3
+
+
+def test_resuming_appends_the_conversation_without_repeating_the_context() -> None:
+    """AI-RT-015: the stored context prefix is rebuilt for this turn, not replayed."""
+    context = build_one(stage_rules="Stage rules: use-case steps are arrays.")
+    built = len(context.messages)
+    prior = [
+        *context.messages,
+        ChatMessage(role="user", content="Your previous answer was refused. Fix the findings."),
+        ChatMessage(role="assistant", content='{"summary": "fixed"}'),
+    ]
+    continued = continue_transcript(
+        context,
+        prior,
+        classification=DataClassification.INTERNAL,
+        conversation_start=built,
+    )
+    assert continued is None
+    assert len(context.messages) == built + 2
+    assert sum("You consolidate requirements." in m.content for m in context.messages) == 1
+    assert sum("Stage rules: use-case steps are arrays." in m.content for m in context.messages) == 1
+    assert context.messages[-1].content == '{"summary": "fixed"}'
+
+
+def test_a_legacy_transcript_starts_at_its_first_conversation_message() -> None:
+    """Artifacts written before ``conversationStart`` still resume without duplicating."""
+    context = build_one()
+    prior = [
+        *context.messages,
+        ChatMessage(role="user", content="Your previous answer was: {...}"),
+        ChatMessage(role="assistant", content='{"summary": "asked"}'),
+    ]
+    stored = StoredContext(
+        run_id="arun-1",
+        project_id="prj-1",
+        attempt=1,
+        context_artifact_id="art-1",
+        context_hash="sha256:abc",
+        messages=prior,
+    )
+    assert stored.tail_start == len(context.messages)
+    continue_transcript(
+        context,
+        prior,
+        classification=DataClassification.INTERNAL,
+        conversation_start=stored.tail_start,
+    )
+    assert len(context.messages) == len(prior)

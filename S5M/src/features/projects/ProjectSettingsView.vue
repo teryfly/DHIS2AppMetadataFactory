@@ -2,12 +2,12 @@
 import { computed, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { FuiCard, FuiStatusTag, FuiAsync, FuiButton, FuiActionButton, FuiBottomSheet, FuiField } from '@/fui';
+import { FuiCard, FuiStatusTag, FuiAsync, FuiButton, FuiActionButton, FuiBottomSheet, FuiField, FuiSegmented, FuiCheckChips } from '@/fui';
 import { useProject, useUidPool, useProjectSettings } from '@/api/queries';
-import { useUpdateTargetEnvironments, useSaveProjectSettings, useArchiveProject, useExportProject, useDeleteProject, useUpgradeMode, useImportProject } from '@/api/mutations';
+import { useUpdateTargetEnvironments, useSaveProjectSettings, useArchiveProject, useExportProject, useDeleteProject, useUpgradeMode, useImportProject, useUpdateProject } from '@/api/mutations';
 import { ACTION } from '@/api/actions';
 import { envClassLabel } from '@/lib/labels';
-import { pushSuccess } from '@/lib/toast';
+import { pushError, pushSuccess } from '@/lib/toast';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -25,6 +25,98 @@ const saveSettings = useSaveProjectSettings();
 const archive = useArchiveProject();
 const exportProj = useExportProject();
 const del = useDeleteProject();
+const updateProject = useUpdateProject();
+
+// The management attributes S1's PATCH accepts. Delivery mode and target environments have
+// their own endpoints; everything else about the project is edited here.
+const basic = reactive({
+  name: '',
+  ownerName: '',
+  description: '',
+  projectType: 'GREENFIELD',
+  versionConstraints: '',
+  defaultLanguage: 'zh-CN',
+  translationLanguages: [] as string[],
+});
+const basicLoaded = ref(false);
+
+function normalizedType(value?: string | null): string {
+  return String(value ?? '').toUpperCase() === 'BROWNFIELD' ? 'BROWNFIELD' : 'GREENFIELD';
+}
+function normalizedLanguage(value?: string | null): string {
+  return String(value ?? '').startsWith('zh') ? 'zh-CN' : 'en';
+}
+
+const typeOptions = computed(() => [
+  { value: 'GREENFIELD', label: t('projects.greenfield') },
+  { value: 'BROWNFIELD', label: t('projects.brownfield') },
+]);
+const languageOptions = computed(() => [
+  { value: 'zh-CN', label: t('me.langZh') },
+  { value: 'en', label: t('me.langEn') },
+]);
+// The default language is not a *translation* of itself; offering it here would let the operator
+// create a state the save path silently drops.
+const translationOptions = computed(() => languageOptions.value.filter((option) => option.value !== basic.defaultLanguage));
+
+const basicDirty = computed(() => {
+  const p = proj.value;
+  if (!p) return false;
+  const defaultLanguage = normalizedLanguage(p.defaultLanguage);
+  return (
+    basic.name !== (p.name ?? '') ||
+    basic.ownerName !== (p.ownerName ?? '') ||
+    basic.description !== (p.description ?? '') ||
+    basic.projectType !== normalizedType(p.projectType) ||
+    basic.versionConstraints !== (p.versionConstraints ?? '') ||
+    basic.defaultLanguage !== defaultLanguage ||
+    JSON.stringify(basic.translationLanguages) !==
+      JSON.stringify((p.translationLanguages ?? []).filter((code) => code !== defaultLanguage))
+  );
+});
+const basicValid = computed(() => !!basic.name.trim() && !!basic.ownerName.trim());
+
+watch(
+  () => proj.value,
+  (p) => {
+    if (!p) return;
+    // A background refetch must not overwrite words the operator is still editing.
+    if (basicLoaded.value && basicDirty.value) return;
+    const defaultLanguage = normalizedLanguage(p.defaultLanguage);
+    basic.name = p.name ?? '';
+    basic.ownerName = p.ownerName ?? '';
+    basic.description = p.description ?? '';
+    basic.projectType = normalizedType(p.projectType);
+    basic.versionConstraints = p.versionConstraints ?? '';
+    basic.defaultLanguage = defaultLanguage;
+    basic.translationLanguages = (p.translationLanguages ?? []).filter((code) => code !== defaultLanguage);
+    basicLoaded.value = true;
+  },
+  { immediate: true },
+);
+
+function saveBasics(): void {
+  if (!basicValid.value) return;
+  const translationLanguages = basic.translationLanguages.filter((code) => code !== basic.defaultLanguage);
+  updateProject.mutate(
+    {
+      projectId: projectId.value,
+      body: {
+        name: basic.name.trim(),
+        ownerName: basic.ownerName.trim(),
+        description: basic.description,
+        projectType: basic.projectType,
+        versionConstraints: basic.versionConstraints,
+        defaultLanguage: basic.defaultLanguage,
+        translationLanguages,
+      },
+    },
+    {
+      onSuccess: () => pushSuccess(t('project.basicSaved')),
+      onError: (err) => pushError(err),
+    },
+  );
+}
 
 // UI-PRJ-004 pairs 导出 with 导入; the mobile screen had the first and not the second, so an
 // operator who exported on the phone could only ever restore at a desk. The import creates a
@@ -80,17 +172,53 @@ function saveProjectSettings(): void {
   saveSettings.mutate({ projectId: projectId.value, body: { gateReminderHours: settingsForm.gateReminderHours, notificationEmails: settingsForm.notificationEmails.split(',').map((s) => s.trim()).filter(Boolean), notificationWebhookRef: settingsForm.notificationWebhookRef || undefined } }, { onSuccess: () => pushSuccess(t('settings.saved')) });
 }
 
+// Opening the irreversible sheet from `?action=delete` meant a bookmarked or reloaded URL re-popped
+// it; the sheet is opened by the button below and by nothing else.
 const deleteSheet = ref(false);
 const deleteName = ref('');
 function doDelete(): void {
   if (deleteName.value !== project.data.value?.name) return;
-  del.mutate(projectId.value, { onSuccess: () => router.replace('/projects') });
+  del.mutate(projectId.value, {
+    onSuccess: () => router.replace('/projects'),
+    onError: (err) => pushError(err),
+  });
 }
 </script>
 
 <template>
   <div class="ps">
     <FuiAsync :loading="project.isLoading.value" @retry="project.refetch()">
+      <FuiCard id="basics" :title="t('project.basicInfo')">
+        <p class="ps__hint">{{ t('project.basicInfoHint') }}</p>
+        <p v-if="proj?.archived" class="ps__warn">{{ t('project.archivedReadonly') }}</p>
+        <FuiField v-model="basic.name" :label="t('project.name')" required :disabled="!!proj?.archived" />
+        <FuiField v-model="basic.ownerName" :label="t('project.ownerName')" required :disabled="!!proj?.archived" />
+        <FuiField v-model="basic.description" type="textarea" rows="2" :label="t('project.description')" :disabled="!!proj?.archived" />
+        <div class="ps__choice">
+          <span class="ps__choice-label">{{ t('project.projectType') }}</span>
+          <FuiSegmented v-model="basic.projectType" :options="typeOptions" :disabled="!!proj?.archived" small />
+        </div>
+        <FuiField v-model="basic.versionConstraints" :label="t('project.versionConstraints')" :disabled="!!proj?.archived" />
+        <div class="ps__choice">
+          <span class="ps__choice-label">{{ t('project.defaultLanguage') }}</span>
+          <FuiSegmented v-model="basic.defaultLanguage" :options="languageOptions" :disabled="!!proj?.archived" small />
+        </div>
+        <div class="ps__choice">
+          <span class="ps__choice-label">{{ t('project.translationLanguages') }}</span>
+          <FuiCheckChips v-model="basic.translationLanguages" :options="translationOptions" :disabled="!!proj?.archived" small />
+        </div>
+        <FuiActionButton
+          :action="ACTION.projectEdit"
+          :workflow-id="proj?.workflowId ?? ''"
+          :target-id="projectId"
+          size="small"
+          :label="t('project.saveBasics')"
+          :loading="updateProject.isPending.value"
+          :disabled="!basicDirty || !basicValid || !!proj?.archived"
+          @click="saveBasics"
+        />
+      </FuiCard>
+
       <FuiCard :title="t('project.targetEnvs')">
         <div v-for="(e, i) in targetEnvs" :key="e.environmentKey" class="ps__env">
           <div class="ps__envmain">
@@ -126,16 +254,30 @@ function doDelete(): void {
         <div class="ps__acts">
           <FuiActionButton :action="ACTION.projectExport" :workflow-id="proj?.workflowId ?? ''" :target-id="projectId" size="small" :label="t('project.export')" @click="exportProj.mutate(projectId)" />
           <FuiActionButton :action="ACTION.projectImport" platform size="small" :label="t('project.importProjects')" @click="importSheet = true" />
-          <FuiActionButton :action="ACTION.projectArchive" :workflow-id="proj?.workflowId ?? ''" :target-id="projectId" size="small" :label="proj?.archived ? t('project.unarchive') : t('project.archive')" @click="archive.mutate(projectId)" />
-          <FuiActionButton :action="ACTION.projectDelete" :workflow-id="proj?.workflowId ?? ''" :target-id="projectId" size="small" variant="danger" :label="t('project.deleteProject')" @click="deleteSheet = true" />
+          <FuiActionButton v-if="!proj?.archived" :action="ACTION.projectArchive" :workflow-id="proj?.workflowId ?? ''" :target-id="projectId" size="small" :label="t('project.archive')" @click="archive.mutate(projectId)" />
+          <FuiActionButton v-if="proj?.archived" :action="ACTION.projectDelete" :workflow-id="proj?.workflowId ?? ''" :target-id="projectId" size="small" variant="danger" :label="t('project.deleteProject')" @click="deleteSheet = true" />
         </div>
+        <p class="ps__hint">{{ t('project.deleteNeedsArchive') }}</p>
       </FuiCard>
     </FuiAsync>
 
     <FuiBottomSheet v-model="deleteSheet" :title="t('project.deleteProject')">
-      <p class="ps__warn">{{ t('project.deleteConfirmType') }}</p>
+      <p class="ps__warn">{{ t('project.deleteCascade') }}</p>
+      <p class="ps__hint">{{ t('project.deleteConfirmType') }}</p>
       <FuiField v-model="deleteName" :placeholder="proj?.name" />
-      <template #footer><FuiButton variant="danger" block :label="t('common.confirmDelete')" :disabled="deleteName !== proj?.name" :loading="del.isPending.value" @click="doDelete" /></template>
+      <template #footer>
+        <FuiActionButton
+          :action="ACTION.projectDelete"
+          :workflow-id="proj?.workflowId ?? ''"
+          :target-id="projectId"
+          variant="danger"
+          block
+          :label="t('common.confirmDelete')"
+          :disabled="deleteName !== proj?.name"
+          :loading="del.isPending.value"
+          @click="doDelete"
+        />
+      </template>
     </FuiBottomSheet>
     <FuiBottomSheet v-model="importSheet" :title="t('project.importProjects')">
       <p class="ps__hint">{{ t('project.importHelp') }}</p>
@@ -153,5 +295,7 @@ function doDelete(): void {
 .ps__hint { font-size: var(--fui-fs-xs); color: var(--fui-text-tertiary); }
 .ps__acts { display: flex; flex-wrap: wrap; gap: 8px; }
 .ps__warn { font-size: var(--fui-fs-sm); color: var(--fui-danger); }
+.ps__choice { margin: 6px 0 12px; }
+.ps__choice-label { display: block; font-size: var(--fui-fs-sm); color: var(--fui-text-secondary); margin-bottom: 6px; }
 .ps__pool { display: flex; gap: 8px; align-items: center; font-size: var(--fui-fs-sm); margin-bottom: 8px; }
 </style>

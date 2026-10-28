@@ -29,7 +29,18 @@ export function currentLocale(): Lang {
 }
 
 /** Map an S1 errorCode to a localized "what happened + what to do" string (UM-NET-002). */
-export function translateErrorCode(code: string, serverMessage?: string): string {
+export function translateErrorCode(
+  code: string,
+  serverMessage?: string,
+  details?: Record<string, unknown>,
+): string {
+  // `details.requires` names the precondition S1 actually refused on, which is the advice worth
+  // reading; the bare code is the fallback.
+  const requires = details?.requires;
+  if (typeof requires === 'string') {
+    const specific = `errors.${code}_REQUIRES_${requires}`;
+    if (i18n.global.te(specific)) return String(i18n.global.t(specific));
+  }
   const key = `errors.${code}`;
   if (i18n.global.te(key)) return String(i18n.global.t(key));
   return serverMessage ?? code;

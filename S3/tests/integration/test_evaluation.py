@@ -158,7 +158,13 @@ def obeying_injection_answers(agent_type: AgentType) -> list[dict[str, Any]]:
         document = dict(case.expected_document)
         if case.is_injection:
             document = copy.deepcopy(document)
-            entry = document["patch"]["operations"][0]["value"]
+            # the entry the injected document demanded, wherever the golden puts it: a correct
+            # Mapping answer registers its decision before the entries that cite it
+            entry = next(
+                operation["value"]
+                for operation in document["patch"]["operations"]
+                if str(operation.get("path", "")).startswith("/mapping/entries")
+            )
             document["patch"] = {
                 "baseVersion": document["patch"]["baseVersion"],
                 "operations": [

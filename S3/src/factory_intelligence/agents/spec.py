@@ -96,6 +96,16 @@ class AgentSpec:
                 else "explanation and suggestion only; you submit no patch."
             ),
         ]
+        if self.patch_mode is PatchMode.PATCH:
+            lines.append(
+                "Patch paths are RFC 6902 JSON Pointers over the current draft. Keyed "
+                "containers are JSON arrays: append a new entry with `/<container>/-`, and "
+                "address an existing entry by its zero-based index (`/<container>/<index>` "
+                "or `/<container>/<index>/<field>`). A businessKey is never an array index, "
+                "and replacing an index the draft does not contain is invalid. A "
+                "WAITING_INPUT answer was not applied: re-emit every operation needed from "
+                "the draft in context, not a delta against your previous answer."
+            )
         if self.sections:
             lines.append("You may address these Blueprint sections: " + ", ".join(
                 section.value for section in self.sections) + ".")
@@ -116,8 +126,9 @@ class AgentSpec:
             )
         if Section.USE_CASES in self.sections:
             lines.append(
-                "Use case `name` is a plain string, not a localized object; `purpose`, "
-                "`steps` and `outcome` are plain strings as well."
+                "Use case `name` is a plain string, not a localized object; `purpose` and "
+                "`outcome` are plain strings as well, while `steps` and `preconditions` are "
+                "arrays of plain strings."
             )
         if Section.ACTORS in self.sections:
             lines.append(
@@ -197,6 +208,7 @@ _SPECS: tuple[AgentSpec, ...] = (
             "no_dhis2_payload",
             "uid_ban",
             "decision_coverage",
+            "decision_registered",
             "low_confidence_question",
             "reuse_decision_per_similar_object",
         ),

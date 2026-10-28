@@ -608,6 +608,53 @@ def test_archive_export_and_delete_sequence(harness, seeded) -> None:
     for calls in (harness.blueprint.calls, harness.intelligence.calls, harness.execution.calls):
         assert f"delete_project_data:{project_id}" in calls
 
+    # FR-DATA-006: the project's own rows go with it; the tombstone stays so a repeated
+    # DELETE can answer ``already = true`` (CP-PRJ-007), and audit/artifacts are retained.
+    from sqlalchemy import func, select
+
+    from factory_control.foundation import unit_of_work
+    from factory_control.models import (
+        EventStreamRecord,
+        Notification,
+        ProductionExemption,
+        Project,
+        ProjectMember,
+        ProjectSetting,
+        ProjectTargetEnvironment,
+        RestrictedGrant,
+        Stage,
+        UserRole,
+        Workflow,
+    )
+
+    with unit_of_work() as session:
+        tombstone = session.get(Project, project_id)
+        assert tombstone is not None and tombstone.deleted_at is not None
+        for model in (
+            Workflow,
+            ProjectTargetEnvironment,
+            ProjectSetting,
+            ProjectMember,
+            UserRole,
+            RestrictedGrant,
+            ProductionExemption,
+            Notification,
+        ):
+            remaining = session.execute(
+                select(func.count()).select_from(model).where(model.project_id == project_id)
+            ).scalar_one()
+            assert remaining == 0, f"{model.__name__} rows survived project deletion"
+        # The workflow's children go through the schema's ON DELETE CASCADE, not a second list
+        # here: a stage or an event that outlived its workflow would be a dangling row.
+        for model in (Stage, EventStreamRecord):
+            remaining = session.execute(
+                select(func.count()).select_from(model).where(model.workflow_id == seeded["workflowId"])
+            ).scalar_one()
+            assert remaining == 0, f"{model.__name__} rows survived project deletion"
+
+    again = client.delete(f"/api/v1/projects/{project_id}", headers=OPERATOR)
+    assert again.status_code == 202 and again.json()["already"] is True
+
 
 def test_error_envelope_localizes_and_carries_correlation(harness) -> None:
     """CP-API-008 with CP-NFR-09 / CP-API-006."""

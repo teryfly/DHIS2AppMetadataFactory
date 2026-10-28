@@ -113,12 +113,29 @@ export function ProjectsList() {
                 </div>
                 <div className="project-card__footer">
                   <span className="project-card__meta">{progress}%</span>
-                  <Link
-                    to={`/projects/${encodeURIComponent(project.id ?? '')}/overview`}
-                    className="secondary-link"
-                  >
-                    {t('projects.open')}
-                  </Link>
+                  <span className="row" style={{ gap: 12 }}>
+                    <Link
+                      to={`/projects/${encodeURIComponent(project.id ?? '')}/settings`}
+                      className="secondary-link"
+                    >
+                      {t('projectSettings.editLink')}
+                    </Link>
+                    {/* CP-PRJ-007: the two steps are ordered, so a live project offers 归档 and only
+                        an archived one offers 删除. Both land on the danger zone, which is where
+                        allowed-actions and the typed confirmation decide whether the press works. */}
+                    <Link
+                      to={`/projects/${encodeURIComponent(project.id ?? '')}/settings`}
+                      className="secondary-link"
+                    >
+                      {project.archived ? t('projectSettings.deleteLink') : t('projectSettings.archiveLink')}
+                    </Link>
+                    <Link
+                      to={`/projects/${encodeURIComponent(project.id ?? '')}/overview`}
+                      className="secondary-link"
+                    >
+                      {t('projects.open')}
+                    </Link>
+                  </span>
                 </div>
               </article>
             );

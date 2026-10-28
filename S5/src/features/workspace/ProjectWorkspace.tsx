@@ -44,7 +44,7 @@ export function ProjectWorkspace() {
   const currentStage = stages.find((s) => s.id === currentStageId) as StageViewType | undefined;
   const onStageRoute = pathname.includes('/stages/');
   const chatable = onStageRoute && hasDialogue(currentStage?.stageType);
-  const waitingGate = (gates.data?.items ?? []).find((gate) => gate.status === 'WAITING_APPROVAL');
+  const waitingGate = (gates.data?.items ?? []).find((gate) => gate.status === 'WAITING');
 
   const primaryTabs: RouteTab[] = PROJECT_SECTIONS.map((entry) => ({
     key: entry.key,

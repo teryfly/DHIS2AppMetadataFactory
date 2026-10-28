@@ -40,7 +40,7 @@ from sqlalchemy.orm import Session
 
 from factory_intelligence import artifacts
 from factory_intelligence.agents.checks.base import CheckContext
-from factory_intelligence.agents.spec import AgentSpec
+from factory_intelligence.agents.spec import AgentSpec, PatchMode
 from factory_intelligence.config import settings
 from factory_intelligence.context.builder import (
     BuiltContext,
@@ -49,6 +49,7 @@ from factory_intelligence.context.builder import (
     continue_transcript,
     entry_body,
     entry_section,
+    registered_decision_ids,
 )
 from factory_intelligence.context.similar import (
     DiscoveryShapeUnreadable,
@@ -81,6 +82,7 @@ from factory_intelligence.llm.registry import (
     registered_model,
 )
 from factory_intelligence.llm.retry import backoff_seconds, max_attempts, wait_budget
+from factory_intelligence.llm.tokens import estimate_messages
 from factory_intelligence.llm.types import (
     AgentHint,
     ChatMessage,
@@ -151,10 +153,18 @@ class Turn:
     #: the operationKeys this page's API Intents declare — AI-AG-005's check cannot resolve
     #: a component's data source without them, and they come from the entries read here
     api_operation_keys: tuple[str, ...] = ()
+    #: the decision ids the draft already registers in ``/architecture/decisions``, so
+    #: ``decision_registered`` does not refuse a citation of a decision that exists
+    existing_decision_ids: tuple[str, ...] = ()
     answer: AgentOutput | None = None
     #: the raw payload of the last provider answer, kept only so a corrective retry can ask
     #: for "fix this answer" instead of "reconstruct an answer you can no longer see".
     last_payload: Any = None
+    #: where the freshly built context ends and this run's conversation begins (AI-RT-015).
+    #: Persisted so a later turn appends the dialogue without re-sending the context.
+    conversation_start: int = 0
+    #: whether this agent submits patches; the repair turn then restates the array-path rules
+    patch_agent: bool = False
     report: ValidationReport = field(default_factory=ValidationReport)
     calls: int = 0
     rejection: PatchRejected | None = None
@@ -315,16 +325,24 @@ def prepare(execution: Execution) -> Turn:
             question.model_dump(mode="json") for question in _prior_questions(execution)
         ],
     )
+    #: the context this turn built; everything after it in the stored transcript is dialogue
+    conversation_start = len(context.messages)
     if execution.stored is not None and execution.stored.messages:
         # AI-RT-015: continue the conversation the run already had, not a fresh one built
-        # from the same inputs, which would lose what the model itself answered last turn
+        # from the same inputs, which would lose what the model itself answered last turn.
+        # Only the stored tail is appended: the stored context prefix is this turn's context
+        # already, rebuilt from the current prompt, rules and entries.
         continue_transcript(
             context,
             execution.stored.messages,
             classification=execution.stored.classification,
+            conversation_start=execution.stored.tail_start,
         )
     for message in _answer_messages(execution):
         _append(context, message)
+    # The stored transcript and this turn's answers were added after ``build`` estimated the
+    # context; model selection must see the whole conversation, not only the first turn's.
+    context.token_estimate = estimate_messages(context.messages)
     policy = _effective_policy(request)
     candidates = _candidates(execution, context)
     selection = select(context, policy, candidates)
@@ -342,6 +360,7 @@ def prepare(execution: Execution) -> Turn:
         context=context,
         thresholds=thresholds,
         api_operation_keys=_operation_keys(entries, request),
+        existing_decision_ids=registered_decision_ids(entries),
         input_hashes={
             item.artifact_id: item.content_hash
             for item in inputs
@@ -356,6 +375,8 @@ def prepare(execution: Execution) -> Turn:
         similar_records=similar,
         warnings=[] if similar_warning is None else [similar_warning],
         blueprint_hash=_blueprint_hash_of(request.project_id, draft),
+        conversation_start=conversation_start,
+        patch_agent=execution.spec.patch_mode is PatchMode.PATCH,
     )
     if selection.chosen is not None:
         turn.model = _resolve_registered(selection.chosen)
@@ -378,7 +399,7 @@ def select(
 
 
 def _ask_until_valid(execution: Execution, turn: Turn) -> None:
-    """Call and validate until the ladder accepts, using AI-RT-011's one corrective retry.
+    """Call and validate until the ladder accepts or the configured repair budget is spent.
 
     S2's rejection is handled around :func:`commit`, not here: the submit happens inside the
     run's only transaction, so a rejection rolls that transaction back and the model is
@@ -523,11 +544,12 @@ def commit(execution: Execution, turn: Turn) -> AgentRunResult:
             context_document(
                 run_id=execution.run_id,
                 attempt=execution.attempt,
-                context=turn.context,
+                context=_transcript_with_answer(execution, turn, answer),
                 submitted_patch_ids=list(_submitted(execution)),
                 raised_questions=raised,
                 question_id_map=mapping,
                 base_version=_base_version(execution, turn),
+                conversation_start=turn.conversation_start,
             ),
         )
         try:
@@ -537,12 +559,29 @@ def commit(execution: Execution, turn: Turn) -> AgentRunResult:
             break
         except PatchRejected as rejection:
             # T2 rolled back with the rejection, so nothing was applied
-            if rounds <= 0:
+            if rounds <= 0 or turn.calls >= settings().max_model_calls_per_run:
                 return failed(execution, rejection, calls=turn.calls)
             rounds -= 1
             turn.report = _rejection_report(rejection)
             _append_feedback(turn)
             assert turn.provider is not None  # selection refused otherwise, before the loop
+            _call_once(execution, turn, turn.provider)
+            if turn.answer is None:
+                return failed(execution, rejection, calls=turn.calls)
+        except FactoryError as exc:
+            # S2 raises PatchMalformed for structural RFC 6902 problems instead of returning
+            # a rejection outcome.  It is still a bad model answer and buys the same one
+            # corrective retry; every other provider error must end the run as FAILED rather
+            # than escape with the idempotency record and run row left mid-flight.
+            if exc.error_code != "BP_PATCH_MALFORMED":
+                return failed(execution, exc, calls=turn.calls)
+            rejection = PatchRejected(str(exc.message), details={"reason": exc.error_code})
+            if rounds <= 0 or turn.calls >= settings().max_model_calls_per_run:
+                return failed(execution, rejection, calls=turn.calls)
+            rounds -= 1
+            turn.report = _rejection_report(rejection)
+            _append_feedback(turn)
+            assert turn.provider is not None
             _call_once(execution, turn, turn.provider)
             if turn.answer is None:
                 return failed(execution, rejection, calls=turn.calls)
@@ -869,6 +908,42 @@ def _safe_point(execution: Execution) -> None:
         raise CancelledError("agent run cancelled at a safe point", details={"runId": execution.run_id})
 
 
+def _transcript_with_answer(
+    execution: Execution, turn: Turn, answer: AgentOutput
+) -> BuiltContext:
+    """The transcript a later turn continues from: the input plus what the model answered.
+
+    ``context_document`` used to persist only the messages that were *sent*, so a resumed
+    turn saw its questions and the user's answers but not the decisions and rejected
+    alternatives it had written.  The model then re-emitted its decisions from the question
+    ids alone, and ``decision_coverage`` refused them for having no alternative.  Keeping the
+    accepted answer in the transcript is what makes AI-RT-015's "same run context" literal.
+    """
+    payload = turn.last_payload
+    if not isinstance(payload, dict) or not payload:
+        payload = answer.model_dump(mode="json", by_alias=True)
+    text = json.dumps(_scrub(payload), ensure_ascii=False)
+    context = _with_tail(turn.context, ChatMessage(role="assistant", content=text))
+    size = len(text.encode("utf-8"))
+    return BuiltContext(
+        messages=context.messages,
+        items=[
+            *context.items,
+            ContextItem(
+                ref=f"answer:{execution.run_id}:{execution.attempt}",
+                classification=DataClassification.INTERNAL,
+                kind=ItemSourceKind.AGENT_ANSWER,
+                label="prior answer",
+                size_bytes=size,
+            ),
+        ],
+        excluded_phi=list(context.excluded_phi),
+        open_questions=list(context.open_questions),
+        byte_size=context.byte_size,
+        token_estimate=estimate_messages(context.messages),
+    )
+
+
 def _append(context: BuiltContext, message: ChatMessage) -> None:
     """Fold a resume answer into the judged context.
 
@@ -918,6 +993,46 @@ def _append_feedback(turn: Turn) -> None:
                 "Your previous answer was too large to repeat here; produce a complete new "
                 "answer that fixes the findings and changes nothing else.\n\n"
             )
+    rules = [
+        "Your previous answer was refused; nothing from it was applied to the draft.",
+        "Return one COMPLETE JSON object with every envelope key (summary, confidence, "
+        "decisions, patch, questions), not a fragment or a delta.",
+        "Start from the draft shown in context, not from your previous answer: a turn that "
+        "ended WAITING_INPUT was never submitted, so its entries do not exist yet. Redo "
+        "every operation the current target state needs.",
+        "Mechanical findings (schema types, array paths or indexes, missing decision "
+        "alternatives) are yours to fix directly. Ask only for a business fact a human must "
+        "supply.",
+        "If a finding cannot be fixed from the context because a business fact is missing or "
+        "unconfirmed — a requirement, role or ownership rule, lifecycle transition, threshold "
+        "or formula, or scope decision — do not invent it and do not repeat the rejected "
+        "patch. Return a complete answer with an empty patch (`operations: []`) and blocking "
+        "`questions`; each question must name the affected keys in `affects`, offer 2–5 "
+        "complete suggested answers with a rationale, and mark exactly one recommended (at "
+        "least one for MULTIPLE). The human's answers are added to the next turn, which then "
+        "produces the patch.",
+        "Do not ask for the previous answer, and do not renumber or drop decisions: every "
+        "decision is judged again in full, so repeat its selected option, at least one "
+        "rejected alternative with the reason (or confidence 1.0 for a forced choice), its "
+        "risks and its confidence.",
+    ]
+    if turn.patch_agent:
+        rules.extend(
+            [
+                "Patch paths are RFC 6902 pointers over JSON arrays. `add /<container>/-` "
+                "appends a complete new entry (include all of its fields, including arrays such "
+                "as steps); `replace /<container>/<index>` or `/<container>/<index>/<field>` "
+                "changes an entry that already exists in the current draft. A businessKey is "
+                "never an array index. If a finding says `array index N out of range`, that "
+                "entry is absent: create it with `add /<container>/-` instead of replacing N.",
+                "If a finding says `references unknown decisionId 'ID'`, your `decisions` "
+                "array is not what was searched: a decision exists for the Blueprint only as "
+                "an entry of `/architecture/decisions`. Fix it by adding that decision there "
+                "in this same patch — `add /architecture/decisions/-` with `decisionId` set to "
+                "the cited ID and `status` PROPOSED — or cite an ID the draft already "
+                "registers. Renaming the decision in your answer fixes nothing.",
+            ]
+        )
     turn.context = _with_tail(
         turn.context,
         plain(
@@ -925,9 +1040,10 @@ def _append_feedback(turn: Turn) -> None:
             text=(
                 lead
                 + previous
-                + "Your previous answer was refused. Return one COMPLETE JSON object that "
-                "fixes exactly these findings and changes nothing else. Do not ask for the "
-                "previous answer.\n" + turn.report.as_prompt_block()
+                + "REPAIR TURN — fix exactly the findings below:\n"
+                + "\n".join(f"- {rule}" for rule in rules)
+                + "\n\nFindings:\n"
+                + turn.report.as_prompt_block()
             ),
         ),
     )
@@ -946,6 +1062,13 @@ def _with_tail(context: BuiltContext, message: ChatMessage) -> BuiltContext:
 
 
 def _check_context(execution: Execution, turn: Turn) -> CheckContext:
+    answered = {str(answer.question_local_id) for answer in execution.answers}
+    answered_affects = [
+        str(target)
+        for question in _prior_questions(execution)
+        if question.local_id in answered
+        for target in question.affects
+    ]
     return CheckContext(
         agent_type=execution.spec.agent_type.value,
         stage=execution.request.stage,
@@ -954,9 +1077,11 @@ def _check_context(execution: Execution, turn: Turn) -> CheckContext:
             for section in execution.spec.writable_section_values
         },
         decision_confidence_threshold=turn.thresholds.decision,
+        answered_affects=answered_affects,
         mapping_frozen=_frozen(turn),
         similar_object_keys=turn.similar_keys,
         api_operation_keys=turn.api_operation_keys,
+        existing_decision_ids=turn.existing_decision_ids,
         phi_refs=list(turn.context.excluded_phi),
         base_version=_base_version(execution, turn),
     )
@@ -1389,7 +1514,11 @@ def _answer_messages(execution: Execution) -> list[ChatMessage]:
             text=(
                 "Answers to the questions this run raised. Produce the patch that applies "
                 "them now; the confirmation record for each answered question is added by "
-                "the runtime, not by you.\n\n" + body
+                "the runtime, not by you. Every decision you list is still judged in full: "
+                "repeat its selected option, at least one rejected alternative with the "
+                "reason it was rejected (or confidence 1.0 for a forced choice), its risks "
+                "and its confidence, even when you are re-listing a decision from your "
+                "previous answer.\n\n" + body
             ),
         )
     ]

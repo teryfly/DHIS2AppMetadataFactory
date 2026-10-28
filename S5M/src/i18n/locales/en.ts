@@ -181,7 +181,7 @@ export default {
     remindHours: 'Reminder (hours)', export: 'Export', importProjects: 'Import', archive: 'Archive',
     importArtifact: 'Exported artifact id', importHelp: 'Importing creates a new project: no target environment, and the design line back in draft.',
     imported: 'Import accepted; the new project is {id}',
-    unarchive: 'Unarchive', deleteProject: 'Delete project', deleteNeedsArchive: 'Archive & export before deleting',
+    deleteProject: 'Delete project', deleteNeedsArchive: 'Archive & export before deleting',
     deleteCascade: 'Deleting removes every piece of data that belongs to this project: workflow and stages, inputs and artifact content, deployments, members and grants, notifications. Audit records and exported artifacts are retained under the retention policy. This cannot be undone.',
     deleteConfirmType: 'Type the project name to confirm deletion', upgradeMode: 'Upgrade delivery mode', upgradeDone: 'Delivery mode upgraded', upgradeSoon: 'Delivery-mode upgrade comes later',
     changeDesignRef: 'Change design reference', designRefImpact: 'Compile & validation will use the new reference', envOrderHint: 'Test first, then production',
@@ -596,7 +596,7 @@ export default {
   a11y: { skip: 'Skip to main content', closeDialog: 'Close', main: 'Main content' },
   errors: {
     OPERATOR_REQUIRED: 'This action needs an operator name (sent as X-Operator)', IDEMPOTENCY_KEY_REQUIRED: 'This request needs an idempotency key; a commit is never auto-retried',
-    INVALID_STATE: 'This action is not allowed in the current state', PROJECT_ARCHIVED: 'The project is archived and read-only',
+    INVALID_STATE: 'This action is not allowed in the current state', INVALID_STATE_REQUIRES_ARCHIVED: 'Archive the project first — only an archived one can be deleted', INVALID_STATE_REQUIRES_PROJECT_EXPORT: 'Export the project first — deletion needs an export on file', PROJECT_ARCHIVED: 'The project is archived and read-only',
     UPLOAD_REJECTED: 'Upload rejected: file type or size is outside the limits', REQUEST_IN_PROGRESS: 'A request with the same idempotency key is still running',
     IDEMPOTENCY_CONFLICT: 'The idempotency key was already used with different content', NOT_FOUND: 'The object you want does not exist',
     GATE_NOT_APPROVED: 'The required approval has not been granted', APPROVAL_INVALIDATED: 'The content changed — please re-review',
@@ -658,7 +658,7 @@ export default {
     STAGE_NOT_WAITING: 'Stage not waiting', STAGE_NOT_IN_MANUAL_CHECK: 'Stage not in manual check', STAGE_NOT_PASSED: 'Stage not passed',
     DESIGN_LINE_INCOMPLETE: 'Design line incomplete', RUN_OPEN_FOR_ENVIRONMENT: 'An open run exists for this environment', NO_OPEN_RUN: 'No open run',
     GATE_NOT_WAITING: 'Gate not waiting', HIGH_QUESTION_OPEN: 'High-priority question open', WARNING_UNRESOLVED: 'Unresolved warning',
-    MAPPING_FROZEN_BY_GATE: 'Mapping frozen by gate', unknown: 'Not available now',
+    MAPPING_FROZEN_BY_GATE: 'Mapping frozen by gate', EXPORT_NOT_TAKEN: 'The project has not been exported yet', unknown: 'Not available now',
   },
   auth: {
     login: 'Sign in', logout: 'Sign out', signIn: 'Sign in', username: 'Account', password: 'Password',

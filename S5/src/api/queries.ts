@@ -115,7 +115,7 @@ export const gatesPendingOptions = () =>
     queryKey: qk.gatesPending,
     queryFn: () =>
       unwrap<{ items?: T.GateSummaryView[] }>(() =>
-        client.GET(`${P}/gates`, { params: { query: { status: 'WAITING_APPROVAL' } } }),
+        client.GET(`${P}/gates`, { params: { query: { status: 'WAITING' } } }),
       ),
   });
 
@@ -141,7 +141,7 @@ export const gatesInboxOptions = (
         client.GET(`${P}/gates`, {
           params: {
             query: {
-              status: 'WAITING_APPROVAL',
+              status: 'WAITING',
               // an unchecked filter leaves the wire entirely (the same shape `notificationsOptions`
               // keeps): `mine=false` and no answer mean different questions to S1's log reader
               mine: filters.mine || undefined,
@@ -867,14 +867,18 @@ export const blueprintVersionsOptions = (projectId: string | undefined) =>
   });
 
 /** S5IF-BP04: raw section entries with S2's own `_section` / `_path` locators kept verbatim. */
-export const blueprintEntriesOptions = (projectId: string | undefined, sections?: string[]) =>
+export const blueprintEntriesOptions = (
+  projectId: string | undefined,
+  sections?: string[],
+  source: 'APPROVED' | 'DRAFT' = 'APPROVED',
+) =>
   queryOptions({
-    queryKey: qk.blueprintEntries(projectId ?? '-', sections),
+    queryKey: qk.blueprintEntries(projectId ?? '-', sections, source),
     enabled: !!projectId,
     queryFn: () =>
       unwrap<T.EntryPage>(() =>
         client.GET(`${P}/projects/{project_id}/blueprint/entries`, {
-          params: { path: { project_id: projectId! }, query: { sections } },
+          params: { path: { project_id: projectId! }, query: { sections, source } },
         }),
       ),
   });

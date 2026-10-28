@@ -39,6 +39,9 @@ class CheckContext:
     containers: Mapping[str, Sequence[Container]] = field(default_factory=dict)
     #: AI-AG-012: the Blueprint's own decision threshold (AI-INP-008 supplies extraction's)
     decision_confidence_threshold: float = 0.7
+    #: AI-AG-012 on a resumed turn: what the questions already answered this run named.
+    #: A decision that was put to the human and answered needs no second question.
+    answered_affects: Sequence[str] = ()
     mapping_frozen: bool = False
     #: AI-AG-011: keys of the similar objects S3 found, each needing a reuse decision
     similar_object_keys: Sequence[str] = ()
@@ -50,6 +53,10 @@ class CheckContext:
     base_version: str | None = None
     #: businessKeys already present in the draft or version, for the uniqueness rules
     existing_keys: Sequence[str] = ()
+    #: decisionIds the draft or version already registers in ``/architecture/decisions`` —
+    #: the only place S2 resolves a ``decisionId`` reference against (BP-VAL-010), so a check
+    #: that read only the answer would refuse a citation of an already-accepted decision
+    existing_decision_ids: Sequence[str] = ()
 
 
 @dataclass(frozen=True)

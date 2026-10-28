@@ -39,14 +39,19 @@ class IntelligenceSettings:
     #: successful response resets it, so one slow chunk cannot spend the budget a later chunk
     #: needs.
     transport_wait_budget_seconds: float = 1800.0
-    #: the single corrective retry AI-RT-011 allows
-    corrective_attempts: int = 1
-    #: the single corrective retry AI-RT-013 allows after S2 rejects a patch
-    s2_reject_attempts: int = 1
+    #: Corrective retries after the output ladder refuses an answer (AI-RT-011).
+    #: Five re-emissions are allowed by default; the repaired answer is a complete envelope,
+    #: not a delta, and every turn still counts against ``max_model_calls_per_run``.
+    corrective_attempts: int = 5
+    #: Corrective retries after S2 rejects a patch (AI-RT-013).  A malformed path is a
+    #: mechanical mistake the model can fix when it is shown the exact operation and error,
+    #: so the same five-attempt budget applies there.
+    s2_reject_attempts: int = 5
     #: AI-RT-013: replenishing the UID pool is not a retry of anything
     uid_replenish_attempts: int = 2
-    #: hard ceiling so a mis-set budget cannot loop a worker; AI-AC-01 relies on it
-    max_model_calls_per_run: int = 3
+    #: hard ceiling so a mis-set budget cannot loop a worker; AI-AC-01 relies on it.
+    #: One initial answer plus five repair turns.
+    max_model_calls_per_run: int = 6
 
     # --- context construction (AI-RT-004, AI-NFR-06) ----------------------------
     #: refuse rather than truncate (AI-POL-003)

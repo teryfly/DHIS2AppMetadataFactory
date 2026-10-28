@@ -45,7 +45,7 @@ export function ToastHost() {
         push({
           tone: 'error',
           title: t('error.title'),
-          body: translateErrorCode(error.errorCode, error.message),
+          body: translateErrorCode(error.errorCode, error.message, error.details),
           correlationId: error.correlationId,
           retryable: error.retryable,
         });

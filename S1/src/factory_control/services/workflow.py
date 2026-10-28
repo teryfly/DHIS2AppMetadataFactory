@@ -975,6 +975,14 @@ def allowed_actions_for_workflow(runtime: Runtime, workflow_id: str, *, operator
                 session=ctx.session,
             ).items
         )
+        # The same index answers CP-PRJ-007's other half: an archived project is deletable
+        # only once an export of it exists, so the delete button cannot be lit from `archived` alone.
+        export_present = bool(
+            query_artifacts(
+                ArtifactQuery(project_id=project.id, type="PROJECT_EXPORT", limit=1),
+                session=ctx.session,
+            ).items
+        )
 
         computed: dict[str, Any] = A.compute_actions(
             A.ActionContext(
@@ -992,6 +1000,7 @@ def allowed_actions_for_workflow(runtime: Runtime, workflow_id: str, *, operator
                 verified_version_keys=verified_keys,
                 evaluate=permission_evaluator(runtime, operator, project.id),
                 frontend_package_available=frontend_present,
+                project_export_available=export_present,
                 m4_enabled=runtime.settings.m4_features_are_live(),
             )
         )

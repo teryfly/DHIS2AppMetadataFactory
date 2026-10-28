@@ -2,7 +2,7 @@
 case the SRS names that must fail (AI-NFR-04, ≥90 % on ``agents/checks``).
 
 ``run_checks`` is called with **one rule name at a time**, so a failure names the rule
-rather than leaving a reader to work out which of sixteen produced the finding.  What the
+rather than leaving a reader to work out which of seventeen produced the finding.  What the
 file is really guarding is the *narrowness* of three rules, because a checker that is
 wider than the requirement it implements teaches whoever fixes the prompt to route around
 it:
@@ -466,6 +466,18 @@ def test_the_domain_agent_is_bound_by_the_same_rule() -> None:
     assert _ids(findings) == [f"{RULE_PREFIX}-002"]
 
 
+def test_domain_stage_rules_describe_the_use_case_schema_s2_enforces() -> None:
+    """A rule the model follows must not be the reason S2 refuses every patch."""
+    from factory_blueprint.schema import section_schema
+
+    steps = section_schema("useCases")["properties"]["items"]["items"]["properties"]["steps"]
+    assert steps["type"] == "array"
+    rules = spec_for(AgentType.DOMAIN).stage_rules(mapping_frozen=False)
+    assert "`steps` and `preconditions` are arrays of plain strings" in rules
+    assert "`/<container>/-`" in rules
+    assert "businessKey is never an array index" in rules
+
+
 def test_the_type_vocabulary_is_lowercase_normalised() -> None:
     """AI-AG-001: ``data_element``, ``dataElement`` and ``DataElement`` are one name."""
     for key in ("dataElement", "data_element", "DataElement"):
@@ -583,6 +595,73 @@ def test_a_decision_without_an_identifier_is_named_as_unknown() -> None:
     assert "'?'" in findings[0].message
 
 
+# --- decision_registered (FR-MAP-001, BP-VAL-010) ---------------------------------
+
+
+def test_an_entry_citing_an_unregistered_decision_is_refused() -> None:
+    """FR-MAP-001: the answer's ``decisions`` array is invisible to S2 — only an
+    ``/architecture/decisions`` entry makes a decisionId resolve, and finding it here is what
+    buys the corrective retry instead of AI-RT-013's dead run."""
+    entry = {"businessKey": "map.a", "decisionId": "MAP-001"}
+    findings = _check(
+        "decision_registered", _writes(entry, section="mapping"), decisions=[_decision()]
+    )
+    assert _ids(findings) == [f"{RULE_PREFIX}-016"]
+    assert "MAP-001" in findings[0].message
+    assert "/architecture/decisions" in findings[0].message
+
+
+def test_a_decision_written_as_an_architecture_record_satisfies_the_rule() -> None:
+    """The pass case: one record per cited decision, written by the same patch."""
+    record = {
+        "decisionId": "MAP-001",
+        "title": "demographic code",
+        "context": "the patient's identifier",
+        "decision": "an attribute of the tracked entity type",
+        "status": "PROPOSED",
+    }
+    operations = _writes(
+        {"businessKey": "map.a", "decisionId": "MAP-001"}, section="mapping"
+    ) + _writes(record, section="architecture")
+    assert _check("decision_registered", operations, decisions=[_decision()]) == []
+
+
+def test_a_decision_the_draft_already_registers_needs_no_second_record() -> None:
+    """BP-VAL-010 resolves against the whole document: a decision accepted by an earlier run
+    is citable without re-writing it, and refusing that would force duplicate records."""
+    entry = {"businessKey": "map.a", "decisionId": "MAP-001"}
+    assert (
+        _check(
+            "decision_registered",
+            _writes(entry, section="mapping"),
+            decisions=[_decision()],
+            existing_decision_ids=("MAP-001",),
+        )
+        == []
+    )
+
+
+def test_a_registry_entry_is_read_by_the_same_rule() -> None:
+    """FR-MAP-001: a Registry entry cites its decision the same way a mapping entry does."""
+    entry = {"businessKey": "reg.a", "decisionId": "MAP-001"}
+    findings = _check(
+        "decision_registered", _writes(entry), decisions=[_decision()]
+    )
+    assert _ids(findings) == [f"{RULE_PREFIX}-016"]
+    assert "registry" in findings[0].message
+
+
+def test_an_unmapped_or_unciting_entry_is_not_this_rules_business() -> None:
+    """The two absences belong to ``decision_coverage``; this rule refuses a dangling
+    citation, so a ``notMapped`` entry and an entry with no citation both pass it."""
+    unmapped = _writes(
+        {"businessKey": "map.a", "notMapped": True, "decisionId": "MAP-001"}, section="mapping"
+    )
+    silent = _writes({"businessKey": "map.a"}, section="mapping")
+    assert _check("decision_registered", unmapped) == []
+    assert _check("decision_registered", silent) == []
+
+
 # --- low_confidence_question (AI-AG-012) ------------------------------------------
 
 
@@ -602,6 +681,20 @@ def test_the_same_decision_asked_of_a_human_is_accepted() -> None:
         None,
         decisions=[decision],
         questions=_ask_about("MAP-001"),
+    )
+    assert findings == []
+
+
+def test_a_decision_already_answered_needs_no_second_question() -> None:
+    """AI-AG-012 on resume: the answer is the confirmation, so a re-listed decision is not
+    put to the human again.  Without this, every answered high-impact decision fails the
+    resumed turn with AIC-005."""
+    decision = _decision(confidence=0.4, impactLevel="HIGH")
+    findings = _check(
+        "low_confidence_question",
+        None,
+        decisions=[decision],
+        answered_affects=["MAP-001"],
     )
     assert findings == []
 
@@ -1112,16 +1205,17 @@ def test_an_unknown_rule_name_is_a_finding_rather_than_silence() -> None:
     assert findings[0].ladder == LADDER_CONSTRAINT
 
 
-def test_the_rules_table_is_the_sixteen_the_srs_implies() -> None:
+def test_the_rules_table_is_the_seventeen_the_srs_implies() -> None:
     """AI-RT-012: ``RULES`` is the only name list a spec may reference, so its keys are the
     contract between the table and the runtime."""
-    assert len(RULES) == 16
+    assert len(RULES) == 17
     assert set(RULES) == {
         "no_final_products",
         "no_dhis2_payload",
         "no_dhis2_reference",
         "uid_ban",
         "decision_coverage",
+        "decision_registered",
         "low_confidence_question",
         "reuse_decision_per_similar_object",
         "business_key_references_only",

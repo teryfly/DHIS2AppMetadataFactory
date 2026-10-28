@@ -2,7 +2,11 @@
  * A drawer, not a second stage screen: the run log is evidence about the stage the operator is
  * already looking at. It reads the stage's own run rows and the agent run S1 assembled from S3's
  * result + the question store + the event stream, and keeps the ephemeral SSE timeline beside them.
+ *
+ * Every attempt is kept: the list defaults to the newest one, and choosing an older attempt shows
+ * that attempt's own persisted progress, result and issues instead of replacing it with the latest.
  */
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { Button, LinearLoader, Tag } from '@dhis2/ui';
@@ -11,13 +15,14 @@ import { useProgressStore } from '@/sse/progress';
 import { formatDate } from '@/lib/time';
 import { runStatusLabel, severityLabel } from '@/lib/labels';
 
+type StageRunResult = { status?: string; summary?: string | null } | null | undefined;
+
 export function RunLogPanel({
   workflowId,
   stageId,
   open,
   requested,
   stageStatus,
-  baselineRunIds,
   onClose,
 }: {
   workflowId: string;
@@ -25,8 +30,8 @@ export function RunLogPanel({
   open: boolean;
   requested: boolean;
   stageStatus: string;
-  /** Stage-run ids that existed before this click; the newest other row is this attempt. */
-  baselineRunIds: string[];
+  /** Kept in the prop shape for callers; the attempt list is now read from stageRuns itself. */
+  baselineRunIds?: string[];
   onClose: () => void;
 }) {
   const { t, i18n } = useTranslation();
@@ -39,31 +44,48 @@ export function RunLogPanel({
     // claim.
     refetchInterval: open ? 2_000 : false,
   });
-  const runs = detail.data?.stageRuns ?? [];
-  const baseline = new Set(baselineRunIds);
-  const newRuns = runs.filter((run) => !baseline.has(run.id));
-  const latestRun = newRuns.length
-    ? newRuns[newRuns.length - 1]
-    : requested
-      ? undefined
-      : runs[runs.length - 1];
-  const runId = progress?.runId ?? latestRun?.agentRunIds?.[0];
-  const agentRun = useQuery({ ...agentRunOptions(workflowId, runId, open), enabled: open && !!runId });
-  const status = String(
-    agentRun.data?.status ?? latestRun?.result?.status ?? detail.data?.status ?? stageStatus ?? '',
-  );
+  const runs = useMemo(() => detail.data?.stageRuns ?? [], [detail.data?.stageRuns]);
+  const latestRun = runs.length ? runs[runs.length - 1] : undefined;
+  const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!runs.length) {
+      setSelectedRunId(null);
+      return;
+    }
+    const newest = runs[runs.length - 1]?.id;
+    if (!newest) {
+      setSelectedRunId(null);
+      return;
+    }
+    setSelectedRunId((previous) => (previous && runs.some((run) => run.id === previous) ? previous : newest));
+  }, [runs]);
+
+  const selectedRun = runs.find((run) => run.id === selectedRunId) ?? latestRun;
+  const isLatest = selectedRun?.id === latestRun?.id;
+  const result = (selectedRun?.result ?? {}) as StageRunResult;
+  // The in-memory run id only belongs to the newest attempt; an older row must use the id S1
+  // recorded on it, or selecting attempt 3 would silently show attempt 8's agent result.
+  const runId = (isLatest ? progress?.runId : undefined) ?? selectedRun?.agentRunIds?.[0];
+  const agentRun = useQuery({ ...agentRunOptions(workflowId, runId, open && isLatest), enabled: open && !!runId });
+  const status = String(agentRun.data?.status ?? result?.status ?? (isLatest ? stageStatus : '') ?? '');
   const statusLabel =
-    requested && ['', 'READY', 'PENDING'].includes(status)
+    requested && !runId && ['', 'READY', 'PENDING'].includes(status)
       ? t('runLog.requested')
-      : runStatusLabel(status) || status;
-  const live = status === 'RUNNING' || status === 'WAITING_INPUT' || (requested && ['', 'READY', 'PENDING'].includes(status));
-  const fraction = Number(agentRun.data?.progress?.completedFraction ?? progress?.fraction ?? 0);
-  const step = progress?.currentStep ?? agentRun.data?.progress?.step;
-  // Only the run this session started has a reliable live timeline: the store is cleared on
-  // start, while a past run's frames may still contain the parse that preceded it. The final
-  // result below is always read from the server.
-  const log = requested ? progress?.log ?? [] : [];
-  const summary = (agentRun.data?.summary ?? latestRun?.result?.summary ?? null) as string | null;
+      : runStatusLabel(status) || status || t('runLog.statusUnknown');
+  const live = !!isLatest && (status === 'RUNNING' || status === 'WAITING_INPUT' || (requested && ['', 'READY', 'PENDING'].includes(status)));
+  const serverLog = selectedRun?.log ?? [];
+  const liveLog = isLatest && requested ? progress?.log ?? [] : [];
+  const log = serverLog.length ? serverLog : liveLog;
+  const lastFraction = [...serverLog].reverse().find((entry) => entry.fraction != null)?.fraction;
+  const fraction = Number(
+    lastFraction ?? agentRun.data?.progress?.completedFraction ?? (isLatest ? progress?.fraction : undefined) ?? 0,
+  );
+  const step =
+    [...serverLog].reverse().find((entry) => entry.step)?.step ??
+    agentRun.data?.progress?.step ??
+    (isLatest ? progress?.currentStep : undefined);
+  const summary = (agentRun.data?.summary ?? result?.summary ?? null) as string | null;
   const issues = agentRun.data?.issues ?? [];
   const denialReasons = agentRun.data?.denialReasons ?? [];
   const rejected = agentRun.data?.rejectedArtifacts ?? [];
@@ -88,6 +110,38 @@ export function RunLogPanel({
         </header>
 
         <div className="runlog-drawer__body">
+          <section className="runlog-section">
+            <h3>{t('runLog.runs')} · {runs.length}</h3>
+            {runs.length ? (
+              <ul className="runlog-runs">
+                {[...runs].reverse().map((run) => {
+                  const runStatus = String((run.result as StageRunResult)?.status ?? '');
+                  const selected = run.id === selectedRun?.id;
+                  return (
+                    <li key={run.id}>
+                      <button
+                        type="button"
+                        className={`runlog-run${selected ? ' runlog-run--active' : ''}`}
+                        aria-pressed={selected}
+                        onClick={() => setSelectedRunId(run.id)}
+                      >
+                        <span className="runlog-run__attempt">{t('runLog.attempt', { n: run.attempt })}</span>
+                        <Tag negative={runStatus === 'FAILED'} neutral={runStatus !== 'FAILED'}>
+                          {runStatusLabel(runStatus) || runStatus || t('runLog.statusUnknown')}
+                        </Tag>
+                        <span className="runlog-run__time">
+                          {formatDate(run.completedAt ?? run.createdAt, i18n.language)}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="muted">{t('runLog.empty')}</p>
+            )}
+          </section>
+
           <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <Tag>{statusLabel}</Tag>
             {runId ? <span className="muted mono">{t('runLog.runId')}: {runId}</span> : null}
